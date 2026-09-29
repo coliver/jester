@@ -285,13 +285,24 @@ function render() {
   for (const card of state.hand) {
     const div = document.createElement("div");
     div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
-    if (state.selected.has(card.id)) div.classList.add("selected");
+    const isSelected = state.selected.has(card.id);
+    if (isSelected) div.classList.add("selected");
     div.innerHTML = `
       <span class="rank-top">${card.rank}${card.suit}</span>
       <span class="suit-mid">${card.suit}</span>
       <span class="rank-bottom">${card.rank}${card.suit}</span>
     `;
+    div.tabIndex = 0;
+    div.setAttribute("role", "button");
+    div.setAttribute("aria-pressed", String(isSelected));
+    div.setAttribute("aria-label", `${card.rank} of ${card.suit}`);
     div.addEventListener("click", () => toggleCard(card.id));
+    div.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleCard(card.id);
+      }
+    });
     handRow.appendChild(div);
   }
 
