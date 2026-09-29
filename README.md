@@ -16,8 +16,13 @@ static (it's also set up for GitHub Pages).
 - 4 hands and 3 discards per round; reach the round's chip target before
   hands run out.
 - 8 simple jokers (flat chip/mult bonuses, conditional bonuses, one
-  multiplicative one) bought from a 3-item shop after each round win.
+  multiplicative one) bought from a 3-item shop after each round win; sell
+  owned jokers or reroll the shop's offers (for an escalating cost) between
+  rounds.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
+  Clearing round 3 of ante 8 wins the run; running out of hands first ends
+  it.
+- In-game hand-ranking reference (collapsible panel below the controls).
 
 ## What's intentionally left out
 
