@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Not Balatro</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div class="hud-block">
+        <span class="hud-label">Ante</span>
+        <span id="ante-val" class="hud-val">1</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Round</span>
+        <span id="round-val" class="hud-val">1</span>
+      </div>
+      <div class="hud-block wide">
+        <span class="hud-label">Score / Target</span>
+        <span id="score-val" class="hud-val">0 / 300</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">$</span>
+        <span id="money-val" class="hud-val">4</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Hands</span>
+        <span id="hands-val" class="hud-val">4</span>
+      </div>
+      <div class="hud-block">
+        <span class="hud-label">Discards</span>
+        <span id="discards-val" class="hud-val">3</span>
+      </div>
+    </header>
+
+    <section id="joker-row" aria-label="Owned jokers"></section>
+
+    <section id="preview" aria-label="Current hand preview">
+      <span id="preview-name">&nbsp;</span>
+      <span id="preview-math"></span>
+    </section>
+
+    <section id="hand-row" aria-label="Your hand"></section>
+
+    <div id="controls">
+      <button id="discard-btn">Discard</button>
+      <button id="play-btn">Play Hand</button>
+    </div>
+
+    <div id="overlay" class="hidden">
+      <div id="overlay-card">
+        <h2 id="overlay-title"></h2>
+        <p id="overlay-sub"></p>
+        <div id="shop-items"></div>
+        <button id="overlay-btn"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
