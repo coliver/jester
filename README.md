@@ -1,6 +1,6 @@
-# Not Balatro
+# Jester
 
-A very small, single-page clone of Balatro's core loop: play poker hands for
+A very small, single-page poker-scoring roguelike: play poker hands for
 chips × mult, clear an escalating chip target each round, and spend money on
 a handful of simple jokers between rounds.
 
@@ -11,7 +11,7 @@ static (it's also set up for GitHub Pages).
 ## What's in scope
 
 - Standard 52-card deck, 8-card hand, select up to 5 cards to play or discard.
-- Poker hand detection (high card through straight flush) with Balatro-ish
+- Poker hand detection (high card through straight flush) with its own
   base chip/mult values.
 - 4 hands and 3 discards per round; reach the round's chip target before
   hands run out.
@@ -21,6 +21,6 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Card art, animations/juice, the full Balatro joker roster, tarot/planet/
-spectral cards, vouchers, decks, and stakes. This is the "real basic"
-version, not a faithful port.
+Card art, animations/juice, a large joker roster, tarot/planet/spectral
+cards, vouchers, decks, and stakes. This is the "real basic" version — small
+and deliberately scoped, not a sprawling feature set.
