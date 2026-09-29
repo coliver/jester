@@ -141,7 +141,8 @@ function evaluateHand(cards) {
   let isStraight = false;
   if (cards.length === 5) {
     const nums = [...new Set(cards.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
-    if (nums.length === 5 && nums[4] - nums[0] === 4) isStraight = true;
+    const isWheel = nums.join(",") === "2,3,4,5,14"; // A-2-3-4-5
+    if (nums.length === 5 && (nums[4] - nums[0] === 4 || isWheel)) isStraight = true;
   }
 
   const h = { counts, isFlush, isStraight };
@@ -314,7 +315,7 @@ function render() {
     previewName.textContent = result.hand.name;
     previewMath.textContent = `${result.chips} chips × ${(result.mult * result.multMul).toFixed(result.multMul !== 1 ? 1 : 0)} mult = ${result.total}`;
   } else {
-    previewName.textContent = " ";
+    previewName.textContent = " ";
     previewMath.textContent = "";
   }
 
