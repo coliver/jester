@@ -440,6 +440,13 @@ function renderOverlay() {
 document.getElementById("play-btn").addEventListener("click", playHand);
 document.getElementById("discard-btn").addEventListener("click", discardSelected);
 
+const handReferenceList = document.getElementById("hand-reference-list");
+for (const t of HAND_TYPES) {
+  const li = document.createElement("li");
+  li.textContent = `${t.name} — ${t.chips} chips × ${t.mult} mult`;
+  handReferenceList.appendChild(li);
+}
+
 state = newState();
 startRound();
 render();
