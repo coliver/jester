@@ -1,4 +1,4 @@
-// --- Synthesized sound effects (Web Audio API, no external assets) --------
+// --- Sound effects: recorded card clips + synthesized stings (Web Audio) --
 
 const Sound = (() => {
   let ctx = null;
@@ -6,6 +6,38 @@ const Sound = (() => {
   let muted = (() => {
     try { return localStorage.getItem("jester-muted") === "1"; } catch { return false; }
   })();
+
+  function clip(src) {
+    const el = new Audio(src);
+    el.preload = "auto";
+    return el;
+  }
+
+  const clips = {
+    take: [
+      clip("sound/taking-playing-card.mp3"),
+      clip("sound/taking-playing-card-2.mp3"),
+      clip("sound/taking-playing-card-3.mp3"),
+    ],
+    place: clip("sound/placing-playing-card.mp3"),
+    shuffleDeck: clip("sound/shuffling-deck-of-cards.mp3"),
+  };
+
+  function playClip(base, { delay = 0, volume = 0.5, rate = 1 } = {}) {
+    if (muted) return;
+    const run = () => {
+      const node = base.cloneNode();
+      node.volume = volume;
+      node.playbackRate = rate;
+      node.play().catch(() => {});
+    };
+    if (delay > 0) setTimeout(run, delay * 1000);
+    else run();
+  }
+
+  function randomTake() {
+    return clips.take[Math.floor(Math.random() * clips.take.length)];
+  }
 
   function ensureCtx() {
     if (!ctx) {
@@ -58,7 +90,7 @@ const Sound = (() => {
   }
 
   function cardFlip(delay = 0) {
-    noiseBurst({ delay, duration: 0.06, freq: 2600 + Math.random() * 900, q: 0.8, gain: 0.22 });
+    playClip(randomTake(), { delay, volume: 0.45, rate: 0.95 + Math.random() * 0.1 });
   }
 
   function dealHand(count) {
@@ -71,12 +103,13 @@ const Sound = (() => {
   }
 
   function cardDeselect() {
-    tone({ freq: 550, duration: 0.05, type: "triangle", gain: 0.08 });
+    playClip(clips.place, { volume: 0.4, rate: 1 + Math.random() * 0.1 });
   }
 
   function discard(count = 1) {
-    noiseBurst({ duration: 0.16, freq: 1100, q: 0.5, gain: 0.2 });
-    tone({ freq: 500, glideTo: 200, duration: 0.15, type: "sine", gain: 0.08 });
+    for (let i = 0; i < count; i++) {
+      playClip(clips.place, { delay: i * 0.03, volume: 0.45, rate: 0.95 + Math.random() * 0.1 });
+    }
   }
 
   function playHandResolve(total) {
@@ -99,9 +132,7 @@ const Sound = (() => {
   }
 
   function shuffle() {
-    for (let i = 0; i < 5; i++) {
-      noiseBurst({ delay: i * 0.035, duration: 0.05, freq: 2000 + Math.random() * 1500, q: 1.2, gain: 0.13 });
-    }
+    playClip(clips.shuffleDeck, { volume: 0.55 });
   }
 
   function roundWin() {
