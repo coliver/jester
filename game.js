@@ -12,6 +12,7 @@ const START_MONEY = 4;
 const JOKER_SLOTS = 5;
 const ROUNDS_PER_ANTE = 3;
 const FINAL_ANTE = 8;
+const REROLL_BASE_COST = 2;
 
 const HAND_TYPES = [
   { name: "Straight Flush", chips: 100, mult: 8, test: h => h.isFlush && h.isStraight },
@@ -86,6 +87,7 @@ function newState() {
     selected: new Set(),
     jokers: [],
     shopOffers: [],
+    rerollCost: REROLL_BASE_COST,
     phase: "playing", // playing | shop | gameover | win
   };
 }
@@ -233,6 +235,7 @@ function finishRoundWin() {
   }
 
   state.phase = "shop";
+  state.rerollCost = REROLL_BASE_COST;
   const owned = new Set(state.jokers.map(j => j.id));
   const pool = JOKER_POOL.filter(j => !owned.has(j.id));
   for (let i = pool.length - 1; i > 0; i--) {
@@ -251,6 +254,29 @@ function buyJoker(id) {
   state.money -= joker.price;
   state.jokers.push(joker);
   state.shopOffers.splice(idx, 1);
+  render();
+}
+
+function sellJoker(id) {
+  if (state.phase !== "shop") return;
+  const idx = state.jokers.findIndex(j => j.id === id);
+  if (idx === -1) return;
+  const [joker] = state.jokers.splice(idx, 1);
+  state.money += Math.max(1, Math.floor(joker.price / 2));
+  render();
+}
+
+function rerollShop() {
+  if (state.phase !== "shop" || state.money < state.rerollCost) return;
+  state.money -= state.rerollCost;
+  state.rerollCost += 1;
+  const owned = new Set(state.jokers.map(j => j.id));
+  const pool = JOKER_POOL.filter(j => !owned.has(j.id));
+  for (let i = pool.length - 1; i > 0; i--) {
+    const r = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[r]] = [pool[r], pool[i]];
+  }
+  state.shopOffers = pool.slice(0, 3);
   render();
 }
 
@@ -335,6 +361,8 @@ function render() {
 
 function renderOverlay() {
   const overlay = document.getElementById("overlay");
+  const rerollBtn = document.getElementById("reroll-btn");
+  const ownedSection = document.getElementById("owned-jokers-section");
   if (state.phase === "shop") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "Round Cleared!";
@@ -355,6 +383,30 @@ function renderOverlay() {
       div.querySelector("button").addEventListener("click", () => buyJoker(j.id));
       shopItems.appendChild(div);
     }
+
+    const ownedList = document.getElementById("owned-jokers");
+    ownedList.innerHTML = "";
+    if (state.jokers.length > 0) {
+      ownedSection.classList.remove("hidden");
+      for (const j of state.jokers) {
+        const div = document.createElement("div");
+        div.className = "joker";
+        div.innerHTML = `<span class="joker-name">${j.name}</span>${j.desc}`;
+        const sellBtn = document.createElement("button");
+        sellBtn.className = "sell-btn";
+        sellBtn.textContent = `Sell $${Math.max(1, Math.floor(j.price / 2))}`;
+        sellBtn.addEventListener("click", () => sellJoker(j.id));
+        div.appendChild(sellBtn);
+        ownedList.appendChild(div);
+      }
+    } else {
+      ownedSection.classList.add("hidden");
+    }
+
+    rerollBtn.classList.remove("hidden");
+    rerollBtn.textContent = `Reroll ($${state.rerollCost})`;
+    rerollBtn.disabled = state.money < state.rerollCost;
+    rerollBtn.onclick = rerollShop;
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Next Round";
     btn.onclick = nextRound;
@@ -363,6 +415,8 @@ function renderOverlay() {
     document.getElementById("overlay-title").textContent = "You Win!";
     document.getElementById("overlay-sub").textContent = `Cleared Ante ${FINAL_ANTE} with ${state.jokers.length} joker(s) held.`;
     document.getElementById("shop-items").innerHTML = "";
+    rerollBtn.classList.add("hidden");
+    ownedSection.classList.add("hidden");
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Play Again";
     btn.onclick = restart;
@@ -371,6 +425,8 @@ function renderOverlay() {
     document.getElementById("overlay-title").textContent = "Game Over";
     document.getElementById("overlay-sub").textContent = `You reached Ante ${state.ante}, Round ${state.round}.`;
     document.getElementById("shop-items").innerHTML = "";
+    rerollBtn.classList.add("hidden");
+    ownedSection.classList.add("hidden");
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Restart";
     btn.onclick = restart;
