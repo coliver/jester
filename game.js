@@ -90,6 +90,7 @@ function newState() {
     rerollCost: REROLL_BASE_COST,
     sortMode: "rank", // rank | suit
     phase: "playing", // playing | shop | gameover | win
+    dealtIds: new Map(),
   };
 }
 
@@ -119,15 +120,30 @@ function targetForRound(ante, round) {
   return Math.round(base * (1 + 0.35 * (round - 1)) / 10) * 10;
 }
 
+function animateShuffle() {
+  const pile = document.getElementById("deck-pile");
+  pile.classList.remove("shuffling");
+  void pile.offsetWidth; // restart animation
+  pile.classList.add("shuffling");
+}
+
 function startRound() {
   state.deck = freshDeck();
-  state.hand = draw(HAND_SIZE);
+  state.hand = [];
   state.selected = new Set();
   state.roundScore = 0;
   state.handsLeft = START_HANDS;
   state.discardsLeft = START_DISCARDS;
   state.target = targetForRound(state.ante, state.round);
   state.phase = "playing";
+  state.dealtIds = new Map();
+
+  animateShuffle();
+  setTimeout(() => {
+    state.hand = draw(HAND_SIZE);
+    state.dealtIds = new Map(state.hand.map((c, i) => [c.id, i]));
+    render();
+  }, 420);
 }
 
 // --- Hand evaluation -------------------------------------------------------
@@ -206,7 +222,9 @@ function playHand() {
 
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
-  state.hand.push(...draw(HAND_SIZE - state.hand.length));
+  const drawn = draw(HAND_SIZE - state.hand.length);
+  state.hand.push(...drawn);
+  state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
 
   if (state.roundScore >= state.target) {
     finishRoundWin();
@@ -222,7 +240,9 @@ function discardSelected() {
   state.discardsLeft -= 1;
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
-  state.hand.push(...draw(HAND_SIZE - state.hand.length));
+  const drawn = draw(HAND_SIZE - state.hand.length);
+  state.hand.push(...drawn);
+  state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
   render();
 }
 
@@ -343,6 +363,9 @@ function render() {
   document.getElementById("sort-rank-btn").classList.toggle("active", state.sortMode === "rank");
   document.getElementById("sort-suit-btn").classList.toggle("active", state.sortMode === "suit");
 
+  const dealt = state.dealtIds;
+  state.dealtIds = new Map();
+
   const handRow = document.getElementById("hand-row");
   handRow.innerHTML = "";
   for (const card of sortedHand()) {
@@ -350,6 +373,10 @@ function render() {
     div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
     const isSelected = state.selected.has(card.id);
     if (isSelected) div.classList.add("selected");
+    if (dealt.has(card.id)) {
+      div.classList.add("dealt");
+      div.style.animationDelay = `${dealt.get(card.id) * 70}ms`;
+    }
     div.innerHTML = `
       <span class="rank-top">${card.rank}${card.suit}</span>
       <span class="suit-mid">${card.suit}</span>
