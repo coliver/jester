@@ -10,6 +10,8 @@ const START_HANDS = 4;
 const START_DISCARDS = 3;
 const START_MONEY = 4;
 const JOKER_SLOTS = 5;
+const ROUNDS_PER_ANTE = 3;
+const FINAL_ANTE = 8;
 
 const HAND_TYPES = [
   { name: "Straight Flush", chips: 100, mult: 8, test: h => h.isFlush && h.isStraight },
@@ -84,7 +86,7 @@ function newState() {
     selected: new Set(),
     jokers: [],
     shopOffers: [],
-    phase: "playing", // playing | shop | gameover
+    phase: "playing", // playing | shop | gameover | win
   };
 }
 
@@ -224,6 +226,12 @@ function discardSelected() {
 function finishRoundWin() {
   const reward = 3 + state.handsLeft + state.discardsLeft;
   state.money += reward;
+
+  if (state.ante >= FINAL_ANTE && state.round >= ROUNDS_PER_ANTE) {
+    state.phase = "win";
+    return;
+  }
+
   state.phase = "shop";
   const owned = new Set(state.jokers.map(j => j.id));
   const pool = JOKER_POOL.filter(j => !owned.has(j.id));
@@ -248,7 +256,7 @@ function buyJoker(id) {
 
 function nextRound() {
   state.round += 1;
-  if (state.round > 3) {
+  if (state.round > ROUNDS_PER_ANTE) {
     state.round = 1;
     state.ante += 1;
   }
@@ -350,6 +358,14 @@ function renderOverlay() {
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Next Round";
     btn.onclick = nextRound;
+  } else if (state.phase === "win") {
+    overlay.classList.remove("hidden");
+    document.getElementById("overlay-title").textContent = "You Win!";
+    document.getElementById("overlay-sub").textContent = `Cleared Ante ${FINAL_ANTE} with ${state.jokers.length} joker(s) held.`;
+    document.getElementById("shop-items").innerHTML = "";
+    const btn = document.getElementById("overlay-btn");
+    btn.textContent = "Play Again";
+    btn.onclick = restart;
   } else if (state.phase === "gameover") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "Game Over";
