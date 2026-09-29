@@ -51,6 +51,23 @@ body {
 
 .hud-block.wide { min-width: 140px; }
 
+#mute-btn {
+  margin-left: auto;
+  align-self: center;
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  border-radius: 8px;
+}
+
+#mute-btn.muted {
+  color: var(--red);
+  border-color: var(--red);
+}
+
 .hud-label {
   font-size: 11px;
   text-transform: uppercase;

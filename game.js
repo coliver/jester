@@ -139,9 +139,11 @@ function startRound() {
   state.dealtIds = new Map();
 
   animateShuffle();
+  Sound.shuffle();
   setTimeout(() => {
     state.hand = draw(HAND_SIZE);
     state.dealtIds = new Map(state.hand.map((c, i) => [c.id, i]));
+    Sound.dealHand(state.hand.length);
     render();
   }, 420);
 }
@@ -202,8 +204,10 @@ function toggleCard(id) {
   if (!card) return;
   if (state.selected.has(id)) {
     state.selected.delete(id);
+    Sound.cardDeselect();
   } else if (state.selected.size < MAX_SELECTED) {
     state.selected.add(id);
+    Sound.cardSelect();
   }
   render();
 }
@@ -219,17 +223,20 @@ function playHand() {
   const result = scoreSelection(selected);
   state.roundScore += result.total;
   state.handsLeft -= 1;
+  Sound.playHandResolve(result.total);
 
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
   const drawn = draw(HAND_SIZE - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
+  if (drawn.length) Sound.dealHand(drawn.length);
 
   if (state.roundScore >= state.target) {
     finishRoundWin();
   } else if (state.handsLeft <= 0) {
     state.phase = "gameover";
+    Sound.gameOver();
   }
   render();
 }
@@ -238,11 +245,13 @@ function discardSelected() {
   const selected = getSelectedCards();
   if (selected.length === 0 || state.discardsLeft <= 0) return;
   state.discardsLeft -= 1;
+  Sound.discard(selected.length);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
   const drawn = draw(HAND_SIZE - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
+  if (drawn.length) Sound.dealHand(drawn.length);
   render();
 }
 
@@ -252,9 +261,11 @@ function finishRoundWin() {
 
   if (state.ante >= FINAL_ANTE && state.round >= ROUNDS_PER_ANTE) {
     state.phase = "win";
+    Sound.gameWin();
     return;
   }
 
+  Sound.roundWin();
   state.phase = "shop";
   state.rerollCost = REROLL_BASE_COST;
   const owned = new Set(state.jokers.map(j => j.id));
@@ -275,6 +286,7 @@ function buyJoker(id) {
   state.money -= joker.price;
   state.jokers.push(joker);
   state.shopOffers.splice(idx, 1);
+  Sound.coinBuy();
   render();
 }
 
@@ -284,6 +296,7 @@ function sellJoker(id) {
   if (idx === -1) return;
   const [joker] = state.jokers.splice(idx, 1);
   state.money += Math.max(1, Math.floor(joker.price / 2));
+  Sound.coinSell();
   render();
 }
 
@@ -291,6 +304,7 @@ function rerollShop() {
   if (state.phase !== "shop" || state.money < state.rerollCost) return;
   state.money -= state.rerollCost;
   state.rerollCost += 1;
+  Sound.shuffle();
   const owned = new Set(state.jokers.map(j => j.id));
   const pool = JOKER_POOL.filter(j => !owned.has(j.id));
   for (let i = pool.length - 1; i > 0; i--) {
@@ -340,6 +354,7 @@ function sortedHand() {
 function setSortMode(mode) {
   if (state.sortMode === mode) return;
   state.sortMode = mode;
+  Sound.click();
   render();
 }
 
@@ -496,6 +511,19 @@ document.getElementById("play-btn").addEventListener("click", playHand);
 document.getElementById("discard-btn").addEventListener("click", discardSelected);
 document.getElementById("sort-rank-btn").addEventListener("click", () => setSortMode("rank"));
 document.getElementById("sort-suit-btn").addEventListener("click", () => setSortMode("suit"));
+
+const muteBtn = document.getElementById("mute-btn");
+function syncMuteBtn() {
+  const muted = Sound.isMuted();
+  muteBtn.textContent = muted ? "🔇" : "🔊";
+  muteBtn.classList.toggle("muted", muted);
+  muteBtn.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+}
+muteBtn.addEventListener("click", () => {
+  Sound.toggleMuted();
+  syncMuteBtn();
+});
+syncMuteBtn();
 
 const handReferenceList = document.getElementById("hand-reference-list");
 for (const t of HAND_TYPES) {
