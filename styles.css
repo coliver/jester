@@ -105,6 +105,25 @@ body {
   margin-right: 10px;
 }
 
+#sort-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sort-btn {
+  font-size: 12px;
+  padding: 4px 12px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--muted);
+}
+
+.sort-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 #hand-row {
   display: flex;
   justify-content: center;

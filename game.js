@@ -88,6 +88,7 @@ function newState() {
     jokers: [],
     shopOffers: [],
     rerollCost: REROLL_BASE_COST,
+    sortMode: "rank", // rank | suit
     phase: "playing", // playing | shop | gameover | win
   };
 }
@@ -298,6 +299,30 @@ function restart() {
 
 // --- Rendering ---------------------------------------------------------------
 
+const SUIT_ORDER = new Map(SUITS.map((s, i) => [s, i]));
+
+function sortedHand() {
+  const cards = [...state.hand];
+  if (state.sortMode === "suit") {
+    return cards.sort((a, b) => {
+      const suitDiff = SUIT_ORDER.get(a.suit) - SUIT_ORDER.get(b.suit);
+      if (suitDiff !== 0) return suitDiff;
+      return rankNum(a.rank) - rankNum(b.rank);
+    });
+  }
+  return cards.sort((a, b) => {
+    const rankDiff = rankNum(a.rank) - rankNum(b.rank);
+    if (rankDiff !== 0) return rankDiff;
+    return SUIT_ORDER.get(a.suit) - SUIT_ORDER.get(b.suit);
+  });
+}
+
+function setSortMode(mode) {
+  if (state.sortMode === mode) return;
+  state.sortMode = mode;
+  render();
+}
+
 function render() {
   document.getElementById("ante-val").textContent = state.ante;
   document.getElementById("round-val").textContent = state.round;
@@ -315,9 +340,12 @@ function render() {
     jokerRow.appendChild(div);
   }
 
+  document.getElementById("sort-rank-btn").classList.toggle("active", state.sortMode === "rank");
+  document.getElementById("sort-suit-btn").classList.toggle("active", state.sortMode === "suit");
+
   const handRow = document.getElementById("hand-row");
   handRow.innerHTML = "";
-  for (const card of state.hand) {
+  for (const card of sortedHand()) {
     const div = document.createElement("div");
     div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
     const isSelected = state.selected.has(card.id);
@@ -439,6 +467,8 @@ function renderOverlay() {
 
 document.getElementById("play-btn").addEventListener("click", playHand);
 document.getElementById("discard-btn").addEventListener("click", discardSelected);
+document.getElementById("sort-rank-btn").addEventListener("click", () => setSortMode("rank"));
+document.getElementById("sort-suit-btn").addEventListener("click", () => setSortMode("suit"));
 
 const handReferenceList = document.getElementById("hand-reference-list");
 for (const t of HAND_TYPES) {
