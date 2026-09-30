@@ -30,14 +30,19 @@ static (it's also set up for GitHub Pages).
   applies for that round. Clearing round 3 of ante 8 wins the run; running
   out of hands first ends it.
 - In-game hand-ranking reference (collapsible panel below the controls).
+- Sort the hand by rank or suit, and a Deck button that opens a grid of all
+  52 cards showing which are still in the draw pile, in hand, played, or
+  discarded this round.
+- Jester card art is optional per jester; any jester without its own image
+  shows `assets/jesters/missing_no.png` instead.
 
 ## What's intentionally left out
 
-Animations/juice, a large jester roster, tarot/planet/spectral cards,
+Animations/juice, a Balatro-sized jester roster, tarot/planet/spectral cards,
 vouchers, decks, and stakes. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
-exception: a lightweight, optional `<img>` hook and generated art for the
-simpler jesters landed early since it's additive and non-breaking — see
+exception: a lightweight, optional `<img>` hook and generated art for most
+jesters landed early since it's additive and non-breaking — see
 `assets/jesters/PROMPTS.md`.)
 
 ## Development

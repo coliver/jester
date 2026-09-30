@@ -15,9 +15,10 @@ so art can be dropped in incrementally without further code changes.
   (`--panel: #2a1a38`) shows around the art, so a filled dark-purple or
   near-black background blends in fine and avoids matting/edge-halo
   issues from generators.
-- Missing files are safe: `game.js` fails the `<img>` over silently and
-  the jester renders exactly as it does today (name + description only).
-  Add art one jester at a time, in any order.
+- Missing files are safe: when `<id>.png` fails to load, the `<img>`'s
+  `onerror` handler swaps in `assets/jesters/missing_no.png` (and clears
+  itself, so it can't loop). Add art one jester at a time, in any order.
+  `test/render.test.js` covers this fallback.
 
 ## Shared style block
 

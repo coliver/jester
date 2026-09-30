@@ -825,8 +825,8 @@ function setSortMode(mode) {
 }
 
 // Jester art is optional and added incrementally (see assets/jesters/PROMPTS.md);
-// the onerror handler drops the <img> so a missing file just falls back to
-// the plain name/description card that's always been there.
+// the onerror handler swaps a missing file for the shared missing_no.png
+// placeholder (and clears itself so a missing placeholder can't loop).
 function jesterArtHTML(id) {
   return `<img class="jester-art" src="assets/jesters/${id}.png" alt="" onerror="this.onerror=null; this.src='assets/jesters/missing_no.png';">`;
 }
