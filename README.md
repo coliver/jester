@@ -15,12 +15,12 @@ static (it's also set up for GitHub Pages).
   base chip/mult values.
 - 4 hands and 3 discards per round; reach the round's chip target before
   hands run out.
-- 54 jesters across three rarities (flat chip/mult bonuses, conditional
+- 59 jesters across three rarities (flat chip/mult bonuses, conditional
   bonuses, several multiplicative and scaling ones, a few that read or
   build on the rest of the owned roster — copy another jester's ability,
   scale off jesters sold or their resale value — plus a handful that
   change round setup — extra hand size/discards, shop debt, a free reroll,
-  a round-end payout, or a discard/evaluation hook) bought from a 3-item
+  round-end payouts and sell-value growth, or a discard/evaluation hook) bought from a 3-item
   shop after each round win; sell owned jesters or reroll the shop's offers
   (for an escalating cost) between rounds. Saved money earns interest ($1
   per $5 held, capped at $5) on every round win.
@@ -50,6 +50,10 @@ Tests run on Node's built-in test runner, no install required:
 ```
 node --test
 ```
+
+`cards.csv` lists every jester (id, name, rarity, price, description, whether
+art exists); a test keeps its ids in step with `JESTER_POOL`, so add a row
+whenever a jester is added.
 
 Three layers, each testing what the one below it can't reach:
 - `test/scoring.test.js` — pure scoring-math regression tests (hand

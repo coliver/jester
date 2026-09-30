@@ -643,3 +643,84 @@ test("The Club zeroes the chip value of played clubs", () => {
   const spadeResult = scoreSelection([spadeCard]);
   assert.equal(clubResult.chips, spadeResult.chips - 10);
 });
+
+// --- round-end jesters: Egg, Gros Michel, Cloud 9, Rocket, Gift Card -------
+// Owned jesters that change over the run are per-instance copies (as buyJester
+// makes them) so tests don't mutate the shared JESTER_POOL entries.
+
+function clearRoundWith(jesters, { round } = {}) {
+  const state = freshRoundState();
+  state.target = 1;
+  if (round) state.round = round;
+  state.jesters = jesters;
+  toggleCard(state.hand[0].id);
+  playHand();
+  return _getState();
+}
+
+test("buyJester gives the owned jester its own copy, so sell value can change", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 50;
+  state.shopOffers = [jesterById("egg")];
+  buyJester("egg");
+  const owned = _getState().jesters[0];
+  assert.notEqual(owned, jesterById("egg"));
+  assert.equal(owned.sellBonus, 0);
+});
+
+test("Egg gains $3 of sell value each round cleared", () => {
+  const egg = { ...jesterById("egg"), sellBonus: 0 };
+  clearRoundWith([egg]);
+  assert.equal(egg.sellBonus, 3);
+  assert.equal(jesterById("egg").sellBonus, undefined);
+});
+
+test("Gift Card adds $1 of sell value to every owned jester, itself included", () => {
+  const gift = { ...jesterById("gift_card"), sellBonus: 0 };
+  const other = { ...jesterById("base_jester"), sellBonus: 0 };
+  clearRoundWith([gift, other]);
+  assert.equal(gift.sellBonus, 1);
+  assert.equal(other.sellBonus, 1);
+});
+
+test("sold jesters refund their base value plus accumulated sell bonus", () => {
+  const egg = { ...jesterById("egg"), sellBonus: 6 };
+  const state = clearRoundWith([egg]);
+  const before = state.money;
+  sellJester("egg");
+  assert.equal(_getState().money, before + 2 + 9); // floor(4/2) + (6 + 3 from this round)
+});
+
+test("Cloud 9 pays $1 per 9 in the deck", () => {
+  assert.equal(clearRoundWith([{ ...jesterById("cloud_9") }]).lastEarnings.bonus, 4);
+});
+
+test("Rocket pays $1 at round end and $2 more per boss round cleared", () => {
+  const rocket = { ...jesterById("rocket") };
+  assert.equal(clearRoundWith([rocket]).lastEarnings.bonus, 1);
+  assert.equal(clearRoundWith([rocket], { round: 3 }).lastEarnings.bonus, 1); // boss: pays 1, then rises
+  assert.equal(rocket.rocketPayout, 3);
+  assert.equal(clearRoundWith([rocket]).lastEarnings.bonus, 3);
+});
+
+test("Gros Michel gives +15 Mult and can be destroyed by its 1-in-6 round-end roll", () => {
+  const card = freshRoundState().hand[0];
+  const base = scoreSelection([card]).mult;
+  _getState().jesters = [jesterById("gros_michel")];
+  assert.equal(scoreSelection([card]).mult, base + 15);
+
+  clearRoundWith([{ ...jesterById("gros_michel") }]); // random unmocked: just must not throw
+  const state = freshRoundState();
+  state.target = 1;
+  state.jesters = [{ ...jesterById("gros_michel") }];
+  toggleCard(state.hand[0].id);
+  withMockedRandom(0, () => playHand());
+  assert.equal(_getState().jesters.length, 0);
+});
+
+test("cards.csv lists every jester in the pool", () => {
+  const rows = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "cards.csv"), "utf8")
+    .trim().split("\n").slice(1);
+  assert.deepEqual(rows.map(r => r.split(",")[0]), JESTER_POOL.map(j => j.id));
+});

@@ -1,20 +1,12 @@
 # Deferred Balatro jesters
 
-56 of the 105 "available from start" Balatro jesters (source, under
+51 of the 105 "available from start" Balatro jesters (source, under
 Balatro's own name for them:
 [balatrogame.fandom.com/wiki/Jokers](https://balatrogame.fandom.com/wiki/Jokers),
 pulled 2026-09-29) aren't in `JESTER_POOL` yet — see [PROMPTS.md](PROMPTS.md)
-for the 49 that are. Each of these needs something the engine doesn't
+for the 54 that are. Each of these needs something the engine doesn't
 track today. Grouped by what's missing, so a future phase can knock out a
 whole group at once rather than one jester at a time.
-
-## Needs a round-end hook
-
-No "round cleared, before shop opens" hook exists yet — money/mult
-effects that fire once per round need one.
-
-Egg ($4, Common) · Gros Michel ($5, Common) · Cloud 9 ($7, Uncommon) ·
-Rocket ($6, Uncommon) · Gift Card ($6, Uncommon)
 
 ## Needs a blind-select hook
 

@@ -32,7 +32,8 @@ sell value held, jesters sold, rarity variety — see below), an economy layer (
 ✓, reroll cost ✓, jester resale value ✓), boss-round-style modifiers that
 force different play ✓ (six modifiers — higher target, 1-hand-only,
 no-discard, smaller hand, and two suit debuffs — one picked at random for
-round 3 of every ante). Remaining: more of this synergy/anti-synergy work
+round 3 of every ante). The round-end hook group (Egg, Gros Michel, Cloud 9, Rocket, Gift Card — the
+last two grow per-jester sell value/payout) has landed too. Remaining: more of this synergy/anti-synergy work
 if it keeps paying off — the five landed so far are a first pass, not a
 ceiling. This is where the game gets *replayable* rather than just
 *playable*.

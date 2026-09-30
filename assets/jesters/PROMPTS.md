@@ -103,6 +103,16 @@ style reference if your tool supports one):
 | `blueprint` | Blueprint | Rare | A jester drafting on a glowing cyan blueprint sheet, a ghostly line-drawn copy of the jester beside them taking shape |
 | `ringmaster` | Ringmaster | Uncommon | A top-hatted ringmaster jester with a whip and a megaphone, presenting a parade of differently colored performers behind them |
 
+### Phase 2: round-end hook group
+
+| id | name | rarity | subject prompt |
+|---|---|---|---|
+| `egg` | Egg | Common | A jester carefully cradling a large, faintly golden egg in both hands, the shell catching warm light |
+| `gros_michel` | Gros Michel | Common | A jester with a bunch of ripe bananas slung over one shoulder like a bandolier, a single peel trailing behind them |
+| `cloud_9` | Cloud 9 | Uncommon | A jester lounging blissfully on a pillowy cloud high above the carnival, coins drifting down like rain |
+| `rocket` | Rocket | Uncommon | A jester riding a clumsy, patched-together firework rocket mid-launch, trailing gold sparks and smoke |
+| `gift_card` | Gift Card | Uncommon | A jester presenting an ornate wrapped gift with a glowing ribbon, a smaller gift already appearing inside its bow |
+
 ## Rarity color key (already wired into styles.css)
 
 Common = `#4db8ff`, Uncommon = `#35d68a`, Rare = `#ff5d6c` — matches

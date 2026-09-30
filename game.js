@@ -21,6 +21,12 @@ const REROLL_BASE_COST = 2;
 const INTEREST_UNIT = 5;
 const INTEREST_CAP = 5;
 
+// Resale price of an owned jester: half its cost (min $1) plus whatever
+// round-end jesters (Egg, Gift Card) have added to it since it was bought.
+function sellValue(jester) {
+  return Math.max(1, Math.floor(jester.price / 2)) + (jester.sellBonus || 0);
+}
+
 const HAND_TYPES = [
   { name: "Straight Flush", chips: 100, mult: 8, test: h => h.isFlush && h.isStraight },
   { name: "Four of a Kind", chips: 60, mult: 7, test: h => h.counts[0] === 4 },
@@ -267,6 +273,39 @@ const JESTER_POOL = [
     roundEnd: () => ({ money: 4 }),
   },
   {
+    id: "egg", name: "Egg", price: 4, rarity: "Common",
+    desc: "Gains $3 of sell value at the end of every round",
+    roundEnd: (ctx, self) => { self.sellBonus = (self.sellBonus || 0) + 3; return {}; },
+  },
+  {
+    id: "gros_michel", name: "Gros Michel", price: 5, rarity: "Common",
+    desc: "+15 Mult, 1 in 6 chance to be destroyed at round end",
+    apply: () => ({ multAdd: 15 }),
+    roundEnd: () => (Math.random() < 1 / 6 ? { destroySelf: true } : {}),
+  },
+  {
+    id: "cloud_9", name: "Cloud 9", price: 7, rarity: "Uncommon",
+    desc: "Earn $1 at round end for each 9 in your deck",
+    roundEnd: (ctx) => ({ money: ctx.deck.filter(c => c.rank === "9").length }),
+  },
+  {
+    id: "rocket", name: "Rocket", price: 6, rarity: "Uncommon",
+    desc: "Earn $1 at round end; the payout rises by $2 each time a boss round is cleared",
+    roundEnd: (ctx, self) => {
+      const money = self.rocketPayout || 1;
+      if (ctx.isBoss) self.rocketPayout = money + 2;
+      return { money };
+    },
+  },
+  {
+    id: "gift_card", name: "Gift Card", price: 6, rarity: "Uncommon",
+    desc: "Adds $1 of sell value to every owned Jester at the end of every round",
+    roundEnd: (ctx) => {
+      for (const j of ctx.jesters) j.sellBonus = (j.sellBonus || 0) + 1;
+      return {};
+    },
+  },
+  {
     id: "cavendish", name: "Cavendish", price: 4, rarity: "Common",
     desc: "X3 Mult, 1 in 1000 chance to be destroyed at round end",
     apply: () => ({ multMul: 3 }),
@@ -327,7 +366,7 @@ const JESTER_POOL = [
       let multAdd = 0;
       for (const j of ctx.jesters) {
         if (j.id === "swashbuckler") continue;
-        multAdd += Math.max(1, Math.floor(j.price / 2));
+        multAdd += sellValue(j);
       }
       return { multAdd };
     },
@@ -656,14 +695,17 @@ function discardSelected() {
 function finishRoundWin() {
   const reward = 3 + state.handsLeft + state.discardsLeft;
   const interest = Math.min(INTEREST_CAP, Math.floor(state.money / INTEREST_UNIT));
-  const roundEndCtx = { money: state.money, discardsLeft: state.discardsLeft, discardsUsed: state.discardsUsed };
+  const roundEndCtx = {
+    money: state.money, discardsLeft: state.discardsLeft, discardsUsed: state.discardsUsed,
+    jesters: state.jesters, isBoss: state.round === ROUNDS_PER_ANTE, deck: freshDeck(),
+  };
   state.money += reward + interest;
 
   let bonus = 0;
   const destroyed = new Set();
   for (const j of state.jesters) {
     if (!j.roundEnd) continue;
-    const effect = j.roundEnd(roundEndCtx) || {};
+    const effect = j.roundEnd(roundEndCtx, j) || {};
     if (effect.money) bonus += effect.money;
     if (effect.destroySelf) destroyed.add(j.id);
   }
@@ -703,7 +745,7 @@ function buyJester(id) {
   const jester = state.shopOffers[idx];
   if (state.money - jester.price < debtFloor()) return;
   state.money -= jester.price;
-  state.jesters.push(jester);
+  state.jesters.push({ ...jester, sellBonus: 0 });
   state.shopOffers.splice(idx, 1);
   Sound.coinBuy();
   render();
@@ -714,7 +756,7 @@ function sellJester(id) {
   const idx = state.jesters.findIndex(j => j.id === id);
   if (idx === -1) return;
   const [jester] = state.jesters.splice(idx, 1);
-  state.money += Math.max(1, Math.floor(jester.price / 2));
+  state.money += sellValue(jester);
   state.jestersSold += 1;
   Sound.coinSell();
   render();
@@ -961,7 +1003,7 @@ function renderOverlay() {
         div.innerHTML = `${jesterHeaderHTML(j)}${j.desc}`;
         const sellBtn = document.createElement("button");
         sellBtn.className = "sell-btn";
-        sellBtn.textContent = `Sell $${Math.max(1, Math.floor(j.price / 2))}`;
+        sellBtn.textContent = `Sell $${sellValue(j)}`;
         sellBtn.addEventListener("click", () => sellJester(j.id));
         div.appendChild(sellBtn);
         ownedList.appendChild(div);
