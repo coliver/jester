@@ -1,7 +1,7 @@
 # Roadmap
 
 Jester is a small, single-page poker-scoring roguelike (deck → hand →
-score chips × mult → clear a target → shop for jokers → escalate). The
+score chips × mult → clear a target → shop for jesters → escalate). The
 current build (see [README](README.md)) is a single-commit scaffold: the
 whole loop works, but it hasn't been hardened, tested, or extended past its
 initial shape. This document lays out where it goes from here.
@@ -14,20 +14,20 @@ otherwise explicitly.
 ## 10,000-foot view
 
 **Phase 0 — Current state (done)**
-Deck, hand, poker evaluation, 4 hands / 3 discards, 8 jokers, 3-item shop,
+Deck, hand, poker evaluation, 4 hands / 3 discards, 8 jesters, 3-item shop,
 ante/round escalation. Playable start-to-finish, no persistence, no tests,
 a few known rules gaps (see Phase 1).
 
 **Phase 1 — Harden the core loop**
 Make the existing scope *correct and complete* before adding anything new:
 fix scoring/rules bugs, give the run a real ending, add minimal regression
-tests for the scoring math, small UX gaps (sell a joker, see hand
+tests for the scoring math, small UX gaps (sell a jester, see hand
 rankings). No new content, no visuals work.
 
 **Phase 2 — Strategic depth**
-Grow the decision space within the existing systems: more jokers with
+Grow the decision space within the existing systems: more jesters with
 real synergies/anti-synergies, an economy layer (interest on saved money,
-reroll cost, joker resale value), boss-round-style modifiers that force
+reroll cost, jester resale value), boss-round-style modifiers that force
 different play. This is where the game gets *replayable* rather than just
 *playable*.
 
@@ -60,13 +60,14 @@ visuals for a scoring model that's still changing).
 *correct*, has a real beginning/middle/end, and has enough of a safety net
 that Phase 2 work doesn't silently regress the scoring math.
 
-**Status (2026-09-29):** shipped for the first alpha pass — Ace-low
-straight fix, win condition (ante 8) with win/game-over summaries, sell
-joker, reroll shop, hand-reference panel. All verified end-to-end in a
-headless browser (card selection, play/discard, shop buy/sell/reroll, win
-and game-over flows, no console errors). **Not yet done:** the automated
-regression test file (section 3), and the 1-4 card hand-size contract
-audit (section 1) — still open for a follow-up pass.
+**Status (2026-09-29):** complete. Ace-low straight fix, win condition
+(ante 8) with win/game-over summaries, sell jester, reroll shop,
+hand-reference panel, the 1-4 card hand-size contract audit, and the
+`test/scoring.test.js` regression suite (21 assertions covering hand
+detection, jester stacking, and target scaling) are all in. All verified
+end-to-end in a headless browser (card selection, play/discard, shop
+buy/sell/reroll, win and game-over flows, no console errors) plus
+`node test/scoring.test.js` passing.
 
 ### 1. Rules/correctness fixes
 
@@ -77,7 +78,7 @@ audit (section 1) — still open for a follow-up pass.
   finish line — `phase` only ever becomes `"playing"`, `"shop"`, or
   `"gameover"` (on loss). Decide a final ante (e.g. 8, matching Balatro's
   convention loosely) and add a `"win"` overlay state when it's cleared.
-- **Audit `scoreSelection`/joker `apply` contracts** for edge cases: hand
+- **Audit `scoreSelection`/jester `apply` contracts** for edge cases: hand
   sizes other than 5 (currently high-card/pair/etc. detection assumes
   `cards.length === 5` for flush/straight but the function is called with
   1-5 selected cards) — confirm behavior for 1-4 card hands is intentional
@@ -85,7 +86,7 @@ audit (section 1) — still open for a follow-up pass.
 
 ### 2. Missing core actions
 
-- **Sell a joker** from the shop/joker row for partial refund. Balatro-style
+- **Sell a jester** from the shop/jester row for partial refund. Balatro-style
   games lean on this for economy tuning in Phase 2, so land the plumbing
   now.
 - **Reroll shop** (even a simple fixed- or scaling-cost reroll) — currently
@@ -104,7 +105,7 @@ itself:
   Ace-low fix) and runs plain `assert`-based checks under plain Node —
   dev-only tooling, doesn't touch `index.html`.
 - Cover: each hand type detection (including the Ace-low straight fix),
-  a couple of joker `apply` effects in combination, `targetForRound` scaling
+  a couple of jester `apply` effects in combination, `targetForRound` scaling
   at a few ante/round values.
 - Wire a one-line `npm test`-equivalent or documented `node test/…` command
   in the README's dev section (no `package.json` dependency needed unless
@@ -113,14 +114,14 @@ itself:
 ### 4. Polish carried by this phase
 
 - Game-over/win overlays should show a short run summary (ante/round
-  reached, jokers held) rather than just the current one-line message.
+  reached, jesters held) rather than just the current one-line message.
 - Verify keyboard accessibility (already partially done) extends to the
   shop buttons and overlay buttons — confirm focus order/visibility on
   round transition.
 
 ### Explicitly not in Phase 1
 
-New jokers, tarot/planet cards, vouchers, alternate decks, card art,
+New jesters, tarot/planet cards, vouchers, alternate decks, card art,
 animation, sound, localStorage persistence — all later phases.
 
 ### Suggested order
@@ -128,7 +129,7 @@ animation, sound, localStorage persistence — all later phases.
 1. Ace-low straight fix + tests around it (small, isolated, unblocks
    confidence for everything else).
 2. Win condition + game-over/win overlay summary.
-3. Sell joker, then reroll shop.
+3. Sell jester, then reroll shop.
 4. Hand reference panel.
 5. Fill out the rest of the test file alongside whichever of the above
    touches scoring, so coverage lands incrementally rather than as one

@@ -1,0 +1,15 @@
+{
+  "name": "jester",
+  "private": true,
+  "description": "Dev tooling only (lint, tests) — the game itself ships with no build step and no runtime dependencies.",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-branches=90"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.0.0",
+    "jsdom": "^30.1.1"
+  }
+}

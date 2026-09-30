@@ -13,6 +13,10 @@
 
 * { box-sizing: border-box; }
 
+html {
+  overflow-anchor: none;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -81,7 +85,7 @@ body {
   color: var(--accent);
 }
 
-#joker-row {
+#jester-row {
   min-height: 64px;
   display: flex;
   gap: 8px;
@@ -91,7 +95,7 @@ body {
   border-radius: 10px;
 }
 
-.joker {
+.jester {
   width: 90px;
   padding: 6px;
   background: var(--panel);
@@ -102,12 +106,34 @@ body {
   line-height: 1.3;
 }
 
-.joker .joker-name {
+.jester .jester-name {
   color: var(--accent-2);
   font-weight: 700;
   display: block;
   margin-bottom: 2px;
 }
+
+.jester-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.jester-rarity {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.rarity-common { color: #4db8ff; }
+.rarity-uncommon { color: #35d68a; }
+.rarity-rare { color: #ff5d6c; }
 
 #preview {
   min-height: 24px;
@@ -335,14 +361,14 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-size: 12px;
 }
 
-.shop-item .joker-name { color: var(--accent-2); font-weight: 700; }
+.shop-item .jester-name { color: var(--accent-2); font-weight: 700; }
 .shop-item .price { color: var(--accent); font-weight: 700; margin: 6px 0; }
 .shop-item button { width: 100%; padding: 6px; font-size: 13px; }
 .shop-item.owned, .shop-item.unaffordable button { opacity: 0.5; cursor: not-allowed; }
 
-#owned-jokers-section { margin-bottom: 16px; }
-#owned-jokers-section.hidden { display: none; }
-#owned-jokers-section h3 {
+#owned-jesters-section { margin-bottom: 16px; }
+#owned-jesters-section.hidden { display: none; }
+#owned-jesters-section h3 {
   margin: 0 0 8px;
   font-size: 12px;
   text-transform: uppercase;
@@ -350,13 +376,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--muted);
   font-weight: 700;
 }
-#owned-jokers {
+#owned-jesters {
   display: flex;
   gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
 }
-#owned-jokers .joker { width: 100px; }
+#owned-jesters .jester { width: 100px; }
 
 @media (max-width: 480px) {
   :root { --card-w: 56px; --card-h: 82px; }

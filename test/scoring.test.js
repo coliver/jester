@@ -1,0 +1,330 @@
+// Regression tests for the scoring math. Runs under Node's built-in test
+// runner, no dependencies: `node --test` (or `npm test`) from repo root.
+"use strict";
+
+// game.js expects a global `Sound` object (normally provided by sounds.js
+// in the browser); stub it so requiring game.js under Node doesn't blow up
+// when actions call Sound.*().
+global.Sound = new Proxy({}, { get: () => () => {} });
+
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const {
+  evaluateHand,
+  scoreSelection,
+  targetForRound,
+  JESTER_POOL,
+  _setState,
+} = require("../game.js");
+
+function card(rank, suit) {
+  return { rank, suit, id: `${rank}${suit}` };
+}
+
+function jesterById(id) {
+  const j = JESTER_POOL.find(j => j.id === id);
+  assert.ok(j, `no such jester: ${id}`);
+  return j;
+}
+
+// scoreSelection reads several state fields beyond `jesters` (hand, deck,
+// discardsLeft, money) to feed jesters that key off held-hand cards, deck
+// size, discards remaining, etc. Real gameplay always has a fully-shaped
+// state; tests need to provide one explicitly. `hand` defaults to the
+// selection itself (so "held in hand" jesters see nothing extra unless a
+// test overrides it).
+function baseState(overrides) {
+  return Object.assign({
+    jesters: [],
+    hand: [],
+    deck: [],
+    discardsLeft: 0,
+    money: 0,
+  }, overrides);
+}
+
+// --- evaluateHand: one case per hand type -----------------------------
+
+test("high card", () => {
+  const h = evaluateHand([card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")]);
+  assert.equal(h.name, "High Card");
+});
+
+test("pair", () => {
+  const h = evaluateHand([card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")]);
+  assert.equal(h.name, "Pair");
+});
+
+test("two pair", () => {
+  const h = evaluateHand([card("2", "♠"), card("2", "♥"), card("9", "♦"), card("9", "♣"), card("K", "♠")]);
+  assert.equal(h.name, "Two Pair");
+});
+
+test("three of a kind", () => {
+  const h = evaluateHand([card("2", "♠"), card("2", "♥"), card("2", "♦"), card("9", "♣"), card("K", "♠")]);
+  assert.equal(h.name, "Three of a Kind");
+});
+
+test("straight (ace high)", () => {
+  const h = evaluateHand([card("10", "♠"), card("J", "♥"), card("Q", "♦"), card("K", "♣"), card("A", "♠")]);
+  assert.equal(h.name, "Straight");
+  assert.equal(h.isStraight, true);
+});
+
+test("straight, ace-low wheel (A-2-3-4-5)", () => {
+  const h = evaluateHand([card("A", "♠"), card("2", "♥"), card("3", "♦"), card("4", "♣"), card("5", "♠")]);
+  assert.equal(h.name, "Straight");
+  assert.equal(h.isStraight, true);
+});
+
+test("flush", () => {
+  const h = evaluateHand([card("2", "♠"), card("5", "♠"), card("9", "♠"), card("J", "♠"), card("K", "♠")]);
+  assert.equal(h.name, "Flush");
+});
+
+test("full house", () => {
+  const h = evaluateHand([card("2", "♠"), card("2", "♥"), card("2", "♦"), card("9", "♣"), card("9", "♠")]);
+  assert.equal(h.name, "Full House");
+});
+
+test("four of a kind", () => {
+  const h = evaluateHand([card("2", "♠"), card("2", "♥"), card("2", "♦"), card("2", "♣"), card("9", "♠")]);
+  assert.equal(h.name, "Four of a Kind");
+});
+
+test("straight flush, including ace-low wheel", () => {
+  const h1 = evaluateHand([card("5", "♠"), card("6", "♠"), card("7", "♠"), card("8", "♠"), card("9", "♠")]);
+  assert.equal(h1.name, "Straight Flush");
+
+  const h2 = evaluateHand([card("A", "♠"), card("2", "♠"), card("3", "♠"), card("4", "♠"), card("5", "♠")]);
+  assert.equal(h2.name, "Straight Flush");
+});
+
+test("near-straight is not a straight (gap)", () => {
+  const h = evaluateHand([card("2", "♠"), card("3", "♥"), card("4", "♦"), card("5", "♣"), card("7", "♠")]);
+  assert.equal(h.isStraight, false);
+});
+
+// --- hand-size contract: fewer than 5 cards -----------------------------
+
+test("4 selected cards of one rank is still four of a kind", () => {
+  const h = evaluateHand([card("2", "♠"), card("2", "♥"), card("2", "♦"), card("2", "♣")]);
+  assert.equal(h.name, "Four of a Kind");
+});
+
+test("4 cards, no flush/straight even with matching suit/sequence", () => {
+  const h = evaluateHand([card("5", "♠"), card("6", "♠"), card("7", "♠"), card("8", "♠")]);
+  assert.equal(h.isFlush, false);
+  assert.equal(h.isStraight, false);
+  assert.equal(h.name, "High Card");
+});
+
+test("1 selected card is high card", () => {
+  const h = evaluateHand([card("K", "♠")]);
+  assert.equal(h.name, "High Card");
+});
+
+// --- scoreSelection: jester effects in combination -----------------------
+
+test("scoreSelection with no jesters matches base chips/mult", () => {
+  const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ hand: selected }));
+  const result = scoreSelection(selected);
+  // Pair: base 10 chips, 2 mult. Card chips: 2+2+9+10+10 = 33. Total chips = 43.
+  assert.equal(result.chips, 43);
+  assert.equal(result.mult, 2);
+  assert.equal(result.multMul, 1);
+  assert.equal(result.total, 86);
+});
+
+test("scoreSelection stacks additive and multiplicative jesters", () => {
+  const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({
+    jesters: [jesterById("base_jester"), jesterById("banner"), jesterById("photograph")],
+    hand: selected,
+    discardsLeft: 1,
+  }));
+  const result = scoreSelection(selected);
+  // Base: 10 chips + 33 card chips = 43, +30 (banner, 1 discard left) = 73 chips.
+  // Mult: 2 base +4 (base_jester) = 6, x2 (photograph, a face card was played) = 12.
+  assert.equal(result.chips, 73);
+  assert.equal(result.mult, 6);
+  assert.equal(result.multMul, 2);
+  assert.equal(result.total, Math.floor(73 * 6 * 2));
+});
+
+test("conditional jesters only fire when their condition holds", () => {
+  const jesters = [jesterById("jolly_jester"), jesterById("devious_jester")];
+  const highCardSelected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ jesters, hand: highCardSelected }));
+  const highCardResult = scoreSelection(highCardSelected);
+  // High card: neither jolly_jester (+8 Mult on a Pair) nor devious_jester
+  // (+100 Chips on a Straight) should fire.
+  assert.equal(highCardResult.chips, 5 + 2 + 5 + 9 + 10 + 10);
+  assert.equal(highCardResult.mult, 1);
+
+  const straightSelected = [card("10", "♠"), card("J", "♥"), card("Q", "♦"), card("K", "♣"), card("A", "♠")];
+  _setState(baseState({ jesters, hand: straightSelected }));
+  const straightResult = scoreSelection(straightSelected);
+  // Straight: jolly_jester should NOT fire (no pair present); devious_jester
+  // (+100 chips) should.
+  assert.equal(straightResult.mult, 4);
+  assert.equal(straightResult.chips, 30 + 100 + 10 + 10 + 10 + 10 + 11);
+});
+
+// --- ported Balatro jesters: the ones that key off context beyond the -----
+// --- selected cards themselves (held hand, randomness, other stats) -----
+
+function withMockedRandom(value, fn) {
+  const orig = Math.random;
+  Math.random = () => value;
+  try {
+    return fn();
+  } finally {
+    Math.random = orig;
+  }
+}
+
+test("raised_fist doubles the lowest held card's rank into Mult", () => {
+  const selected = [card("K", "♠")];
+  const held = [card("7", "♥"), card("3", "♦"), card("J", "♣")]; // lowest held rank = 3
+  _setState(baseState({ jesters: [jesterById("raised_fist")], hand: [...selected, ...held] }));
+  const result = scoreSelection(selected);
+  assert.equal(result.mult, 1 + 3 * 2); // High Card base mult 1, +2x lowest held rank
+});
+
+test("raised_fist adds nothing when no cards are held (whole hand played)", () => {
+  const selected = [card("K", "♠")];
+  _setState(baseState({ jesters: [jesterById("raised_fist")], hand: selected })); // nothing held back
+  const result = scoreSelection(selected);
+  assert.equal(result.mult, 1);
+});
+
+test("scholar rewards each played Ace with +20 chips and +4 mult", () => {
+  const selected = [card("A", "♠"), card("A", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ jesters: [jesterById("scholar")], hand: selected }));
+  const result = scoreSelection(selected);
+  // Pair of Aces: base 10 chips/2 mult. Card chips: 11+11+9+10+10=51. +2 Aces*20=40 chips.
+  assert.equal(result.chips, 10 + 51 + 40);
+  assert.equal(result.mult, 2 + 2 * 4);
+});
+
+test("business_card pays $2 per played face card, only when its coin flip hits", () => {
+  const selected = [card("J", "♠"), card("Q", "♥"), card("9", "♦")]; // 2 face cards
+  _setState(baseState({ jesters: [jesterById("business_card")], hand: selected }));
+
+  assert.equal(withMockedRandom(0, () => scoreSelection(selected)).money, 4); // always hits
+  assert.equal(withMockedRandom(0.9, () => scoreSelection(selected)).money, 0); // never hits
+});
+
+test("reserved_parking pays $1 per held face card, not played ones", () => {
+  const selected = [card("2", "♠")]; // no face cards played
+  const held = [card("K", "♥"), card("Q", "♦"), card("5", "♣")]; // 2 face cards held
+  _setState(baseState({ jesters: [jesterById("reserved_parking")], hand: [...selected, ...held] }));
+
+  assert.equal(withMockedRandom(0, () => scoreSelection(selected)).money, 2); // always hits
+  assert.equal(withMockedRandom(0.9, () => scoreSelection(selected)).money, 0); // never hits
+});
+
+test("walkie_talkie rewards each played 10 or 4 with +10 chips and +4 mult", () => {
+  const selected = [card("10", "♠"), card("4", "♥"), card("9", "♦")];
+  _setState(baseState({ jesters: [jesterById("walkie_talkie")], hand: selected }));
+  const result = scoreSelection(selected);
+  // High Card: base 5 chips/1 mult. Card chips: 10+4+9=23. +2 matches*10=20 chips.
+  assert.equal(result.chips, 5 + 23 + 20);
+  assert.equal(result.mult, 1 + 2 * 4);
+});
+
+// --- ported Balatro jesters: new ctx fields (heldHand, money, rarity) ------
+
+test("held-in-hand jesters see cards not in the played selection", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("A", "♦")];
+  const heldOnly = [card("K", "♣"), card("3", "♠"), card("7", "♥")];
+  const jesters = [jesterById("raised_fist"), jesterById("baron")];
+  _setState(baseState({ jesters, hand: [...selected, ...heldOnly] }));
+  const result = scoreSelection(selected);
+  // High card: base 5 chips + (2+5+9+10+11) card chips = 42 chips, base mult 1.
+  // raised_fist: lowest-ranked held card is the 3 -> +6 mult (double its rank).
+  // baron: one held King -> X1.5 mult. Neither reads `selected`, so playing
+  // different cards wouldn't change either effect.
+  assert.equal(result.chips, 42);
+  assert.equal(result.mult, 7);
+  assert.equal(result.multMul, 1.5);
+  assert.equal(result.total, 441);
+});
+
+test("money-granting jesters add to result.money, not chips/mult", () => {
+  const selected = [card("J", "♠"), card("Q", "♥"), card("2", "♦"), card("5", "♣"), card("7", "♠")];
+  const heldOnly = [card("K", "♦"), card("K", "♠")];
+  const jesters = [jesterById("business_card"), jesterById("reserved_parking")];
+  _setState(baseState({ jesters, hand: [...selected, ...heldOnly] }));
+  const origRandom = Math.random;
+  Math.random = () => 0; // force every "1 in 2 chance" to succeed
+  try {
+    const result = scoreSelection(selected);
+    // business_card: $2 per played face card (J, Q) = $4.
+    // reserved_parking: $1 per held face card (K, K) = $2.
+    assert.equal(result.money, 6);
+    assert.equal(result.mult, 1); // High Card — neither jester touches mult
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test("scoreSelection doesn't apply money itself — only playHand does", () => {
+  // scoreSelection is called on every render for the live preview, so it
+  // must stay side-effect free; money should only land in state via playHand.
+  const selected = [card("J", "♠"), card("Q", "♥"), card("2", "♦"), card("5", "♣"), card("7", "♠")];
+  const jesters = [jesterById("business_card")];
+  const s = baseState({ jesters, hand: selected, money: 4 });
+  _setState(s);
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    scoreSelection(selected);
+    assert.equal(s.money, 4, "scoreSelection must not mutate state.money");
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
+  const selected = [card("6", "♠"), card("9", "♥"), card("Q", "♦"), card("K", "♣"), card("A", "♠")];
+  _setState(baseState({ jesters: [jesterById("baseball_card"), jesterById("fibonacci")], hand: selected }));
+  const oneUncommon = scoreSelection(selected);
+  assert.equal(oneUncommon.multMul, 1.5); // only Fibonacci (Uncommon) counts, not Baseball Card itself (Rare)
+
+  _setState(baseState({
+    jesters: [jesterById("baseball_card"), jesterById("fibonacci"), jesterById("bull")],
+    hand: selected,
+  }));
+  const twoUncommons = scoreSelection(selected);
+  assert.equal(twoUncommons.multMul, 1.5 * 1.5);
+});
+
+// --- targetForRound scaling -----------------------------------------------
+
+test("targetForRound: ante 1 round 1 is the base target", () => {
+  assert.equal(targetForRound(1, 1), 300);
+});
+
+test("targetForRound scales up within an ante as round increases", () => {
+  const r1 = targetForRound(2, 1);
+  const r2 = targetForRound(2, 2);
+  const r3 = targetForRound(2, 3);
+  assert.ok(r1 < r2 && r2 < r3, `expected strictly increasing targets, got ${r1}, ${r2}, ${r3}`);
+});
+
+test("targetForRound scales up across antes", () => {
+  const a1 = targetForRound(1, 1);
+  const a8 = targetForRound(8, 1);
+  assert.ok(a8 > a1 * 5, `expected ante 8 target to dwarf ante 1, got ${a1} vs ${a8}`);
+});
+
+test("targetForRound is always rounded to the nearest 10", () => {
+  for (let ante = 1; ante <= 8; ante++) {
+    for (let round = 1; round <= 3; round++) {
+      assert.equal(targetForRound(ante, round) % 10, 0);
+    }
+  }
+});
