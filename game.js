@@ -786,7 +786,7 @@ function setSortMode(mode) {
 // the onerror handler drops the <img> so a missing file just falls back to
 // the plain name/description card that's always been there.
 function jesterArtHTML(id) {
-  return `<img class="jester-art" src="assets/jesters/${id}.png" alt="" onerror="this.remove()">`;
+  return `<img class="jester-art" src="assets/jesters/${id}.png" alt="" onerror="this.onerror=null; this.src='assets/jesters/missing_no.png';">`;
 }
 
 function jesterHeaderHTML(j) {

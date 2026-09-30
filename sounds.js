@@ -16,12 +16,12 @@ const Sound = (() => {
 
   const clips = {
     take: [
-      clip("sound/taking-playing-card.mp3"),
-      clip("sound/taking-playing-card-2.mp3"),
-      clip("sound/taking-playing-card-3.mp3"),
+      clip("assets/sound/taking-playing-card.mp3"),
+      clip("assets/sound/taking-playing-card-2.mp3"),
+      clip("assets/sound/taking-playing-card-3.mp3"),
     ],
-    place: clip("sound/placing-playing-card.mp3"),
-    shuffleDeck: clip("sound/shuffling-deck-of-cards.mp3"),
+    place: clip("assets/sound/placing-playing-card.mp3"),
+    shuffleDeck: clip("assets/sound/shuffling-deck-of-cards.mp3"),
   };
 
   function playClip(base, { delay = 0, volume = 0.5, rate = 1 } = {}) {
