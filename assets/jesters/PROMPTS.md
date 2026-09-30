@@ -100,6 +100,8 @@ style reference if your tool supports one):
 | `brainstorm` | Brainstorm | Rare | A translucent, mirrored jester standing beside a faint ghostly duplicate of another jester, copying its pose exactly |
 | `swashbuckler` | Swashbuckler | Uncommon | A dashing jester swashbuckler with a rapier and tricorn hat, a glittering pile of coins spilling from a sack slung over one shoulder |
 | `campfire` | Campfire | Rare | A jester warming their hands over a small campfire built from stacked, smoldering jester masks |
+| `blueprint` | Blueprint | Rare | A jester drafting on a glowing cyan blueprint sheet, a ghostly line-drawn copy of the jester beside them taking shape |
+| `ringmaster` | Ringmaster | Uncommon | A top-hatted ringmaster jester with a whip and a megaphone, presenting a parade of differently colored performers behind them |
 
 ## Rarity color key (already wired into styles.css)
 

@@ -26,14 +26,14 @@ rankings). No new content, no visuals work.
 
 **Phase 2 — Strategic depth (in progress)**
 Grow the decision space within the existing systems: more jesters with
-real synergies/anti-synergies ✓ (Brainstorm copies another owned jester;
-Swashbuckler and Campfire scale off the rest of the roster — sell value
-held, jesters sold — see below), an economy layer (interest on saved money
+real synergies/anti-synergies ✓ (Brainstorm and Blueprint copy another owned jester;
+Swashbuckler, Campfire and Ringmaster scale off the rest of the roster —
+sell value held, jesters sold, rarity variety — see below), an economy layer (interest on saved money
 ✓, reroll cost ✓, jester resale value ✓), boss-round-style modifiers that
 force different play ✓ (six modifiers — higher target, 1-hand-only,
 no-discard, smaller hand, and two suit debuffs — one picked at random for
 round 3 of every ante). Remaining: more of this synergy/anti-synergy work
-if it keeps paying off — the three landed so far are a first pass, not a
+if it keeps paying off — the five landed so far are a first pass, not a
 ceiling. This is where the game gets *replayable* rather than just
 *playable*.
 

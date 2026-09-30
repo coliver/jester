@@ -404,6 +404,29 @@ test("Campfire has no bonus before any Jester has been sold", () => {
   assert.equal(result.multMul, 1);
 });
 
+test("Blueprint copies the scoring ability of the Jester to its right", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ jesters: [jesterById("blueprint"), jesterById("base_jester")], hand: selected }));
+  // High Card base mult 1, +4 (Blueprint's copy) +4 (base_jester) = 9.
+  assert.equal(scoreSelection(selected).mult, 9);
+});
+
+test("Blueprint does nothing in the rightmost slot or next to another copier", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ jesters: [jesterById("base_jester"), jesterById("blueprint")], hand: selected }));
+  assert.equal(scoreSelection(selected).mult, 5);
+  _setState(baseState({ jesters: [jesterById("blueprint"), jesterById("brainstorm")], hand: selected }));
+  assert.equal(scoreSelection(selected).mult, 1);
+});
+
+test("Ringmaster gives +4 Mult per different rarity among owned Jesters", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ jesters: [jesterById("ringmaster")], hand: selected }));
+  assert.equal(scoreSelection(selected).mult, 1 + 4); // Uncommon only
+  _setState(baseState({ jesters: [jesterById("base_jester"), jesterById("ringmaster")], hand: selected }));
+  assert.equal(scoreSelection(selected).mult, 1 + 4 + 8); // Common + Uncommon
+});
+
 // --- targetForRound scaling -----------------------------------------------
 
 test("targetForRound: ante 1 round 1 is the base target", () => {

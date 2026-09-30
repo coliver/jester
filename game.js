@@ -306,7 +306,7 @@ const JESTER_POOL = [
   },
 
   // --- Phase 2: jester-to-jester synergy/anti-synergy — effects that read --
-  // --- (Brainstorm, Swashbuckler) or accumulate from (Campfire) the rest of -
+  // --- (Brainstorm, Blueprint, Swashbuckler, Ringmaster) or accumulate from (Campfire) the rest of -
   // --- the owned roster, rather than just the played hand or game state. ---
   // --- Campfire's sell-for-scaling payoff directly tugs against Brainstorm/-
   // --- Swashbuckler/Jester Stencil/Abstract Jester, which all want a full, --
@@ -336,6 +336,20 @@ const JESTER_POOL = [
     id: "campfire", name: "Campfire", price: 9, rarity: "Rare",
     desc: "X0.25 Mult per Jester sold this run; resets when a boss round is cleared",
     apply: (ctx) => ({ multMul: 1 + 0.25 * ctx.jestersSold }),
+  },
+  {
+    id: "blueprint", name: "Blueprint", price: 10, rarity: "Rare",
+    desc: "Emulates the scoring ability of the Jester to its right",
+    apply: (ctx) => {
+      const target = ctx.jesters[ctx.jesters.findIndex(j => j.id === "blueprint") + 1];
+      if (!target || target.id === "blueprint" || target.id === "brainstorm" || !target.apply) return {};
+      return target.apply(ctx);
+    },
+  },
+  {
+    id: "ringmaster", name: "Ringmaster", price: 5, rarity: "Uncommon",
+    desc: "+4 Mult per different rarity among owned Jesters",
+    apply: (ctx) => ({ multAdd: 4 * new Set(ctx.jesters.map(j => j.rarity)).size }),
   },
 ];
 

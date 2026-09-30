@@ -15,7 +15,7 @@ static (it's also set up for GitHub Pages).
   base chip/mult values.
 - 4 hands and 3 discards per round; reach the round's chip target before
   hands run out.
-- 52 jesters across three rarities (flat chip/mult bonuses, conditional
+- 54 jesters across three rarities (flat chip/mult bonuses, conditional
   bonuses, several multiplicative and scaling ones, a few that read or
   build on the rest of the owned roster — copy another jester's ability,
   scale off jesters sold or their resale value — plus a handful that
