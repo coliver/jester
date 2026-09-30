@@ -17,6 +17,8 @@ const JESTER_SLOTS = 5;
 const ROUNDS_PER_ANTE = 3;
 const FINAL_ANTE = 8;
 const REROLL_BASE_COST = 2;
+const INTEREST_UNIT = 5;
+const INTEREST_CAP = 5;
 
 const HAND_TYPES = [
   { name: "Straight Flush", chips: 100, mult: 8, test: h => h.isFlush && h.isStraight },
@@ -261,6 +263,7 @@ function newState() {
     sortMode: "rank", // rank | suit
     phase: "playing", // playing | shop | gameover | win
     dealtIds: new Map(),
+    lastEarnings: null,
   };
 }
 
@@ -456,7 +459,9 @@ function discardSelected() {
 
 function finishRoundWin() {
   const reward = 3 + state.handsLeft + state.discardsLeft;
-  state.money += reward;
+  const interest = Math.min(INTEREST_CAP, Math.floor(state.money / INTEREST_UNIT));
+  state.money += reward + interest;
+  state.lastEarnings = { reward, interest };
 
   if (state.ante >= FINAL_ANTE && state.round >= ROUNDS_PER_ANTE) {
     state.phase = "win";
@@ -652,7 +657,11 @@ function renderOverlay() {
   if (state.phase === "shop") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "Round Cleared!";
-    document.getElementById("overlay-sub").textContent = `Shop – Ante ${state.ante}, Round ${state.round}`;
+    const earnings = state.lastEarnings;
+    const earningsText = earnings
+      ? ` — +$${earnings.reward} round${earnings.interest ? `, +$${earnings.interest} interest` : ""}`
+      : "";
+    document.getElementById("overlay-sub").textContent = `Shop – Ante ${state.ante}, Round ${state.round}${earningsText}`;
     const shopItems = document.getElementById("shop-items");
     shopItems.innerHTML = "";
     for (const j of state.shopOffers) {

@@ -108,6 +108,33 @@ test("reaching the target mid-hand wins the round and opens the shop", () => {
   assert.ok(after.money > 0);
 });
 
+test("winning a round pays interest on savings, capped at $5", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.money = 23; // floor(23/5) = 4 interest, under the $5 cap
+  const id = state.hand[0].id;
+  toggleCard(id);
+
+  playHand();
+
+  const after = _getState();
+  const reward = 3 + after.handsLeft + after.discardsLeft;
+  assert.equal(after.lastEarnings.interest, 4);
+  assert.equal(after.money, 23 + reward + 4);
+});
+
+test("interest caps at $5 regardless of how much money is saved", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.money = 1000; // floor(1000/5) = 200, well past the cap
+  const id = state.hand[0].id;
+  toggleCard(id);
+
+  playHand();
+
+  assert.equal(_getState().lastEarnings.interest, 5);
+});
+
 test("clearing round 3 of the final ante wins the run", () => {
   const state = freshRoundState();
   state.ante = 8; // FINAL_ANTE
