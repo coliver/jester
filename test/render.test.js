@@ -370,3 +370,41 @@ test("owned jesters render their name, rarity, and description in the jester row
   assert.match(row.textContent, /Rare/);
   assert.match(row.textContent, new RegExp(jester.desc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
+
+// --- jester art fallback (missing_no) ---------------------------------------
+// The jsdom document runs without runScripts, so inline onerror attributes
+// never fire on their own; these tests run the attribute's source with the
+// <img> as `this`, which is what a browser does when the image fails to load.
+
+const ART_DIR = path.join(__dirname, "..", "assets", "jesters");
+
+function renderedArt() {
+  dealtState({ jesters: [jesterByName("Baron")] });
+  const img = document.querySelector("#jester-row .jester img.jester-art");
+  assert.ok(img, "expected a jester <img> in #jester-row");
+  return img;
+}
+
+function failToLoad(img) {
+  new Function(img.getAttribute("onerror")).call(img);
+}
+
+test("missing_no.png exists, so the art fallback has something to show", () => {
+  assert.ok(fs.existsSync(path.join(ART_DIR, "missing_no.png")));
+});
+
+test("jester art points at its own <id>.png first", () => {
+  assert.equal(renderedArt().getAttribute("src"), "assets/jesters/baron.png");
+});
+
+test("a jester image that fails to load falls back to missing_no", () => {
+  const img = renderedArt();
+  failToLoad(img);
+  assert.equal(img.getAttribute("src"), "assets/jesters/missing_no.png");
+});
+
+test("if missing_no itself fails, the handler detaches instead of looping", () => {
+  const img = renderedArt();
+  failToLoad(img);
+  assert.equal(img.onerror, null); // a browser fires no further error events once cleared
+});
