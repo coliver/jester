@@ -93,6 +93,14 @@ style reference if your tool supports one):
 | `faceless_jester` | Faceless Jester | Common | A cloaked jester with a smooth featureless oval where a face should be, faint card silhouettes glowing beneath the surface |
 | `four_fingers` | Four Fingers | Uncommon | A jester holding up one hand with only four fingers raised, a fanned four-card flush in the other |
 
+### Phase 2: jester-to-jester synergy/anti-synergy
+
+| id | name | rarity | subject prompt |
+|---|---|---|---|
+| `brainstorm` | Brainstorm | Rare | A translucent, mirrored jester standing beside a faint ghostly duplicate of another jester, copying its pose exactly |
+| `swashbuckler` | Swashbuckler | Uncommon | A dashing jester swashbuckler with a rapier and tricorn hat, a glittering pile of coins spilling from a sack slung over one shoulder |
+| `campfire` | Campfire | Rare | A jester warming their hands over a small campfire built from stacked, smoldering jester masks |
+
 ## Rarity color key (already wired into styles.css)
 
 Common = `#4db8ff`, Uncommon = `#35d68a`, Rare = `#ff5d6c` — matches
