@@ -973,17 +973,8 @@ function nextRound() {
   render();
 }
 
-// Every run begins with one random Common jester so there's something to
-// play with from the first hand.
-function grantStartingJester() {
-  const commons = JESTER_POOL.filter(j => j.rarity === "Common");
-  const pick = commons[Math.floor(Math.random() * commons.length)];
-  state.jesters.push({ ...pick, sellBonus: 0 });
-}
-
 function restart() {
   state = newState();
-  grantStartingJester();
   startRound();
   render();
 }
@@ -1433,7 +1424,6 @@ function initApp() {
   }
 
   state = newState();
-  grantStartingJester();
   startRound();
   render();
 }
