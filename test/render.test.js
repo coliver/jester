@@ -371,6 +371,29 @@ test("owned jesters render their name, rarity, and description in the jester row
   assert.match(row.textContent, new RegExp(jester.desc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
+test("slot counters, deck count, and tap-to-inspect popups", () => {
+  const jester = jesterByName("Baron");
+  dealtState({ jesters: [jester] });
+  assert.equal(text("jester-count"), "1/5");
+  assert.equal(text("deck-count"), "44/52");
+
+  const inspect = document.getElementById("inspect");
+  assert.ok(inspect.classList.contains("hidden"));
+  document.querySelector("#jester-row .jester").click();
+  assert.ok(!inspect.classList.contains("hidden"));
+  assert.match(inspect.textContent, /Baron/);
+  assert.match(inspect.textContent, new RegExp(jester.desc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  document.querySelector("#jester-row .jester").click(); // tap again toggles off
+  assert.ok(inspect.classList.contains("hidden"));
+  document.querySelector("#jester-row .jester").click();
+  document.body.click(); // tap elsewhere dismisses
+  assert.ok(inspect.classList.contains("hidden"));
+
+  document.getElementById("deck-pile").click();
+  assert.ok(!document.getElementById("deck-modal").classList.contains("hidden"));
+  document.getElementById("deck-close-btn").click();
+});
+
 // --- jester art fallback (missing_no) ---------------------------------------
 // The jsdom document runs without runScripts, so inline onerror attributes
 // never fire on their own; these tests run the attribute's source with the

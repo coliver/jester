@@ -48,22 +48,32 @@
       <span id="boss-name"></span> — <span id="boss-desc"></span>
     </section>
 
-    <section id="jester-row" aria-label="Owned jesters"></section>
-
-    <section id="trick-row" class="hidden" aria-label="Trick cards"></section>
+    <div id="top-row">
+      <div id="jester-group" class="slot-group">
+        <section id="jester-row" aria-label="Owned jesters"></section>
+        <div id="jester-count" class="slot-count"></div>
+      </div>
+      <div id="trick-group" class="slot-group hidden">
+        <section id="trick-row" aria-label="Trick cards"></section>
+        <div id="trick-count" class="slot-count"></div>
+      </div>
+    </div>
 
     <section id="preview" aria-label="Current hand preview">
       <span id="preview-name">&nbsp;</span>
       <span id="preview-math"></span>
     </section>
 
-    <div id="deck-pile" aria-hidden="true">
-      <div class="deck-card"></div>
-      <div class="deck-card"></div>
-      <div class="deck-card"></div>
-    </div>
+    <div id="hand-area">
+      <div id="deck-pile" role="button" tabindex="0" aria-label="View deck">
+        <div class="deck-card"></div>
+        <div class="deck-card"></div>
+        <div class="deck-card"></div>
+        <span id="deck-count"></span>
+      </div>
 
-    <section id="hand-row" aria-label="Your hand"></section>
+      <section id="hand-row" aria-label="Your hand"></section>
+    </div>
 
     <div id="controls">
       <button id="play-btn">Play Hand</button>
@@ -87,6 +97,8 @@
         <button id="deck-close-btn">Close</button>
       </div>
     </div>
+
+    <div id="inspect" class="hidden" role="tooltip"></div>
 
     <div id="overlay" class="hidden">
       <div id="overlay-card">

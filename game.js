@@ -973,8 +973,17 @@ function nextRound() {
   render();
 }
 
+// Every run begins with one random Common jester so there's something to
+// play with from the first hand.
+function grantStartingJester() {
+  const commons = JESTER_POOL.filter(j => j.rarity === "Common");
+  const pick = commons[Math.floor(Math.random() * commons.length)];
+  state.jesters.push({ ...pick, sellBonus: 0 });
+}
+
 function restart() {
   state = newState();
+  grantStartingJester();
   startRound();
   render();
 }
@@ -1018,6 +1027,45 @@ function jesterHeaderHTML(j) {
   return `${jesterArtHTML(j.id)}<span class="jester-name">${j.name}</span><span class="jester-rarity ${rarityClass}">${j.rarity || ""}</span>`;
 }
 
+// Tap (or Enter/Space) a card to read its full text in a small tooltip under
+// it; the landscape layout hides descriptions so the card rows stay compact.
+function makeInspectable(el, bodyHTML) {
+  el.tabIndex = 0;
+  el.setAttribute("role", "button");
+  el.dataset.inspectable = "1";
+  el.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return;
+    toggleInspect(el, bodyHTML());
+  });
+  el.addEventListener("keydown", (e) => {
+    if (e.target !== el || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    toggleInspect(el, bodyHTML());
+  });
+}
+
+let inspectAnchor = null;
+
+function hideInspect() {
+  inspectAnchor = null;
+  document.getElementById("inspect").classList.add("hidden");
+}
+
+function toggleInspect(anchor, html) {
+  const tip = document.getElementById("inspect");
+  if (inspectAnchor && inspectAnchor.isConnected && inspectAnchor === anchor) {
+    hideInspect();
+    return;
+  }
+  inspectAnchor = anchor;
+  tip.innerHTML = html;
+  tip.classList.remove("hidden");
+  const rect = anchor.getBoundingClientRect();
+  const left = Math.max(6, Math.min(rect.left + rect.width / 2 - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 6));
+  tip.style.left = `${left}px`;
+  tip.style.top = `${rect.bottom + 6}px`;
+}
+
 function trickCardHTML(t) {
   return `<span class="trick-glyph">✦</span><span class="trick-name">${t.name}</span><span class="trick-hand">${t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
@@ -1029,6 +1077,7 @@ function fillTrickList(container, withSell) {
     const div = document.createElement("div");
     div.className = "trick";
     div.innerHTML = trickCardHTML(t);
+    makeInspectable(div, () => `<div class="trick">${trickCardHTML(t)}</div>`);
     const useBtn = document.createElement("button");
     useBtn.className = "use-btn";
     useBtn.textContent = "Use";
@@ -1081,14 +1130,18 @@ function render() {
     for (const j of state.jesters) {
       const div = document.createElement("div");
       div.className = "jester";
-      div.innerHTML = `${jesterHeaderHTML(j)}${j.desc}`;
+      div.innerHTML = `${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span>`;
+      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span></div>`);
       jesterRow.appendChild(div);
     }
   }
 
   const trickRow = document.getElementById("trick-row");
   trickRow.classList.toggle("hidden", state.tricks.length === 0);
+  document.getElementById("trick-group").classList.toggle("hidden", state.tricks.length === 0);
   fillTrickList(trickRow, false);
+  document.getElementById("jester-count").textContent = `${state.jesters.length}/${JESTER_SLOTS}`;
+  document.getElementById("trick-count").textContent = `${state.tricks.length}/${TRICK_SLOTS}`;
   renderHandReference();
 
   document.getElementById("sort-rank-btn").classList.toggle("active", state.sortMode === "rank");
@@ -1159,7 +1212,9 @@ function renderDeckView() {
   const modal = document.getElementById("deck-modal");
   const open = !modal.classList.contains("hidden");
   const btn = document.getElementById("deck-btn");
-  btn.textContent = `Deck (${state.deck.length}/${state.deck.length + state.hand.length + state.played.length + state.discarded.length})`;
+  const total = state.deck.length + state.hand.length + state.played.length + state.discarded.length;
+  btn.textContent = `Deck (${state.deck.length}/${total})`;
+  document.getElementById("deck-count").textContent = `${state.deck.length}/${total}`;
   if (!open) return;
 
   const status = cardStatuses();
@@ -1327,8 +1382,20 @@ function initApp() {
   document.getElementById("deck-btn").addEventListener("click", () => setDeckViewOpen(true));
   document.getElementById("deck-close-btn").addEventListener("click", () => setDeckViewOpen(false));
   deckModal.addEventListener("click", (e) => { if (e.target === deckModal) setDeckViewOpen(false); });
+  const deckPile = document.getElementById("deck-pile");
+  deckPile.addEventListener("click", () => setDeckViewOpen(true));
+  deckPile.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    setDeckViewOpen(true);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-inspectable]")) hideInspect();
+  });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !deckModal.classList.contains("hidden")) setDeckViewOpen(false);
+    if (e.key !== "Escape") return;
+    if (!deckModal.classList.contains("hidden")) setDeckViewOpen(false);
+    hideInspect();
   });
 
   const muteBtn = document.getElementById("mute-btn");
@@ -1366,6 +1433,7 @@ function initApp() {
   }
 
   state = newState();
+  grantStartingJester();
   startRound();
   render();
 }

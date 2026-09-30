@@ -101,6 +101,11 @@ body {
 
 #boss-banner.hidden { display: none; }
 
+#top-row, .slot-group, #hand-area { display: contents; }
+#trick-group.hidden { display: none; }
+.slot-count, #deck-count { display: none; }
+.jester[role="button"], .trick[role="button"], #deck-pile { cursor: pointer; }
+
 #jester-row {
   min-height: 64px;
   display: flex;
@@ -481,6 +486,23 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 #deck-modal.hidden { display: none; }
 
+#inspect {
+  position: fixed;
+  z-index: 25;
+  width: 190px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--accent-2);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+#inspect.hidden { display: none; }
+#inspect .jester, #inspect .trick { width: 100%; padding: 0; border: 0; background: none; font-size: inherit; }
+#inspect .jester-art, #inspect .trick-glyph { display: none; }
+
 #deck-card {
   background: var(--panel);
   padding: 20px 24px;
@@ -538,7 +560,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    stacked on the right so all eight cards fit at a comfortable size. */
 @media (orientation: landscape) and (max-height: 500px) {
   :root {
-    --card-w: min(130px, calc((100vw - 90px) / 8), calc((100vh - 255px) / 1.4));
+    --card-w: min(130px, calc((100vw - 150px) / 8), calc((100vh - 245px) / 1.4));
     --card-h: calc(var(--card-w) * 1.4);
   }
   body { padding: 8px; min-height: 0; }
@@ -563,9 +585,16 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 150px minmax(0, 1fr);
     column-gap: 10px;
     row-gap: 2px;
-    align-content: start;
+    /* fill the viewport; jesters stay on top, hand + preview + buttons centre in the rest */
+    min-height: calc(100vh - 16px);
+    grid-template-rows: auto auto 1fr auto auto auto 1fr;
   }
   #app > * { grid-column: 2; }
+  #boss-banner { grid-row: 1; }
+  #top-row { grid-row: 2; }
+  #preview { grid-row: 4; }
+  #hand-area { grid-row: 5; }
+  #controls { grid-row: 6; margin-top: 8px; }
   #hud {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -595,10 +624,25 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   }
   #controls { gap: 8px; flex-wrap: nowrap; }
   #controls button:not(.sort-btn) { font-size: 17px; padding: 10px 30px; min-width: 130px; }
-  #deck-pile { display: none; }
-  #jester-row { flex-wrap: nowrap; overflow-x: auto; min-height: 112px; padding: 4px; gap: 6px; }
-  #jester-row .jester { flex: 0 0 96px; width: 96px; padding: 4px; font-size: 10px; }
+  #deck-btn { display: none; }
+  #hand-area { display: flex; align-items: center; gap: 8px; }
+  #hand-row { flex: 1; min-width: 0; }
+  #deck-pile { order: 2; flex: 0 0 38px; margin: 0 6px 0 0; }
+  #deck-count { display: block; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+  #top-row { display: flex; gap: 10px; align-items: flex-start; }
+  .slot-group { display: flex; flex-direction: column; min-width: 0; }
+  #jester-group { flex: 1; }
+  #trick-group { flex: 0 0 auto; }
+  .slot-count { display: block; font-size: 10px; line-height: 1.2; color: var(--muted); text-align: right; padding: 2px 4px 0; }
+  #jester-row, #trick-row { flex-wrap: nowrap; min-height: 84px; padding: 4px 4px 4px 8px; gap: 0; }
+  #jester-row .jester { flex: 0 0 84px; width: 84px; padding: 4px; font-size: 10px; }
+  #jester-row .jester + .jester { margin-left: -14px; }
+  #jester-row .jester:hover, #jester-row .jester:focus-visible { z-index: 1; }
   #jester-row .jester-art { width: 34px; margin: 0 auto 2px; }
+  #top-row .jester-desc, #top-row .trick-desc { display: none; }
+  #trick-row { gap: 6px; }
+  #trick-row .trick { width: 74px; padding: 4px; }
+  #trick-row .trick-glyph { font-size: 16px; }
   #preview { min-height: 14px; font-size: 12px; line-height: 1.1; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
   .card { flex: 0 0 auto; padding: 5px; }
@@ -610,6 +654,47 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #overlay-card { padding: 14px 16px; max-width: 720px; }
   .shop-item { width: 150px; }
 }
+
+/* Play-screen polish: felt table, scoreboard rail, jester stage, one clear primary action. */
+body {
+  background:
+    radial-gradient(ellipse at 50% 70%, rgba(92, 52, 120, 0.55), transparent 65%),
+    radial-gradient(circle at top, #3a2350, var(--bg) 75%);
+}
+
+#hud {
+  background: linear-gradient(180deg, #33203f, #251632);
+  border: 1px solid rgba(255, 207, 86, 0.18);
+}
+#score-val { font-size: 22px; color: #fff; text-shadow: 0 0 12px rgba(255, 207, 86, 0.45); }
+#money-val { color: #7be38a; }
+#hands-val { color: var(--accent-2); }
+#discards-val { color: var(--red); }
+
+#jester-row, #trick-row {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px dashed rgba(255, 207, 86, 0.22);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+#preview-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1.35em;
+  letter-spacing: 0.01em;
+}
+
+.card { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(0, 0, 0, 0.06); }
+.card.selected { box-shadow: 0 10px 18px rgba(255, 207, 86, 0.5); }
+
+#play-btn {
+  background: linear-gradient(180deg, #ffd96e, #f0b733);
+  box-shadow: 0 4px 0 #a97b12, 0 8px 18px rgba(255, 207, 86, 0.28);
+}
+#play-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #a97b12; }
+#play-btn:disabled { box-shadow: none; }
+#discard-btn { background: rgba(107, 227, 255, 0.08); }
+.sort-btn { border-color: rgba(184, 168, 204, 0.45); }
 
 /* Portrait phones: browsers can't reliably lock orientation, so ask the
    player to rotate instead of showing a cramped portrait layout. */
