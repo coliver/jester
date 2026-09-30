@@ -26,9 +26,12 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Card art, animations/juice, a large jester roster, tarot/planet/spectral
-cards, vouchers, decks, and stakes. This is the "real basic" version — small
-and deliberately scoped, not a sprawling feature set.
+Animations/juice, a large jester roster, tarot/planet/spectral cards,
+vouchers, decks, and stakes. This is the "real basic" version — small and
+deliberately scoped, not a sprawling feature set. (Card art is a partial
+exception: a lightweight, optional `<img>` hook and generated art for the
+simpler jesters landed early since it's additive and non-breaking — see
+`assets/jesters/PROMPTS.md`.)
 
 ## Development
 
