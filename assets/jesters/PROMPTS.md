@@ -76,6 +76,23 @@ style reference if your tool supports one):
 | `walkie_talkie` | Walkie Talkie | Common | A carnival radio operator speaking into an old two-way radio, "10-4" energy, headset glow |
 | `smiley_face` | Smiley Face | Common | A jester wearing an oversized painted smiley mask, exaggerated cheerful grin |
 
+### Ported from Balatro, round 2 (needed small engine plumbing — see [DEFERRED.md](DEFERRED.md) for what's still blocked)
+
+| id | name | rarity | subject prompt |
+|---|---|---|---|
+| `hack` | Hack | Uncommon | A card-sharp jester dealing from the bottom of the deck, ghostly duplicate low-numbered cards trailing from their fingers |
+| `delayed_gratification` | Delayed Gratification | Common | A patient jester sitting cross-legged before a locked treasure chest, hands folded, waiting |
+| `to_the_moon` | To the Moon | Uncommon | A jester astronaut reaching for a crescent moon built from stacked gold coins |
+| `golden_jester` | Golden Jester | Common | A radiant jester gilded head to toe in gold leaf, coins raining gently around them |
+| `cavendish` | Cavendish | Common | A jester juggler balancing precariously on a single unicycle wheel, one wobble from falling |
+| `juggler` | Juggler | Common | A nimble jester juggling eight cards in a wide fanned arc overhead |
+| `drunkard` | Drunkard | Common | A wobbly jester leaning on a lamppost, tankard raised, a card slipping loose |
+| `credit_card` | Credit Card | Common | A slick jester salesperson offering a shimmering blank card with a knowing wink |
+| `chaos_the_clown` | Chaos the Clown | Common | A jester with a spinning color wheel for a face, one wedge glowing free |
+| `pareidolia` | Pareidolia | Uncommon | A jester surrounded by ordinary objects that all seem to have painted-on smiling faces |
+| `faceless_jester` | Faceless Jester | Common | A cloaked jester with a smooth featureless oval where a face should be, faint card silhouettes glowing beneath the surface |
+| `four_fingers` | Four Fingers | Uncommon | A jester holding up one hand with only four fingers raised, a fanned four-card flush in the other |
+
 ## Rarity color key (already wired into styles.css)
 
 Common = `#4db8ff`, Uncommon = `#35d68a`, Rare = `#ff5d6c` — matches

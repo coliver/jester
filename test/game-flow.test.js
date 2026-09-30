@@ -377,7 +377,7 @@ test("To the Moon doubles the interest earned at round end", () => {
   assert.equal(after.lastEarnings.bonus, 4);
 });
 
-test("Golden Joker pays a flat $4 at round end", () => {
+test("Golden Jester pays a flat $4 at round end", () => {
   const state = freshRoundState();
   state.target = 1;
   state.jesters = [jesterById("golden_jester")];
@@ -470,9 +470,9 @@ test("Chaos the Clown makes only the first reroll of a shop visit free", () => {
   assert.equal(_getState().rerollCost, 3);
 });
 
-test("Faceless Joker pays $5 when 3+ face cards are discarded together", () => {
+test("Faceless Jester pays $5 when 3+ face cards are discarded together", () => {
   const state = freshRoundState();
-  state.jesters = [jesterById("faceless_joker")];
+  state.jesters = [jesterById("faceless_jester")];
   state.money = 0;
   state.hand = [
     { rank: "J", suit: "♠", id: "J♠" },
@@ -487,9 +487,9 @@ test("Faceless Joker pays $5 when 3+ face cards are discarded together", () => {
   assert.equal(_getState().money, 5);
 });
 
-test("Faceless Joker pays nothing for fewer than 3 discarded face cards", () => {
+test("Faceless Jester pays nothing for fewer than 3 discarded face cards", () => {
   const state = freshRoundState();
-  state.jesters = [jesterById("faceless_joker")];
+  state.jesters = [jesterById("faceless_jester")];
   state.money = 0;
   state.hand = [
     { rank: "J", suit: "♠", id: "J♠" },

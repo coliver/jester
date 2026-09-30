@@ -262,7 +262,7 @@ const JESTER_POOL = [
     roundEnd: (ctx) => ({ money: Math.min(INTEREST_CAP, Math.floor(ctx.money / INTEREST_UNIT)) }),
   },
   {
-    id: "golden_jester", name: "Golden Joker", price: 6, rarity: "Common",
+    id: "golden_jester", name: "Golden Jester", price: 6, rarity: "Common",
     desc: "Earn $4 at the end of the round",
     roundEnd: () => ({ money: 4 }),
   },
@@ -297,7 +297,7 @@ const JESTER_POOL = [
     desc: "All cards are considered face cards",
   },
   {
-    id: "faceless_joker", name: "Faceless Joker", price: 4, rarity: "Common",
+    id: "faceless_jester", name: "Faceless Jester", price: 4, rarity: "Common",
     desc: "Earn $5 if 3 or more face cards are discarded at the same time",
   },
   {
@@ -586,7 +586,7 @@ function discardSelected() {
   state.discardsUsed += 1;
   Sound.discard(selected.length);
   const faceCount = selected.filter(c => isFaceCard(c, { pareidolia: state.jesters.some(j => j.id === "pareidolia") })).length;
-  if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_joker")) {
+  if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_jester")) {
     state.money += 5;
   }
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
