@@ -24,12 +24,15 @@ fix scoring/rules bugs, give the run a real ending, add minimal regression
 tests for the scoring math, small UX gaps (sell a jester, see hand
 rankings). No new content, no visuals work.
 
-**Phase 2 — Strategic depth**
+**Phase 2 — Strategic depth (in progress)**
 Grow the decision space within the existing systems: more jesters with
-real synergies/anti-synergies, an economy layer (interest on saved money,
-reroll cost, jester resale value), boss-round-style modifiers that force
-different play. This is where the game gets *replayable* rather than just
-*playable*.
+real synergies/anti-synergies, an economy layer (interest on saved money ✓,
+reroll cost ✓, jester resale value ✓), boss-round-style modifiers that
+force different play ✓ (six modifiers — higher target, 1-hand-only,
+no-discard, smaller hand, and two suit debuffs — one picked at random for
+round 3 of every ante). Remaining: jester synergies/anti-synergies beyond
+the existing conditional/scaling ones. This is where the game gets
+*replayable* rather than just *playable*.
 
 **Phase 3 — Content breadth**
 Add the systems the README explicitly deferred: a simplified

@@ -85,6 +85,19 @@ body {
   color: var(--accent);
 }
 
+#boss-banner {
+  text-align: center;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255,93,108,0.12);
+  border: 1px solid #ff5d6c;
+  color: #ff5d6c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#boss-banner.hidden { display: none; }
+
 #jester-row {
   min-height: 64px;
   display: flex;

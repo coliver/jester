@@ -240,6 +240,42 @@ const JESTER_POOL = [
   },
 ];
 
+// Boss rounds: the last round of every ante (round === ROUNDS_PER_ANTE) picks
+// one of these at random and applies it for that round only, forcing a
+// different line of play instead of just a bigger number to hit.
+const BOSS_MODIFIERS = [
+  {
+    id: "wall", name: "The Wall",
+    desc: "Round target is 50% higher",
+    targetMult: 1.5,
+  },
+  {
+    id: "needle", name: "The Needle",
+    desc: "Only 1 hand allowed this round",
+    handsOverride: 1,
+  },
+  {
+    id: "water", name: "The Water",
+    desc: "No discards this round",
+    discardsOverride: 0,
+  },
+  {
+    id: "manacle", name: "The Manacle",
+    desc: "Hand size reduced by 1 card",
+    handSizeDelta: -1,
+  },
+  {
+    id: "club", name: "The Club",
+    desc: "Played ♣ cards score no chip value",
+    suitDebuff: "♣",
+  },
+  {
+    id: "heart", name: "The Heart",
+    desc: "Played ♥ cards score no chip value",
+    suitDebuff: "♥",
+  },
+];
+
 // --- State ---------------------------------------------------------------
 
 let state = null;
@@ -264,6 +300,8 @@ function newState() {
     phase: "playing", // playing | shop | gameover | win
     dealtIds: new Map(),
     lastEarnings: null,
+    bossModifier: null,
+    handSize: HAND_SIZE,
   };
 }
 
@@ -305,14 +343,21 @@ function startRound() {
   state.hand = [];
   state.selected = new Set();
   state.roundScore = 0;
-  state.handsLeft = START_HANDS;
-  state.discardsLeft = START_DISCARDS;
+  state.bossModifier = state.round === ROUNDS_PER_ANTE
+    ? BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)]
+    : null;
+  state.handSize = HAND_SIZE + (state.bossModifier?.handSizeDelta || 0);
+  state.handsLeft = state.bossModifier?.handsOverride ?? START_HANDS;
+  state.discardsLeft = state.bossModifier?.discardsOverride ?? START_DISCARDS;
   state.target = targetForRound(state.ante, state.round);
+  if (state.bossModifier?.targetMult) {
+    state.target = Math.round(state.target * state.bossModifier.targetMult / 10) * 10;
+  }
   state.phase = "playing";
   state.dealtIds = new Map();
 
   const deal = () => {
-    state.hand = draw(HAND_SIZE);
+    state.hand = draw(state.handSize);
     state.dealtIds = new Map(state.hand.map((c, i) => [c.id, i]));
     Sound.dealHand(state.hand.length);
     render();
@@ -359,6 +404,7 @@ function evaluateHand(cards) {
 }
 
 function cardChipValue(card) {
+  if (state?.bossModifier?.suitDebuff === card.suit) return 0;
   if (card.rank === "A") return 11;
   if (RANK_VALUE[card.rank]) return 10;
   return parseInt(card.rank, 10);
@@ -429,7 +475,7 @@ function playHand() {
 
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
-  const drawn = draw(HAND_SIZE - state.hand.length);
+  const drawn = draw(state.handSize - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
   if (drawn.length) Sound.dealHand(drawn.length);
@@ -450,7 +496,7 @@ function discardSelected() {
   Sound.discard(selected.length);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
-  const drawn = draw(HAND_SIZE - state.hand.length);
+  const drawn = draw(state.handSize - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
   if (drawn.length) Sound.dealHand(drawn.length);
@@ -582,6 +628,15 @@ function render() {
   document.getElementById("money-val").textContent = state.money;
   document.getElementById("hands-val").textContent = state.handsLeft;
   document.getElementById("discards-val").textContent = state.discardsLeft;
+
+  const bossBanner = document.getElementById("boss-banner");
+  if (state.bossModifier) {
+    bossBanner.classList.remove("hidden");
+    document.getElementById("boss-name").textContent = state.bossModifier.name;
+    document.getElementById("boss-desc").textContent = state.bossModifier.desc;
+  } else {
+    bossBanner.classList.add("hidden");
+  }
 
   const jesterRow = document.getElementById("jester-row");
   const jesterSig = state.jesters.map(j => j.id).join(",");
@@ -782,6 +837,7 @@ const testHooks = {
   freshDeck,
   HAND_TYPES,
   JESTER_POOL,
+  BOSS_MODIFIERS,
   // state machine
   newState,
   startRound,

@@ -21,8 +21,10 @@ static (it's also set up for GitHub Pages).
   (for an escalating cost) between rounds. Saved money earns interest ($1
   per $5 held, capped at $5) on every round win.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
-  Clearing round 3 of ante 8 wins the run; running out of hands first ends
-  it.
+  The last round of each ante is a boss round: one of six modifiers (higher
+  target, 1 hand only, no discards, a smaller hand, or a debuffed suit)
+  applies for that round. Clearing round 3 of ante 8 wins the run; running
+  out of hands first ends it.
 - In-game hand-ranking reference (collapsible panel below the controls).
 
 ## What's intentionally left out

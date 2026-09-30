@@ -15,6 +15,7 @@ const {
   scoreSelection,
   freshDeck,
   JESTER_POOL,
+  BOSS_MODIFIERS,
   newState,
   startRound,
   toggleCard,
@@ -28,6 +29,27 @@ const {
   _getState,
   _setState,
 } = require("../game.js");
+
+function withMockedRandom(value, fn) {
+  const orig = Math.random;
+  Math.random = () => value;
+  try {
+    return fn();
+  } finally {
+    Math.random = orig;
+  }
+}
+
+// Forces a specific boss modifier by ID: mocks Math.random so
+// BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)] lands on
+// it, then runs startRound() (which is where the pick happens) inside that
+// mock.
+function withBossModifier(id, fn) {
+  const idx = BOSS_MODIFIERS.findIndex(m => m.id === id);
+  assert.ok(idx !== -1, `no such boss modifier: ${id}`);
+  const value = idx / BOSS_MODIFIERS.length + 0.001;
+  return withMockedRandom(value, fn);
+}
 
 // Fresh, dealt state for each test. startRound() deals synchronously
 // outside a DOM (see game.js), so no waiting/faking timers is needed.
@@ -306,4 +328,84 @@ test("full round trip: play to the target, shop, then start the next round", () 
   assert.equal(after.phase, "playing");
   assert.equal(after.round, 2);
   assert.equal(after.hand.length, 8);
+});
+
+// --- Boss rounds -----------------------------------------------------------
+
+test("rounds 1 and 2 never get a boss modifier", () => {
+  _setState(newState());
+  const state = _getState();
+  state.round = 1;
+  startRound();
+  assert.equal(_getState().bossModifier, null);
+
+  state.round = 2;
+  startRound();
+  assert.equal(_getState().bossModifier, null);
+});
+
+test("round 3 always picks a boss modifier", () => {
+  _setState(newState());
+  _getState().round = 3; // ROUNDS_PER_ANTE
+  startRound();
+  const modifier = _getState().bossModifier;
+  assert.ok(modifier);
+  assert.ok(BOSS_MODIFIERS.includes(modifier));
+});
+
+test("The Needle limits the boss round to 1 hand", () => {
+  _setState(newState());
+  _getState().round = 3;
+  withBossModifier("needle", startRound);
+  assert.equal(_getState().handsLeft, 1);
+  assert.equal(_getState().discardsLeft, 3); // untouched
+});
+
+test("The Water removes discards for the boss round", () => {
+  _setState(newState());
+  _getState().round = 3;
+  withBossModifier("water", startRound);
+  assert.equal(_getState().discardsLeft, 0);
+  assert.equal(_getState().handsLeft, 4); // untouched
+});
+
+test("The Manacle deals one fewer card for the boss round", () => {
+  _setState(newState());
+  _getState().round = 3;
+  withBossModifier("manacle", startRound);
+  assert.equal(_getState().handSize, 7);
+  assert.equal(_getState().hand.length, 7);
+});
+
+test("The Wall raises the boss round's target by 50%", () => {
+  _setState(newState());
+  _getState().round = 3;
+  _getState().ante = 1;
+  withBossModifier("wall", startRound);
+  // targetForRound(1, 3) is 510; *1.5 rounded to the nearest 10 is 770.
+  assert.equal(_getState().target, 770);
+});
+
+test("boss round clears back to no modifier once the round ends", () => {
+  _setState(newState());
+  _getState().round = 3;
+  withBossModifier("needle", startRound);
+  assert.ok(_getState().bossModifier);
+
+  nextRound(); // wraps to round 1 of the next ante
+  assert.equal(_getState().round, 1);
+  assert.equal(_getState().bossModifier, null);
+  assert.equal(_getState().handSize, 8);
+});
+
+test("The Club zeroes the chip value of played clubs", () => {
+  _setState(newState());
+  _getState().round = 3;
+  withBossModifier("club", startRound);
+
+  const clubCard = { rank: "K", suit: "♣", id: "K♣" };
+  const spadeCard = { rank: "K", suit: "♠", id: "K♠" };
+  const clubResult = scoreSelection([clubCard]);
+  const spadeResult = scoreSelection([spadeCard]);
+  assert.equal(clubResult.chips, spadeResult.chips - 10);
 });
