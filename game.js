@@ -15,6 +15,10 @@ const START_HANDS = 4;
 const START_DISCARDS = 3;
 const START_MONEY = 4;
 const JESTER_SLOTS = 5;
+const TRICK_SLOTS = 2;
+const TRICK_PRICE = 3;
+const PACK_PRICE = 4;
+const PACK_SIZE = 3;
 const ROUNDS_PER_ANTE = 3;
 const FINAL_ANTE = 8;
 const REROLL_BASE_COST = 2;
@@ -27,17 +31,38 @@ function sellValue(jester) {
   return Math.max(1, Math.floor(jester.price / 2)) + (jester.sellBonus || 0);
 }
 
+// Each hand has a level (1 by default). Every level above 1 adds levelChips
+// and levelMult to the hand's base; trick cards are how a hand levels up.
 const HAND_TYPES = [
-  { name: "Straight Flush", chips: 100, mult: 8, test: h => h.isFlush && h.isStraight },
-  { name: "Four of a Kind", chips: 60, mult: 7, test: h => h.counts[0] === 4 },
-  { name: "Full House", chips: 40, mult: 4, test: h => h.counts[0] === 3 && h.counts[1] === 2 },
-  { name: "Flush", chips: 35, mult: 4, test: h => h.isFlush },
-  { name: "Straight", chips: 30, mult: 4, test: h => h.isStraight },
-  { name: "Three of a Kind", chips: 30, mult: 3, test: h => h.counts[0] === 3 },
-  { name: "Two Pair", chips: 20, mult: 2, test: h => h.counts[0] === 2 && h.counts[1] === 2 },
-  { name: "Pair", chips: 10, mult: 2, test: h => h.counts[0] === 2 },
-  { name: "High Card", chips: 5, mult: 1, test: () => true },
+  { name: "Straight Flush", chips: 100, mult: 8, levelChips: 40, levelMult: 4, trick: "Grand Finale", test: h => h.isFlush && h.isStraight },
+  { name: "Four of a Kind", chips: 60, mult: 7, levelChips: 30, levelMult: 3, trick: "Four-Ring Circus", test: h => h.counts[0] === 4 },
+  { name: "Full House", chips: 40, mult: 4, levelChips: 25, levelMult: 2, trick: "Big Top", test: h => h.counts[0] === 3 && h.counts[1] === 2 },
+  { name: "Flush", chips: 35, mult: 4, levelChips: 15, levelMult: 2, trick: "Sleight of Hand", test: h => h.isFlush },
+  { name: "Straight", chips: 30, mult: 4, levelChips: 30, levelMult: 3, trick: "Tightrope", test: h => h.isStraight },
+  { name: "Three of a Kind", chips: 30, mult: 3, levelChips: 20, levelMult: 2, trick: "Triple Threat", test: h => h.counts[0] === 3 },
+  { name: "Two Pair", chips: 20, mult: 2, levelChips: 20, levelMult: 1, trick: "Tag Team", test: h => h.counts[0] === 2 && h.counts[1] === 2 },
+  { name: "Pair", chips: 10, mult: 2, levelChips: 15, levelMult: 1, trick: "Double Take", test: h => h.counts[0] === 2 },
+  { name: "High Card", chips: 5, mult: 1, levelChips: 10, levelMult: 1, trick: "Pratfall", test: () => true },
 ];
+
+// One trick card per hand type; using it raises that hand's level by one.
+const TRICK_POOL = HAND_TYPES.map(t => ({
+  id: "trick_" + t.name.toLowerCase().replace(/ /g, "_"),
+  name: t.trick,
+  hand: t.name,
+  price: TRICK_PRICE,
+  desc: `Level up ${t.name}: +${t.levelChips} chips, +${t.levelMult} mult.`,
+}));
+
+function handLevel(name) {
+  return state?.handLevels?.[name] || 1;
+}
+
+// A hand's current base values, including any trick-card levels.
+function handBase(type) {
+  const extra = handLevel(type.name) - 1;
+  return { chips: type.chips + extra * type.levelChips, mult: type.mult + extra * type.levelMult };
+}
 
 const JESTER_POOL = [
   // --- Ported from Balatro (jesters "Available from start" whose effects --
@@ -356,7 +381,7 @@ const JESTER_POOL = [
     apply: (ctx) => {
       const target = ctx.jesters[0];
       if (!target || target.id === "brainstorm" || !target.apply) return {};
-      return target.apply(ctx);
+      return target.apply(ctx, target);
     },
   },
   {
@@ -382,8 +407,19 @@ const JESTER_POOL = [
     apply: (ctx) => {
       const target = ctx.jesters[ctx.jesters.findIndex(j => j.id === "blueprint") + 1];
       if (!target || target.id === "blueprint" || target.id === "brainstorm" || !target.apply) return {};
-      return target.apply(ctx);
+      return target.apply(ctx, target);
     },
+  },
+  {
+    id: "constellation", name: "Constellation", price: 6, rarity: "Uncommon",
+    desc: "Gains X0.1 Mult every time a Trick card is used",
+    apply: (ctx, self) => ({ multMul: 1 + 0.1 * (self.tricksUsed || 0) }),
+    onTrickUsed: (self) => { self.tricksUsed = (self.tricksUsed || 0) + 1; },
+  },
+  {
+    id: "space_jester", name: "Space Jester", price: 5, rarity: "Common",
+    desc: "1 in 4 chance to level up the played poker hand",
+    onPlay: () => (Math.random() < 1 / 4 ? { levelUp: true } : {}),
   },
   {
     id: "ringmaster", name: "Ringmaster", price: 5, rarity: "Uncommon",
@@ -448,7 +484,12 @@ function newState() {
     discarded: [],
     selected: new Set(),
     jesters: [],
+    tricks: [],
+    handLevels: {},
     shopOffers: [],
+    shopTricks: [],
+    packAvailable: false,
+    pack: null,
     rerollCost: REROLL_BASE_COST,
     sortMode: "rank", // rank | suit
     phase: "playing", // playing | shop | gameover | win
@@ -575,7 +616,8 @@ function evaluateHand(cards) {
 
   const h = { counts, isFlush, isStraight };
   const type = HAND_TYPES.find(t => t.test(h));
-  return { name: type.name, baseChips: type.chips, baseMult: type.mult, isStraight, isFlush, counts };
+  const base = handBase(type);
+  return { name: type.name, baseChips: base.chips, baseMult: base.mult, isStraight, isFlush, counts };
 }
 
 function cardChipValue(card) {
@@ -615,7 +657,7 @@ function scoreSelection(selected) {
   };
 
   for (const j of state.jesters) {
-    const effect = j.apply ? j.apply(ctx) : {};
+    const effect = j.apply ? j.apply(ctx, j) : {};
     if (effect.chips) chips += effect.chips;
     if (effect.multAdd) mult += effect.multAdd;
     if (effect.multMul) multMul *= effect.multMul;
@@ -649,6 +691,12 @@ function getSelectedCards() {
 function playHand() {
   const selected = getSelectedCards();
   if (selected.length === 0 || state.handsLeft <= 0) return;
+
+  // Level-up hooks fire before scoring, so the hand scores at its new level.
+  const played = evaluateHand(selected).name;
+  for (const j of state.jesters) {
+    if (j.onPlay && j.onPlay().levelUp) levelUpHand(played);
+  }
 
   const result = scoreSelection(selected);
   state.roundScore += result.total;
@@ -733,6 +781,8 @@ function finishRoundWin() {
     [pool[i], pool[r]] = [pool[r], pool[i]];
   }
   state.shopOffers = pool.slice(0, 3);
+  rollTrickOffers();
+  state.packAvailable = true;
 }
 
 function debtFloor() {
@@ -767,6 +817,16 @@ function rollShopOffers() {
   state.shopOffers = pool.slice(0, 3);
 }
 
+// Two random trick cards for sale (duplicates of owned ones are fine).
+function rollTrickOffers() {
+  const pool = [...TRICK_POOL];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const r = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[r]] = [pool[r], pool[i]];
+  }
+  state.shopTricks = pool.slice(0, 2);
+}
+
 function inShop() {
   return state.phase === "shop" || (state.phase === "playing" && state.debugShop);
 }
@@ -775,7 +835,11 @@ function setDebugShop(open) {
   if (!DEBUG_ENABLED) return;
   if (state.phase !== "playing") return;
   state.debugShop = open;
-  if (open && state.shopOffers.length === 0) rollShopOffers();
+  if (open && state.shopOffers.length === 0) {
+    rollShopOffers();
+    rollTrickOffers();
+    state.packAvailable = true;
+  }
   render();
 }
 
@@ -813,6 +877,89 @@ function rerollShop() {
     [pool[i], pool[r]] = [pool[r], pool[i]];
   }
   state.shopOffers = pool.slice(0, 3);
+  rollTrickOffers();
+  render();
+}
+
+// --- Trick cards -------------------------------------------------------------
+
+function levelUpHand(name) {
+  state.handLevels[name] = handLevel(name) + 1;
+}
+
+// A trick card was used (from a slot or picked from a pack).
+function trickUsed(trick) {
+  levelUpHand(trick.hand);
+  for (const j of state.jesters) if (j.onTrickUsed) j.onTrickUsed(j);
+}
+
+function trickSellValue(trick) {
+  return Math.max(1, Math.floor(trick.price / 2));
+}
+
+function canAct() {
+  return inShop() || state.phase === "playing";
+}
+
+function buyTrick(id) {
+  if (!inShop() || state.tricks.length >= TRICK_SLOTS) return;
+  const idx = state.shopTricks.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  const trick = state.shopTricks[idx];
+  if (state.money - trick.price < debtFloor()) return;
+  state.money -= trick.price;
+  state.tricks.push({ ...trick });
+  state.shopTricks.splice(idx, 1);
+  Sound.coinBuy();
+  render();
+}
+
+function useTrick(index) {
+  if (!canAct() || state.pack) return;
+  const [trick] = state.tricks.splice(index, 1);
+  if (!trick) return;
+  trickUsed(trick);
+  Sound.coinBuy();
+  render();
+}
+
+function sellTrick(index) {
+  if (!inShop()) return;
+  const [trick] = state.tricks.splice(index, 1);
+  if (!trick) return;
+  state.money += trickSellValue(trick);
+  Sound.coinSell();
+  render();
+}
+
+// A trick pack offers PACK_SIZE distinct tricks; you pick one and it's used
+// immediately (no slot needed), or skip the rest.
+function buyPack() {
+  if (!inShop() || !state.packAvailable || state.pack) return;
+  if (state.money - PACK_PRICE < debtFloor()) return;
+  state.money -= PACK_PRICE;
+  state.packAvailable = false;
+  const pool = [...TRICK_POOL];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const r = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[r]] = [pool[r], pool[i]];
+  }
+  state.pack = pool.slice(0, PACK_SIZE);
+  Sound.coinBuy();
+  render();
+}
+
+function pickFromPack(id) {
+  if (!state.pack) return;
+  const trick = state.pack.find(t => t.id === id);
+  if (!trick) return;
+  trickUsed(trick);
+  state.pack = null;
+  render();
+}
+
+function skipPack() {
+  state.pack = null;
   render();
 }
 
@@ -871,6 +1018,43 @@ function jesterHeaderHTML(j) {
   return `${jesterArtHTML(j.id)}<span class="jester-name">${j.name}</span><span class="jester-rarity ${rarityClass}">${j.rarity || ""}</span>`;
 }
 
+function trickCardHTML(t) {
+  return `<span class="trick-glyph">✦</span><span class="trick-name">${t.name}</span><span class="trick-hand">${t.hand}</span><span class="trick-desc">${t.desc}</span>`;
+}
+
+// Held trick cards, with a Use button (and Sell in the shop) on each.
+function fillTrickList(container, withSell) {
+  container.innerHTML = "";
+  state.tricks.forEach((t, i) => {
+    const div = document.createElement("div");
+    div.className = "trick";
+    div.innerHTML = trickCardHTML(t);
+    const useBtn = document.createElement("button");
+    useBtn.className = "use-btn";
+    useBtn.textContent = "Use";
+    useBtn.disabled = Boolean(state.pack);
+    useBtn.addEventListener("click", () => useTrick(i));
+    div.appendChild(useBtn);
+    if (withSell) {
+      const sellBtn = document.createElement("button");
+      sellBtn.className = "sell-btn";
+      sellBtn.textContent = `Sell $${trickSellValue(t)}`;
+      sellBtn.addEventListener("click", () => sellTrick(i));
+      div.appendChild(sellBtn);
+    }
+    container.appendChild(div);
+  });
+}
+
+function renderHandReference() {
+  const items = document.querySelectorAll("#hand-reference-list li");
+  HAND_TYPES.forEach((t, i) => {
+    const b = handBase(t);
+    const lvl = handLevel(t.name);
+    items[i].textContent = `${t.name}${lvl > 1 ? ` (Lv ${lvl})` : ""} — ${b.chips} chips × ${b.mult} mult`;
+  });
+}
+
 function render() {
   if (typeof document === "undefined") return;
   document.getElementById("ante-val").textContent = state.ante;
@@ -901,6 +1085,11 @@ function render() {
       jesterRow.appendChild(div);
     }
   }
+
+  const trickRow = document.getElementById("trick-row");
+  trickRow.classList.toggle("hidden", state.tricks.length === 0);
+  fillTrickList(trickRow, false);
+  renderHandReference();
 
   document.getElementById("sort-rank-btn").classList.toggle("active", state.sortMode === "rank");
   document.getElementById("sort-suit-btn").classList.toggle("active", state.sortMode === "suit");
@@ -1033,6 +1222,38 @@ function renderOverlay() {
       shopItems.appendChild(div);
     }
 
+    const shopTricks = document.getElementById("shop-tricks");
+    shopTricks.innerHTML = "";
+    const trickOffers = state.shopTricks.map(t => ({ t, pack: false }));
+    if (state.packAvailable) trickOffers.push({ pack: true });
+    for (const { t, pack } of trickOffers) {
+      const price = pack ? PACK_PRICE : t.price;
+      const canBuy = state.money - price >= debtFloor() && (pack ? !state.pack : state.tricks.length < TRICK_SLOTS);
+      const div = document.createElement("div");
+      div.className = "shop-item trick" + (canBuy ? "" : " unaffordable");
+      div.innerHTML = `${pack
+        ? `<span class="trick-glyph">✦✦✦</span><span class="trick-name">Trick Pack</span><span class="trick-desc">Pick 1 of ${PACK_SIZE} tricks, used right away.</span>`
+        : trickCardHTML(t)}<div class="price">$${price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`;
+      div.querySelector("button").addEventListener("click", () => (pack ? buyPack() : buyTrick(t.id)));
+      shopTricks.appendChild(div);
+    }
+
+    const packSection = document.getElementById("pack-section");
+    packSection.classList.toggle("hidden", !state.pack);
+    const packItems = document.getElementById("pack-items");
+    packItems.innerHTML = "";
+    for (const t of state.pack || []) {
+      const div = document.createElement("div");
+      div.className = "shop-item trick";
+      div.innerHTML = `${trickCardHTML(t)}<button>Take</button>`;
+      div.querySelector("button").addEventListener("click", () => pickFromPack(t.id));
+      packItems.appendChild(div);
+    }
+
+    const ownedTricksSection = document.getElementById("owned-tricks-section");
+    ownedTricksSection.classList.toggle("hidden", state.tricks.length === 0);
+    fillTrickList(document.getElementById("owned-tricks"), true);
+
     const ownedList = document.getElementById("owned-jesters");
     ownedList.innerHTML = "";
     if (state.jesters.length > 0) {
@@ -1065,6 +1286,9 @@ function renderOverlay() {
     document.getElementById("overlay-title").textContent = "You Win!";
     document.getElementById("overlay-sub").textContent = `Cleared Ante ${FINAL_ANTE} with ${state.jesters.length} jester(s) held.`;
     document.getElementById("shop-items").innerHTML = "";
+    document.getElementById("shop-tricks").innerHTML = "";
+    document.getElementById("pack-section").classList.add("hidden");
+    document.getElementById("owned-tricks-section").classList.add("hidden");
     rerollBtn.classList.add("hidden");
     ownedSection.classList.add("hidden");
     const btn = document.getElementById("overlay-btn");
@@ -1075,6 +1299,9 @@ function renderOverlay() {
     document.getElementById("overlay-title").textContent = "Game Over";
     document.getElementById("overlay-sub").textContent = `You reached Ante ${state.ante}, Round ${state.round}.`;
     document.getElementById("shop-items").innerHTML = "";
+    document.getElementById("shop-tricks").innerHTML = "";
+    document.getElementById("pack-section").classList.add("hidden");
+    document.getElementById("owned-tricks-section").classList.add("hidden");
     rerollBtn.classList.add("hidden");
     ownedSection.classList.add("hidden");
     const btn = document.getElementById("overlay-btn");
@@ -1118,10 +1345,29 @@ function initApp() {
   syncMuteBtn();
 
   const handReferenceList = document.getElementById("hand-reference-list");
-  for (const t of HAND_TYPES) {
-    const li = document.createElement("li");
-    li.textContent = `${t.name} — ${t.chips} chips × ${t.mult} mult`;
-    handReferenceList.appendChild(li);
+  for (let i = 0; i < HAND_TYPES.length; i++) {
+    handReferenceList.appendChild(document.createElement("li"));
+  }
+  document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
+
+  // On a landscape phone the Deck/Shop buttons and the hand-rankings panel
+  // move into the left column (under the HUD) to save vertical space.
+  if (typeof window.matchMedia === "function") {
+    const mq = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+    const sideTools = document.getElementById("side-tools");
+    const sortControls = document.getElementById("sort-controls");
+    const handRef = document.getElementById("hand-reference");
+    const controls = document.getElementById("controls");
+    const placeTools = () => {
+      if (mq.matches) {
+        sideTools.append(document.getElementById("deck-btn"), document.getElementById("shop-btn"), handRef);
+      } else {
+        sortControls.append(document.getElementById("deck-btn"), document.getElementById("shop-btn"));
+        controls.after(handRef);
+      }
+    };
+    placeTools();
+    mq.addEventListener("change", placeTools);
   }
 
   state = newState();
@@ -1147,6 +1393,7 @@ const testHooks = {
   cardChipValue,
   freshDeck,
   HAND_TYPES,
+  TRICK_POOL,
   JESTER_POOL,
   BOSS_MODIFIERS,
   // state machine
@@ -1159,6 +1406,12 @@ const testHooks = {
   buyJester,
   sellJester,
   rerollShop,
+  buyTrick,
+  useTrick,
+  sellTrick,
+  buyPack,
+  pickFromPack,
+  skipPack,
   setDebugShop,
   addDebugMoney,
   nextRound,

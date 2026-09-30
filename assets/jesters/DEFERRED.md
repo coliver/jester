@@ -36,19 +36,17 @@ Spare Trousers ($6) · Ramen ($6) · Popcorn ($5) · Obelisk ($8) ·
 Card Sharp ($6, needs "hand types played this round" too) ·
 Red Card ($5, needs Booster Packs) · Hologram ($7, needs deck-add events) ·
 Vampire ($7, needs card Enhancements) · Lucky Cat ($6, needs Lucky cards) ·
-Constellation ($6, needs Planet cards) · Seltzer ($6, needs a retrigger
+Seltzer ($6, needs a retrigger
 system) · Ancient Jester ($8, suit rotates each round) ·
 Campfire ($9, needs a sell-event hook)
 
-## Needs consumables that don't exist (Tarot / Spectral / Planet cards)
+## Needs consumables that don't exist (Tarot / Spectral cards)
 
-This game has no consumable-card system at all yet (Phase 3 per
-ROADMAP.md).
+Only trick cards (this game's take on Planet cards) exist as consumables;
+there is no Tarot or Spectral equivalent yet.
 
 8 Ball ($5) · Superposition ($4) · Sixth Sense ($6) · Séance ($6) ·
-Vagabond ($8) · Hallucination ($4) · Fortune Teller ($6) ·
-Constellation ($6, listed above too) · Space Jester ($5, "upgrade hand
-level" is a Planet-card concept)
+Vagabond ($8) · Hallucination ($4) · Fortune Teller ($6)
 
 ## Needs card enhancements that don't exist (Stone / Steel / Gold / Lucky)
 

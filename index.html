@@ -13,6 +13,7 @@
     <div>Rotate your phone to landscape to play</div>
   </div>
   <div id="app">
+    <div id="side">
     <header id="hud">
       <div class="hud-block">
         <span class="hud-label">Ante</span>
@@ -40,12 +41,16 @@
       </div>
       <button id="mute-btn" aria-label="Mute sound" title="Mute sound">🔊</button>
     </header>
+    <div id="side-tools"></div>
+    </div>
 
     <section id="boss-banner" class="hidden" aria-live="polite">
       <span id="boss-name"></span> — <span id="boss-desc"></span>
     </section>
 
     <section id="jester-row" aria-label="Owned jesters"></section>
+
+    <section id="trick-row" class="hidden" aria-label="Trick cards"></section>
 
     <section id="preview" aria-label="Current hand preview">
       <span id="preview-name">&nbsp;</span>
@@ -91,6 +96,16 @@
         <h2 id="overlay-title"></h2>
         <p id="overlay-sub"></p>
         <div id="shop-items"></div>
+        <div id="shop-tricks"></div>
+        <div id="pack-section" class="hidden">
+          <h3>Trick Pack: pick one</h3>
+          <div id="pack-items"></div>
+          <button id="pack-skip-btn">Skip</button>
+        </div>
+        <div id="owned-tricks-section" class="hidden">
+          <h3>Your Tricks</h3>
+          <div id="owned-tricks"></div>
+        </div>
         <div id="owned-jesters-section" class="hidden">
           <h3>Your Jesters</h3>
           <div id="owned-jesters"></div>

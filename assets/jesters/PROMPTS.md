@@ -114,6 +114,13 @@ style reference if your tool supports one):
 | `rocket` | Rocket | Uncommon | A jester riding a clumsy, patched-together firework rocket mid-launch, trailing gold sparks and smoke |
 | `gift_card` | Gift Card | Uncommon | A jester presenting an ornate wrapped gift with a glowing ribbon, a smaller gift already appearing inside its bow |
 
+### Phase 3: trick-card group
+
+| id | name | rarity | subject prompt |
+|---|---|---|---|
+| `constellation` | Constellation | Uncommon | A jester in a star-spangled cloak tracing glowing constellation lines between floating trick cards in a night-sky tent |
+| `space_jester` | Space Jester | Common | A jester in a patched-together astronaut helmet with bells, floating weightlessly with a fanned hand of cards |
+
 ## Rarity color key (already wired into styles.css)
 
 Common = `#4db8ff`, Uncommon = `#35d68a`, Rare = `#ff5d6c` — matches

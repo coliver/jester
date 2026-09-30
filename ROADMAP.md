@@ -40,7 +40,7 @@ ceiling. This is where the game gets *replayable* rather than just
 
 **Phase 3 — Content breadth**
 Add the systems the README explicitly deferred: a simplified
-tarot/planet-style consumable card, vouchers, alternate decks, a
+tarot/planet-style consumable card (landed: trick cards and Trick Packs), vouchers, alternate decks, a
 stake/difficulty modifier. Each is additive and toggleable in scope — pick
 the smallest version of each that fits the no-build-step constraint.
 

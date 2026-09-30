@@ -718,3 +718,71 @@ test("Gros Michel gives +15 Mult and can be destroyed by its 1-in-6 round-end ro
   withMockedRandom(0, () => playHand());
   assert.equal(_getState().jesters.length, 0);
 });
+
+// --- Trick cards (hand levels) ---------------------------------------------
+
+test("using a trick card levels its hand and raises base chips/mult", () => {
+  const { TRICK_POOL, evaluateHand, useTrick } = require("../game.js");
+  const state = freshRoundState();
+  const pair = [{ suit: "♠", rank: "5", id: "5♠" }, { suit: "♥", rank: "5", id: "5♥" }];
+  assert.equal(evaluateHand(pair).baseChips, 10);
+  state.tricks.push({ ...TRICK_POOL.find(t => t.hand === "Pair") });
+  useTrick(0);
+  const after = evaluateHand(pair);
+  assert.equal(after.baseChips, 25);
+  assert.equal(after.baseMult, 3);
+  assert.equal(_getState().tricks.length, 0);
+});
+
+test("buyTrick respects money and the trick slot limit; sellTrick refunds half", () => {
+  const { TRICK_POOL, buyTrick, sellTrick } = require("../game.js");
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 20;
+  state.shopTricks = [TRICK_POOL[0], TRICK_POOL[1], TRICK_POOL[2]];
+  buyTrick(TRICK_POOL[0].id);
+  buyTrick(TRICK_POOL[1].id);
+  buyTrick(TRICK_POOL[2].id); // slots full
+  assert.equal(_getState().tricks.length, 2);
+  assert.equal(_getState().money, 14);
+  sellTrick(0);
+  assert.equal(_getState().money, 15);
+});
+
+test("trick pack: costs money, picking one levels its hand", () => {
+  const { buyPack, pickFromPack } = require("../game.js");
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 10;
+  state.packAvailable = true;
+  buyPack();
+  assert.equal(_getState().money, 6);
+  assert.equal(_getState().pack.length, 3);
+  const pick = _getState().pack[0];
+  pickFromPack(pick.id);
+  assert.equal(_getState().handLevels[pick.hand], 2);
+  assert.equal(_getState().pack, null);
+  assert.equal(_getState().packAvailable, false);
+});
+
+test("Constellation gains X0.1 Mult per trick used", () => {
+  const { TRICK_POOL, useTrick } = require("../game.js");
+  const state = freshRoundState();
+  state.jesters = [{ ...jesterById("constellation") }];
+  const cards = [{ suit: "♠", rank: "5", id: "5♠" }];
+  const before = scoreSelection(cards).multMul;
+  state.tricks.push({ ...TRICK_POOL[0] }, { ...TRICK_POOL[1] });
+  useTrick(0);
+  useTrick(0);
+  assert.equal(before, 1);
+  assert.ok(Math.abs(scoreSelection(cards).multMul - 1.2) < 1e-9);
+});
+
+test("Space Jester levels the played hand when its 1-in-4 roll hits", () => {
+  const state = freshRoundState();
+  state.jesters = [{ ...jesterById("space_jester") }];
+  state.hand = [{ suit: "♠", rank: "5", id: "5♠" }];
+  state.selected = new Set(["5♠"]);
+  withMockedRandom(0.1, () => playHand());
+  assert.equal(_getState().handLevels["High Card"], 2);
+});

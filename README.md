@@ -15,7 +15,7 @@ static (it's also set up for GitHub Pages).
   base chip/mult values.
 - 4 hands and 3 discards per round; reach the round's chip target before
   hands run out.
-- 59 jesters across three rarities (flat chip/mult bonuses, conditional
+- 61 jesters across three rarities (flat chip/mult bonuses, conditional
   bonuses, several multiplicative and scaling ones, a few that read or
   build on the rest of the owned roster — copy another jester's ability,
   scale off jesters sold or their resale value — plus a handful that
@@ -24,6 +24,11 @@ static (it's also set up for GitHub Pages).
   shop after each round win; sell owned jesters or reroll the shop's offers
   (for an escalating cost) between rounds. Saved money earns interest ($1
   per $5 held, capped at $5) on every round win.
+- Trick cards: each poker hand has a level, and a trick card (one per hand,
+  e.g. Double Take for Pair) raises it, adding chips and mult to that hand's
+  base. The shop sells two tricks plus a Trick Pack (pick 1 of 3, used
+  immediately); you can hold 2 and use or sell them. The Hand Rankings panel
+  shows current levels. Constellation and Space Jester build on them.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
   The last round of each ante is a boss round: one of six modifiers (higher
   target, 1 hand only, no discards, a smaller hand, or a debuffed suit)
@@ -38,7 +43,7 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Animations/juice, a Balatro-sized jester roster, tarot/planet/spectral cards,
+Animations/juice, a Balatro-sized jester roster, tarot/spectral-style cards,
 vouchers, decks, and stakes. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for most
