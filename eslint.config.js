@@ -9,6 +9,8 @@ const js = require("@eslint/js");
 const browserGlobals = {
   window: "readonly",
   document: "readonly",
+  location: "readonly",
+  URLSearchParams: "readonly",
   console: "readonly",
   localStorage: "readonly",
   Audio: "readonly",

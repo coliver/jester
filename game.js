@@ -459,6 +459,7 @@ function newState() {
     discardsUsed: 0,
     freeRerollUsed: false,
     jestersSold: 0,
+    debugShop: false,
   };
 }
 
@@ -751,8 +752,42 @@ function buyJester(id) {
   render();
 }
 
+// Debug tools are enabled by adding ?debug to the page URL.
+const DEBUG_ENABLED = typeof location !== "undefined"
+  && new URLSearchParams(location.search).has("debug");
+
+// Debug shop: open the shop at any time during play, with a money cheat.
+function rollShopOffers() {
+  const owned = new Set(state.jesters.map(j => j.id));
+  const pool = JESTER_POOL.filter(j => !owned.has(j.id));
+  for (let i = pool.length - 1; i > 0; i--) {
+    const r = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[r]] = [pool[r], pool[i]];
+  }
+  state.shopOffers = pool.slice(0, 3);
+}
+
+function inShop() {
+  return state.phase === "shop" || (state.phase === "playing" && state.debugShop);
+}
+
+function setDebugShop(open) {
+  if (!DEBUG_ENABLED) return;
+  if (state.phase !== "playing") return;
+  state.debugShop = open;
+  if (open && state.shopOffers.length === 0) rollShopOffers();
+  render();
+}
+
+function addDebugMoney(amount = 1000) {
+  if (!DEBUG_ENABLED) return;
+  state.money += amount;
+  Sound.coinSell();
+  render();
+}
+
 function sellJester(id) {
-  if (state.phase !== "shop") return;
+  if (!inShop()) return;
   const idx = state.jesters.findIndex(j => j.id === id);
   if (idx === -1) return;
   const [jester] = state.jesters.splice(idx, 1);
@@ -763,7 +798,7 @@ function sellJester(id) {
 }
 
 function rerollShop() {
-  if (state.phase !== "shop") return;
+  if (!inShop()) return;
   const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
   const cost = freeReroll ? 0 : state.rerollCost;
   if (state.money - cost < debtFloor()) return;
@@ -968,14 +1003,19 @@ function renderOverlay() {
   const overlay = document.getElementById("overlay");
   const rerollBtn = document.getElementById("reroll-btn");
   const ownedSection = document.getElementById("owned-jesters-section");
-  if (state.phase === "shop") {
+  const moneyBtn = document.getElementById("money-btn");
+  const debug = state.phase === "playing" && state.debugShop;
+  moneyBtn.classList.toggle("hidden", !debug);
+  if (state.phase === "shop" || debug) {
     overlay.classList.remove("hidden");
-    document.getElementById("overlay-title").textContent = "Round Cleared!";
+    document.getElementById("overlay-title").textContent = debug ? "Debug Shop" : "Round Cleared!";
     const earnings = state.lastEarnings;
     const earningsText = earnings
       ? ` — +$${earnings.reward} round${earnings.interest ? `, +$${earnings.interest} interest` : ""}${earnings.bonus ? `, +$${earnings.bonus} jesters` : ""}`
       : "";
-    document.getElementById("overlay-sub").textContent = `Shop – Ante ${state.ante}, Round ${state.round}${earningsText}`;
+    document.getElementById("overlay-sub").textContent = debug
+      ? `Buy and sell freely – $${state.money}`
+      : `Shop – Ante ${state.ante}, Round ${state.round}${earningsText}`;
     const shopItems = document.getElementById("shop-items");
     shopItems.innerHTML = "";
     for (const j of state.shopOffers) {
@@ -1018,8 +1058,8 @@ function renderOverlay() {
     rerollBtn.disabled = state.money - (freeReroll ? 0 : state.rerollCost) < debtFloor();
     rerollBtn.onclick = rerollShop;
     const btn = document.getElementById("overlay-btn");
-    btn.textContent = "Next Round";
-    btn.onclick = nextRound;
+    btn.textContent = debug ? "Close" : "Next Round";
+    btn.onclick = debug ? () => setDebugShop(false) : nextRound;
   } else if (state.phase === "win") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "You Win!";
@@ -1050,6 +1090,9 @@ function renderOverlay() {
 function initApp() {
   document.getElementById("play-btn").addEventListener("click", playHand);
   document.getElementById("discard-btn").addEventListener("click", discardSelected);
+  document.getElementById("shop-btn").classList.toggle("hidden", !DEBUG_ENABLED);
+  document.getElementById("shop-btn").addEventListener("click", () => setDebugShop(true));
+  document.getElementById("money-btn").addEventListener("click", () => addDebugMoney());
   document.getElementById("sort-rank-btn").addEventListener("click", () => setSortMode("rank"));
   document.getElementById("sort-suit-btn").addEventListener("click", () => setSortMode("suit"));
 
@@ -1116,6 +1159,8 @@ const testHooks = {
   buyJester,
   sellJester,
   rerollShop,
+  setDebugShop,
+  addDebugMoney,
   nextRound,
   restart,
   render,

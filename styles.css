@@ -175,6 +175,8 @@ body {
   border: 1px solid var(--muted);
 }
 
+.sort-btn.hidden { display: none; }
+
 .sort-btn.active {
   color: var(--accent);
   border-color: var(--accent);
@@ -327,10 +329,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   inset: 0;
   background: rgba(10, 5, 15, 0.75);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 10;
 }
+
+#overlay-card { margin: auto; }
 
 #overlay.hidden { display: none; }
 
@@ -356,6 +360,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 #reroll-btn.hidden { display: none; }
+
+#money-btn {
+  display: block;
+  margin: 0 auto 12px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+}
+#money-btn.hidden { display: none; }
 
 #shop-items {
   display: flex;
@@ -398,9 +411,25 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 #owned-jesters .jester { width: 100px; }
 
 @media (max-width: 480px) {
-  :root { --card-w: 56px; --card-h: 82px; }
+  :root { --card-w: calc((100vw - 48px) / 8); --card-h: calc(var(--card-w) * 1.4); }
   .hud-block { min-width: 56px; }
   .hud-val { font-size: 16px; }
+
+  #overlay-card { padding: 16px 10px; width: 100%; max-width: none; border-radius: 0; }
+  #shop-items { gap: 6px; margin-bottom: 12px; }
+  .shop-item { width: calc(33.333% - 4px); padding: 6px; font-size: 11px; }
+  .shop-item button { padding: 5px; font-size: 12px; }
+  #owned-jesters { gap: 6px; }
+  #owned-jesters .jester { width: calc(25% - 5px); min-width: 72px; padding: 4px; font-size: 10px; }
+  body { padding: 10px; }
+  #app { gap: 10px; }
+  .card .rank-top, .card .rank-bottom { font-size: 12px; }
+  .card .suit-mid { font-size: 18px; }
+  .card { padding: 3px; flex: 0 0 auto; border-radius: 6px; }
+  #hud { padding: 8px 12px; gap: 6px 10px; }
+  #jester-row { flex-wrap: nowrap; overflow-x: auto; min-height: 0; padding: 6px; gap: 6px; }
+  #jester-row .jester { flex: 0 0 84px; width: 84px; padding: 4px; font-size: 10px; }
+  #hand-row { flex-wrap: nowrap; gap: 4px; min-height: 0; padding: 6px 0 12px; }
 }
 
 #deck-modal {
@@ -466,4 +495,95 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 560px) {
   #deck-grid { grid-template-columns: repeat(7, 1fr); }
+}
+
+/* Phone landscape (Balatro-style): HUD in a left column, everything else
+   stacked on the right so all eight cards fit at a comfortable size. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --card-w: min(130px, calc((100vw - 90px) / 8), calc((100vh - 210px) / 1.4));
+    --card-h: calc(var(--card-w) * 1.4);
+  }
+  body { padding: 8px; min-height: 0; }
+  #app {
+    max-width: none;
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 6px;
+    align-content: start;
+  }
+  #app > * { grid-column: 2; }
+  #hud {
+    grid-column: 1;
+    grid-row: 1 / span 7;
+    align-self: start;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 4px;
+    padding: 8px;
+  }
+  .hud-block, .hud-block.wide { min-width: 0; }
+  .hud-block.wide { grid-column: 1 / -1; }
+  .hud-label { font-size: 10px; }
+  .hud-val { font-size: 16px; }
+  #mute-btn { margin: 0; width: 100%; padding: 6px 0; }
+  #jester-row:empty { display: none; }
+  #hand-reference { position: relative; }
+  #hand-reference ol {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 10px 14px 10px 32px;
+    background: var(--panel);
+    border: 1px solid var(--accent-2);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    z-index: 5;
+  }
+  #deck-pile { display: none; }
+  #jester-row { flex-wrap: nowrap; overflow-x: auto; min-height: 0; padding: 4px; gap: 6px; }
+  #jester-row .jester { flex: 0 0 96px; width: 96px; padding: 4px; font-size: 10px; }
+  #jester-row .jester-art { width: 44px; margin: 0 auto 2px; }
+  #preview { min-height: 18px; font-size: 13px; }
+  #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 14px 0 6px; }
+  .card { flex: 0 0 auto; padding: 5px; }
+  .card + .card { margin-left: -14px; }
+  .card .rank-bottom { align-self: flex-start; }
+  .card:hover, .card.selected { z-index: 1; }
+  .card .rank-top, .card .rank-bottom { font-size: 26px; line-height: 1; }
+  .card .suit-mid { font-size: 40px; }
+  #overlay-card { padding: 14px 16px; max-width: 720px; }
+  .shop-item { width: 150px; }
+}
+
+/* Portrait phones: browsers can't reliably lock orientation, so ask the
+   player to rotate instead of showing a cramped portrait layout. */
+#rotate-prompt { display: none; }
+@media (orientation: portrait) and (max-width: 600px) {
+  #rotate-prompt {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    text-align: center;
+    font-size: 18px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .rotate-icon { font-size: 56px; animation: rotate-hint 2s ease-in-out infinite; }
+  #app { display: none; }
+}
+@keyframes rotate-hint {
+  0%, 30% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
 }

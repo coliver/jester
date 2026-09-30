@@ -8,6 +8,10 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="rotate-prompt" role="alert">
+    <div class="rotate-icon">📱</div>
+    <div>Rotate your phone to landscape to play</div>
+  </div>
   <div id="app">
     <header id="hud">
       <div class="hud-block">
@@ -52,6 +56,7 @@
       <button id="sort-rank-btn" class="sort-btn">Sort by Rank</button>
       <button id="sort-suit-btn" class="sort-btn">Sort by Suit</button>
       <button id="deck-btn" class="sort-btn">Deck</button>
+      <button id="shop-btn" class="sort-btn hidden">Shop</button>
     </div>
 
     <div id="deck-pile" aria-hidden="true">
@@ -63,8 +68,8 @@
     <section id="hand-row" aria-label="Your hand"></section>
 
     <div id="controls">
-      <button id="discard-btn">Discard</button>
       <button id="play-btn">Play Hand</button>
+      <button id="discard-btn">Discard</button>
     </div>
 
     <details id="hand-reference">
@@ -90,6 +95,7 @@
           <h3>Your Jesters</h3>
           <div id="owned-jesters"></div>
         </div>
+        <button id="money-btn" class="hidden">+$1000</button>
         <button id="reroll-btn" class="hidden"></button>
         <button id="overlay-btn"></button>
       </div>
