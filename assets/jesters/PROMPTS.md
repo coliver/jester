@@ -34,7 +34,7 @@ style reference if your tool supports one):
 
 ## Per-jester prompts
 
-### Ported from Balatro (mechanically simple "available from start" Jokers — see DEFERRED.md for the rest)
+### Ported from Balatro (mechanically simple "available from start" jesters — see DEFERRED.md for the rest)
 
 | id | name | rarity | subject prompt |
 |---|---|---|---|

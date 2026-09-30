@@ -1,6 +1,7 @@
-# Deferred Balatro jokers
+# Deferred Balatro jesters
 
-56 of the 105 "available from start" Balatro Jokers (source:
+56 of the 105 "available from start" Balatro jesters (source, under
+Balatro's own name for them:
 [balatrogame.fandom.com/wiki/Jokers](https://balatrogame.fandom.com/wiki/Jokers),
 pulled 2026-09-29) aren't in `JESTER_POOL` yet — see [PROMPTS.md](PROMPTS.md)
 for the 49 that are. Each of these needs something the engine doesn't
@@ -19,7 +20,7 @@ Rocket ($6, Uncommon) · Gift Card ($6, Uncommon)
 
 No "blind selected, before the round deals" hook exists yet.
 
-Ceremonial Dagger ($6, Uncommon) · Marble Joker ($6, Uncommon) ·
+Ceremonial Dagger ($6, Uncommon) · Marble Jester ($6, Uncommon) ·
 Burglar ($6, Uncommon) · Madness ($7, Uncommon) · Riff-Raff ($6, Common)
 
 ## Needs a discard-event hook
@@ -33,18 +34,18 @@ Castle ($6, Uncommon, suit rotates each round)
 
 ## Needs a persistent per-jester counter (grows across hands/rounds)
 
-These "Currently +N" jokers permanently accumulate a bonus over the run —
+These "Currently +N" jesters permanently accumulate a bonus over the run —
 needs a mutable field on the owned-jester instance, not just a pure
 `apply(ctx)` function.
 
 Loyalty Card ($5) · Supernova ($5) · Ride the Bus ($6) · Runner ($5) ·
-Ice Cream ($5) · Green Joker ($4) · Square Joker ($4) · Flash Card ($5) ·
+Ice Cream ($5) · Green Jester ($4) · Square Jester ($4) · Flash Card ($5) ·
 Spare Trousers ($6) · Ramen ($6) · Popcorn ($5) · Obelisk ($8) ·
 Card Sharp ($6, needs "hand types played this round" too) ·
 Red Card ($5, needs Booster Packs) · Hologram ($7, needs deck-add events) ·
 Vampire ($7, needs card Enhancements) · Lucky Cat ($6, needs Lucky cards) ·
 Constellation ($6, needs Planet cards) · Seltzer ($6, needs a retrigger
-system) · Ancient Joker ($8, suit rotates each round) ·
+system) · Ancient Jester ($8, suit rotates each round) ·
 Campfire ($9, needs a sell-event hook)
 
 ## Needs consumables that don't exist (Tarot / Spectral / Planet cards)
@@ -54,15 +55,15 @@ ROADMAP.md).
 
 8 Ball ($5) · Superposition ($4) · Sixth Sense ($6) · Séance ($6) ·
 Vagabond ($8) · Hallucination ($4) · Fortune Teller ($6) ·
-Constellation ($6, listed above too) · Space Joker ($5, "upgrade hand
+Constellation ($6, listed above too) · Space Jester ($5, "upgrade hand
 level" is a Planet-card concept)
 
 ## Needs card enhancements that don't exist (Stone / Steel / Gold / Lucky)
 
 No per-card enhancement system exists — cards are just `{suit, rank}`.
 
-Marble Joker ($6, listed above too) · Steel Joker ($7) ·
-Stone Joker ($6) · Midas Mask ($7) · Hiker ($5, permanent per-card chip
+Marble Jester ($6, listed above too) · Steel Jester ($7) ·
+Stone Jester ($6) · Midas Mask ($7) · Hiker ($5, permanent per-card chip
 buff also needs mutable card state)
 
 ## Needs a passive rule change to hand evaluation itself
@@ -84,8 +85,8 @@ mid-round)
 ## Needs `state.deck` to mean "full deck" not "draw pile"
 
 `state.deck` is currently the shrinking draw pile for the round, reset
-fresh each round to all 52 cards. "Full deck" jokers (Erosion, Steel
-Joker, Stone Joker, Cloud 9 above) need a concept of deck composition
+fresh each round to all 52 cards. "Full deck" jesters (Erosion, Steel
+Jester, Stone Jester, Cloud 9 above) need a concept of deck composition
 that's independent of what's been drawn — meaningful once Phase 3 adds
 anything that permanently changes deck composition (card removal,
 vouchers, added cards). Until then they'd all read as constant/inert, so
