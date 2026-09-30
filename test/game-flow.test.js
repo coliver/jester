@@ -170,6 +170,46 @@ test("clearing round 3 of the final ante wins the run", () => {
   assert.equal(_getState().phase, "win");
 });
 
+test("selling a jester increments the run's jestersSold counter", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  const jester = JESTER_POOL.find(j => j.price === 5);
+  state.jesters = [jester];
+  state.jestersSold = 2;
+
+  sellJester(jester.id);
+
+  assert.equal(_getState().jestersSold, 3);
+});
+
+test("jestersSold resets to 0 when a boss round (round 3) is cleared", () => {
+  const state = freshRoundState();
+  state.round = 3; // ROUNDS_PER_ANTE
+  state.target = 1;
+  state.jestersSold = 4;
+  const id = state.hand[0].id;
+  toggleCard(id);
+
+  playHand();
+
+  assert.equal(_getState().phase, "shop");
+  assert.equal(_getState().jestersSold, 0);
+});
+
+test("jestersSold carries over after a non-boss round win", () => {
+  const state = freshRoundState();
+  state.round = 1;
+  state.target = 1;
+  state.jestersSold = 4;
+  const id = state.hand[0].id;
+  toggleCard(id);
+
+  playHand();
+
+  assert.equal(_getState().phase, "shop");
+  assert.equal(_getState().jestersSold, 4);
+});
+
 test("discardSelected swaps cards without touching score or hand count", () => {
   const state = freshRoundState();
   const before = JSON.stringify([...state.hand].sort((a, b) => a.id.localeCompare(b.id)));

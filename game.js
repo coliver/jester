@@ -304,6 +304,39 @@ const JESTER_POOL = [
     id: "four_fingers", name: "Four Fingers", price: 7, rarity: "Uncommon",
     desc: "Flushes and Straights can be made with 4 cards",
   },
+
+  // --- Phase 2: jester-to-jester synergy/anti-synergy — effects that read --
+  // --- (Brainstorm, Swashbuckler) or accumulate from (Campfire) the rest of -
+  // --- the owned roster, rather than just the played hand or game state. ---
+  // --- Campfire's sell-for-scaling payoff directly tugs against Brainstorm/-
+  // --- Swashbuckler/Jester Stencil/Abstract Jester, which all want a full, --
+  // --- stable board — selling for Campfire starves those.
+  {
+    id: "brainstorm", name: "Brainstorm", price: 10, rarity: "Rare",
+    desc: "Emulates the scoring ability of the leftmost Jester",
+    apply: (ctx) => {
+      const target = ctx.jesters[0];
+      if (!target || target.id === "brainstorm" || !target.apply) return {};
+      return target.apply(ctx);
+    },
+  },
+  {
+    id: "swashbuckler", name: "Swashbuckler", price: 6, rarity: "Uncommon",
+    desc: "+Mult equal to the sell value of all other owned Jesters",
+    apply: (ctx) => {
+      let multAdd = 0;
+      for (const j of ctx.jesters) {
+        if (j.id === "swashbuckler") continue;
+        multAdd += Math.max(1, Math.floor(j.price / 2));
+      }
+      return { multAdd };
+    },
+  },
+  {
+    id: "campfire", name: "Campfire", price: 9, rarity: "Rare",
+    desc: "X0.25 Mult per Jester sold this run; resets when a boss round is cleared",
+    apply: (ctx) => ({ multMul: 1 + 0.25 * ctx.jestersSold }),
+  },
 ];
 
 // Boss rounds: the last round of every ante (round === ROUNDS_PER_ANTE) picks
@@ -370,6 +403,7 @@ function newState() {
     handSize: HAND_SIZE,
     discardsUsed: 0,
     freeRerollUsed: false,
+    jestersSold: 0,
   };
 }
 
@@ -519,6 +553,7 @@ function scoreSelection(selected) {
     jesters: state.jesters,
     jesterSlots: JESTER_SLOTS,
     pareidolia: state.jesters.some(j => j.id === "pareidolia"),
+    jestersSold: state.jestersSold,
   };
 
   for (const j of state.jesters) {
@@ -614,6 +649,7 @@ function finishRoundWin() {
   }
   if (bonus) state.money += bonus;
   if (destroyed.size) state.jesters = state.jesters.filter(j => !destroyed.has(j.id));
+  if (state.round === ROUNDS_PER_ANTE) state.jestersSold = 0; // boss round cleared
 
   state.lastEarnings = { reward, interest, bonus };
 
@@ -659,6 +695,7 @@ function sellJester(id) {
   if (idx === -1) return;
   const [jester] = state.jesters.splice(idx, 1);
   state.money += Math.max(1, Math.floor(jester.price / 2));
+  state.jestersSold += 1;
   Sound.coinSell();
   render();
 }

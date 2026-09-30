@@ -40,6 +40,7 @@ function baseState(overrides) {
     deck: [],
     discardsLeft: 0,
     money: 0,
+    jestersSold: 0,
   }, overrides);
 }
 
@@ -356,6 +357,51 @@ test("Four Fingers still allows the Ace-low wheel at 4 cards (A-2-3-4)", () => {
   const wheelFour = [card("A", "♠"), card("2", "♥"), card("3", "♦"), card("4", "♣")];
   _setState(baseState({ jesters: [jesterById("four_fingers")], hand: wheelFour }));
   assert.equal(evaluateHand(wheelFour).isStraight, true);
+});
+
+// --- jester-to-jester synergy/anti-synergy ---------------------------------
+
+test("Brainstorm copies the leftmost Jester's scoring ability", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")]; // High Card
+  const jesters = [jesterById("base_jester"), jesterById("brainstorm")]; // base_jester (+4 Mult) is leftmost
+  _setState(baseState({ jesters, hand: selected }));
+  const result = scoreSelection(selected);
+  // High Card base mult 1, +4 (base_jester) +4 (Brainstorm's copy) = 9.
+  assert.equal(result.mult, 9);
+});
+
+test("Brainstorm does nothing when it is itself the leftmost Jester", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  const jesters = [jesterById("brainstorm"), jesterById("base_jester")];
+  _setState(baseState({ jesters, hand: selected }));
+  const result = scoreSelection(selected);
+  // Brainstorm copies slot 0 (itself) -> no-op; base_jester still gives +4.
+  assert.equal(result.mult, 5);
+});
+
+test("Swashbuckler gives Mult equal to the sell value of every other owned Jester", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  const banner = jesterById("banner"); // price 5 -> sell value 2
+  const baseJester = jesterById("base_jester"); // price 2 -> sell value 1
+  const jesters = [baseJester, banner, jesterById("swashbuckler")];
+  _setState(baseState({ jesters, hand: selected, discardsLeft: 0 }));
+  const result = scoreSelection(selected);
+  // High Card base mult 1, +4 (base_jester), +3 (Swashbuckler: 1 + 2 sell value of the other two).
+  assert.equal(result.mult, 8);
+});
+
+test("Campfire scales X0.25 Mult per Jester sold this run", () => {
+  const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")]; // Pair
+  _setState(baseState({ jesters: [jesterById("campfire")], hand: selected, jestersSold: 3 }));
+  const result = scoreSelection(selected);
+  assert.equal(result.multMul, 1.75); // 1 + 0.25 * 3
+});
+
+test("Campfire has no bonus before any Jester has been sold", () => {
+  const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  _setState(baseState({ jesters: [jesterById("campfire")], hand: selected, jestersSold: 0 }));
+  const result = scoreSelection(selected);
+  assert.equal(result.multMul, 1);
 });
 
 // --- targetForRound scaling -----------------------------------------------
