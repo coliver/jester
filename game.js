@@ -8,6 +8,7 @@ const FACE_RANKS = new Set(["J", "Q", "K"]);
 const EVEN_RANKS = new Set(["2", "4", "6", "8", "10"]);
 const ODD_RANKS = new Set(["A", "3", "5", "7", "9"]);
 const FIBONACCI_RANKS = new Set(["A", "2", "3", "5", "8"]);
+const RETRIGGER_RANKS = new Set(["2", "3", "4", "5"]);
 const HAND_SIZE = 8;
 const MAX_SELECTED = 5;
 const START_HANDS = 4;
@@ -152,7 +153,7 @@ const JESTER_POOL = [
   {
     id: "scary_face", name: "Scary Face", price: 4, rarity: "Common",
     desc: "+30 Chips per played face card",
-    apply: (ctx) => ({ chips: 30 * ctx.selected.filter(c => FACE_RANKS.has(c.rank)).length }),
+    apply: (ctx) => ({ chips: 30 * ctx.selected.filter(c => isFaceCard(c, ctx)).length }),
   },
   {
     id: "abstract_jester", name: "Abstract Jester", price: 4, rarity: "Common",
@@ -182,7 +183,7 @@ const JESTER_POOL = [
     desc: "Played face cards have a 1 in 2 chance to give $2 when scored",
     apply: (ctx) => {
       let money = 0;
-      for (const c of ctx.selected) if (FACE_RANKS.has(c.rank) && Math.random() < 0.5) money += 2;
+      for (const c of ctx.selected) if (isFaceCard(c, ctx) && Math.random() < 0.5) money += 2;
       return { money };
     },
   },
@@ -204,14 +205,14 @@ const JESTER_POOL = [
   {
     id: "photograph", name: "Photograph", price: 5, rarity: "Common",
     desc: "First played face card gives X2 Mult when scored",
-    apply: (ctx) => ({ multMul: ctx.selected.some(c => FACE_RANKS.has(c.rank)) ? 2 : 1 }),
+    apply: (ctx) => ({ multMul: ctx.selected.some(c => isFaceCard(c, ctx)) ? 2 : 1 }),
   },
   {
     id: "reserved_parking", name: "Reserved Parking", price: 6, rarity: "Common",
     desc: "Each face card held in hand has a 1 in 2 chance to give $1",
     apply: (ctx) => {
       let money = 0;
-      for (const c of ctx.heldHand) if (FACE_RANKS.has(c.rank) && Math.random() < 0.5) money += 1;
+      for (const c of ctx.heldHand) if (isFaceCard(c, ctx) && Math.random() < 0.5) money += 1;
       return { money };
     },
   },
@@ -236,7 +237,72 @@ const JESTER_POOL = [
   {
     id: "smiley_face", name: "Smiley Face", price: 4, rarity: "Common",
     desc: "Played face cards give +5 Mult",
-    apply: (ctx) => ({ multAdd: 5 * ctx.selected.filter(c => FACE_RANKS.has(c.rank)).length }),
+    apply: (ctx) => ({ multAdd: 5 * ctx.selected.filter(c => isFaceCard(c, ctx)).length }),
+  },
+
+  // --- Ported from Balatro, round 2: jesters that needed a small amount of --
+  // --- new engine plumbing (round-start deltas, a discard hook, a round-end -
+  // --- hook, a shop-debt floor, a free reroll flag, and a 4-card flush/ -----
+  // --- straight rule) rather than just the existing per-hand scoring hook. -
+  {
+    id: "hack", name: "Hack", price: 6, rarity: "Uncommon",
+    desc: "Played 2s, 3s, 4s, and 5s are scored again",
+    apply: (ctx) => ({
+      chips: ctx.selected.filter(c => RETRIGGER_RANKS.has(c.rank)).reduce((sum, c) => sum + cardChipValue(c), 0),
+    }),
+  },
+  {
+    id: "delayed_gratification", name: "Delayed Gratification", price: 4, rarity: "Common",
+    desc: "Earn $2 per discard if no discards are used by round end",
+    roundEnd: (ctx) => (ctx.discardsUsed === 0 ? { money: 2 * ctx.discardsLeft } : {}),
+  },
+  {
+    id: "to_the_moon", name: "To the Moon", price: 5, rarity: "Uncommon",
+    desc: "Earn an extra $1 of interest per $5 held (up to $5) at round end",
+    roundEnd: (ctx) => ({ money: Math.min(INTEREST_CAP, Math.floor(ctx.money / INTEREST_UNIT)) }),
+  },
+  {
+    id: "golden_jester", name: "Golden Joker", price: 6, rarity: "Common",
+    desc: "Earn $4 at the end of the round",
+    roundEnd: () => ({ money: 4 }),
+  },
+  {
+    id: "cavendish", name: "Cavendish", price: 4, rarity: "Common",
+    desc: "X3 Mult, 1 in 1000 chance to be destroyed at round end",
+    apply: () => ({ multMul: 3 }),
+    roundEnd: () => (Math.random() < 0.001 ? { destroySelf: true } : {}),
+  },
+  {
+    id: "juggler", name: "Juggler", price: 4, rarity: "Common",
+    desc: "+1 hand size",
+    handSizeDelta: 1,
+  },
+  {
+    id: "drunkard", name: "Drunkard", price: 4, rarity: "Common",
+    desc: "+1 discard each round",
+    discardsDelta: 1,
+  },
+  {
+    id: "credit_card", name: "Credit Card", price: 1, rarity: "Common",
+    desc: "Allows going up to -$20 in debt when buying or rerolling",
+    debtLimit: 20,
+  },
+  {
+    id: "chaos_the_clown", name: "Chaos the Clown", price: 4, rarity: "Common",
+    desc: "1 free reroll per shop visit",
+    freeReroll: true,
+  },
+  {
+    id: "pareidolia", name: "Pareidolia", price: 5, rarity: "Uncommon",
+    desc: "All cards are considered face cards",
+  },
+  {
+    id: "faceless_joker", name: "Faceless Joker", price: 4, rarity: "Common",
+    desc: "Earn $5 if 3 or more face cards are discarded at the same time",
+  },
+  {
+    id: "four_fingers", name: "Four Fingers", price: 7, rarity: "Uncommon",
+    desc: "Flushes and Straights can be made with 4 cards",
   },
 ];
 
@@ -302,6 +368,8 @@ function newState() {
     lastEarnings: null,
     bossModifier: null,
     handSize: HAND_SIZE,
+    discardsUsed: 0,
+    freeRerollUsed: false,
   };
 }
 
@@ -346,15 +414,18 @@ function startRound() {
   state.bossModifier = state.round === ROUNDS_PER_ANTE
     ? BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)]
     : null;
-  state.handSize = HAND_SIZE + (state.bossModifier?.handSizeDelta || 0);
+  const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0);
+  const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0);
+  state.handSize = HAND_SIZE + (state.bossModifier?.handSizeDelta || 0) + jesterHandSizeDelta;
   state.handsLeft = state.bossModifier?.handsOverride ?? START_HANDS;
-  state.discardsLeft = state.bossModifier?.discardsOverride ?? START_DISCARDS;
+  state.discardsLeft = (state.bossModifier?.discardsOverride ?? START_DISCARDS) + jesterDiscardsDelta;
   state.target = targetForRound(state.ante, state.round);
   if (state.bossModifier?.targetMult) {
     state.target = Math.round(state.target * state.bossModifier.targetMult / 10) * 10;
   }
   state.phase = "playing";
   state.dealtIds = new Map();
+  state.discardsUsed = 0;
 
   const deal = () => {
     state.hand = draw(state.handSize);
@@ -380,22 +451,34 @@ function rankNum(rank) {
   return RANK_VALUE[rank] || parseInt(rank, 10);
 }
 
-// Called with 1-5 selected cards. Flush/straight require exactly 5 (checked
-// below); count-based hands (pair..four of a kind) fall out of rankCounts
-// naturally at any size, which is correct (e.g. 4 selected cards of the same
-// rank is a real four of a kind).
+// Called with 1-5 selected cards. Flush/straight normally require exactly 5
+// (checked below); count-based hands (pair..four of a kind) fall out of
+// rankCounts naturally at any size, which is correct (e.g. 4 selected cards
+// of the same rank is a real four of a kind). Owning Four Fingers drops the
+// flush/straight requirement to 4 cards — any 4 (of the up to 5 selected)
+// that qualify are enough, so a 5-card selection checks every 4-card window.
 function evaluateHand(cards) {
   const rankCounts = {};
   for (const c of cards) rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
   const counts = Object.values(rankCounts).sort((a, b) => b - a);
 
-  const isFlush = cards.length === 5 && cards.every(c => c.suit === cards[0].suit);
+  const fourFingers = state?.jesters?.some(j => j.id === "four_fingers");
+  const runSize = fourFingers ? 4 : 5;
+
+  let isFlush = false;
+  if (cards.length >= runSize) {
+    const bySuit = {};
+    for (const c of cards) bySuit[c.suit] = (bySuit[c.suit] || 0) + 1;
+    isFlush = Object.values(bySuit).some(n => n >= runSize);
+  }
 
   let isStraight = false;
-  if (cards.length === 5) {
+  if (cards.length >= runSize) {
     const nums = [...new Set(cards.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
-    const isWheel = nums.join(",") === "2,3,4,5,14"; // A-2-3-4-5
-    if (nums.length === 5 && (nums[4] - nums[0] === 4 || isWheel)) isStraight = true;
+    const withWheel = nums.includes(14) ? [1, ...nums] : nums; // Ace can also count low
+    for (let i = 0; i + runSize - 1 < withWheel.length; i++) {
+      if (withWheel[i + runSize - 1] - withWheel[i] === runSize - 1) { isStraight = true; break; }
+    }
   }
 
   const h = { counts, isFlush, isStraight };
@@ -408,6 +491,12 @@ function cardChipValue(card) {
   if (card.rank === "A") return 11;
   if (RANK_VALUE[card.rank]) return 10;
   return parseInt(card.rank, 10);
+}
+
+// Pareidolia makes every card count as a face card for jesters that key off
+// FACE_RANKS; ctx.pareidolia is computed once per scoreSelection call.
+function isFaceCard(card, ctx) {
+  return FACE_RANKS.has(card.rank) || Boolean(ctx?.pareidolia);
 }
 
 function scoreSelection(selected) {
@@ -429,10 +518,11 @@ function scoreSelection(selected) {
     deckSize: state.deck.length,
     jesters: state.jesters,
     jesterSlots: JESTER_SLOTS,
+    pareidolia: state.jesters.some(j => j.id === "pareidolia"),
   };
 
   for (const j of state.jesters) {
-    const effect = j.apply(ctx);
+    const effect = j.apply ? j.apply(ctx) : {};
     if (effect.chips) chips += effect.chips;
     if (effect.multAdd) mult += effect.multAdd;
     if (effect.multMul) multMul *= effect.multMul;
@@ -493,7 +583,12 @@ function discardSelected() {
   const selected = getSelectedCards();
   if (selected.length === 0 || state.discardsLeft <= 0) return;
   state.discardsLeft -= 1;
+  state.discardsUsed += 1;
   Sound.discard(selected.length);
+  const faceCount = selected.filter(c => isFaceCard(c, { pareidolia: state.jesters.some(j => j.id === "pareidolia") })).length;
+  if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_joker")) {
+    state.money += 5;
+  }
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
   const drawn = draw(state.handSize - state.hand.length);
@@ -506,8 +601,21 @@ function discardSelected() {
 function finishRoundWin() {
   const reward = 3 + state.handsLeft + state.discardsLeft;
   const interest = Math.min(INTEREST_CAP, Math.floor(state.money / INTEREST_UNIT));
+  const roundEndCtx = { money: state.money, discardsLeft: state.discardsLeft, discardsUsed: state.discardsUsed };
   state.money += reward + interest;
-  state.lastEarnings = { reward, interest };
+
+  let bonus = 0;
+  const destroyed = new Set();
+  for (const j of state.jesters) {
+    if (!j.roundEnd) continue;
+    const effect = j.roundEnd(roundEndCtx) || {};
+    if (effect.money) bonus += effect.money;
+    if (effect.destroySelf) destroyed.add(j.id);
+  }
+  if (bonus) state.money += bonus;
+  if (destroyed.size) state.jesters = state.jesters.filter(j => !destroyed.has(j.id));
+
+  state.lastEarnings = { reward, interest, bonus };
 
   if (state.ante >= FINAL_ANTE && state.round >= ROUNDS_PER_ANTE) {
     state.phase = "win";
@@ -518,6 +626,7 @@ function finishRoundWin() {
   Sound.roundWin();
   state.phase = "shop";
   state.rerollCost = REROLL_BASE_COST;
+  state.freeRerollUsed = false;
   const owned = new Set(state.jesters.map(j => j.id));
   const pool = JESTER_POOL.filter(j => !owned.has(j.id));
   for (let i = pool.length - 1; i > 0; i--) {
@@ -527,12 +636,16 @@ function finishRoundWin() {
   state.shopOffers = pool.slice(0, 3);
 }
 
+function debtFloor() {
+  return -Math.max(0, ...state.jesters.map(j => j.debtLimit || 0));
+}
+
 function buyJester(id) {
   if (state.jesters.length >= JESTER_SLOTS) return;
   const idx = state.shopOffers.findIndex(j => j.id === id);
   if (idx === -1) return;
   const jester = state.shopOffers[idx];
-  if (state.money < jester.price) return;
+  if (state.money - jester.price < debtFloor()) return;
   state.money -= jester.price;
   state.jesters.push(jester);
   state.shopOffers.splice(idx, 1);
@@ -551,9 +664,13 @@ function sellJester(id) {
 }
 
 function rerollShop() {
-  if (state.phase !== "shop" || state.money < state.rerollCost) return;
-  state.money -= state.rerollCost;
-  state.rerollCost += 1;
+  if (state.phase !== "shop") return;
+  const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
+  const cost = freeReroll ? 0 : state.rerollCost;
+  if (state.money - cost < debtFloor()) return;
+  state.money -= cost;
+  if (freeReroll) state.freeRerollUsed = true;
+  else state.rerollCost += 1;
   Sound.shuffle();
   const owned = new Set(state.jesters.map(j => j.id));
   const pool = JESTER_POOL.filter(j => !owned.has(j.id));
@@ -714,7 +831,7 @@ function renderOverlay() {
     document.getElementById("overlay-title").textContent = "Round Cleared!";
     const earnings = state.lastEarnings;
     const earningsText = earnings
-      ? ` — +$${earnings.reward} round${earnings.interest ? `, +$${earnings.interest} interest` : ""}`
+      ? ` — +$${earnings.reward} round${earnings.interest ? `, +$${earnings.interest} interest` : ""}${earnings.bonus ? `, +$${earnings.bonus} jesters` : ""}`
       : "";
     document.getElementById("overlay-sub").textContent = `Shop – Ante ${state.ante}, Round ${state.round}${earningsText}`;
     const shopItems = document.getElementById("shop-items");
@@ -722,7 +839,7 @@ function renderOverlay() {
     for (const j of state.shopOffers) {
       const div = document.createElement("div");
       div.className = "shop-item";
-      const canBuy = state.money >= j.price && state.jesters.length < JESTER_SLOTS;
+      const canBuy = state.money - j.price >= debtFloor() && state.jesters.length < JESTER_SLOTS;
       if (!canBuy) div.classList.add("unaffordable");
       div.innerHTML = `
         ${jesterHeaderHTML(j)}
@@ -753,9 +870,10 @@ function renderOverlay() {
       ownedSection.classList.add("hidden");
     }
 
+    const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
     rerollBtn.classList.remove("hidden");
-    rerollBtn.textContent = `Reroll ($${state.rerollCost})`;
-    rerollBtn.disabled = state.money < state.rerollCost;
+    rerollBtn.textContent = freeReroll ? "Reroll (Free)" : `Reroll ($${state.rerollCost})`;
+    rerollBtn.disabled = state.money - (freeReroll ? 0 : state.rerollCost) < debtFloor();
     rerollBtn.onclick = rerollShop;
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Next Round";

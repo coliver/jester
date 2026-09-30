@@ -330,6 +330,179 @@ test("full round trip: play to the target, shop, then start the next round", () 
   assert.equal(after.hand.length, 8);
 });
 
+// --- ported Balatro jesters, round 2: new engine plumbing -----------------
+
+function jesterById(id) {
+  const j = JESTER_POOL.find(j => j.id === id);
+  assert.ok(j, `no such jester: ${id}`);
+  return j;
+}
+
+test("Delayed Gratification pays $2 per unused discard if none were used", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.jesters = [jesterById("delayed_gratification")];
+  toggleCard(state.hand[0].id);
+
+  playHand();
+
+  assert.equal(_getState().lastEarnings.bonus, 2 * 3); // START_DISCARDS(3), none used
+});
+
+test("Delayed Gratification pays nothing once a discard has been used", () => {
+  const state = freshRoundState();
+  state.jesters = [jesterById("delayed_gratification")];
+  toggleCard(state.hand[0].id);
+  discardSelected();
+
+  const after = _getState();
+  after.target = 1;
+  toggleCard(after.hand[0].id);
+  playHand();
+
+  assert.equal(_getState().lastEarnings.bonus, 0);
+});
+
+test("To the Moon doubles the interest earned at round end", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.money = 23; // floor(23/5) = 4 base interest
+  state.jesters = [jesterById("to_the_moon")];
+  toggleCard(state.hand[0].id);
+
+  playHand();
+
+  const after = _getState();
+  assert.equal(after.lastEarnings.interest, 4);
+  assert.equal(after.lastEarnings.bonus, 4);
+});
+
+test("Golden Joker pays a flat $4 at round end", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.jesters = [jesterById("golden_jester")];
+  toggleCard(state.hand[0].id);
+
+  playHand();
+
+  assert.equal(_getState().lastEarnings.bonus, 4);
+});
+
+test("Cavendish gives X3 Mult and can be destroyed by its round-end roll", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.jesters = [jesterById("cavendish")];
+  toggleCard(state.hand[0].id);
+
+  withMockedRandom(0, () => playHand()); // always hits the 1-in-1000 destroy chance
+
+  assert.equal(_getState().jesters.length, 0);
+});
+
+test("Cavendish usually survives round end", () => {
+  const state = freshRoundState();
+  state.target = 1;
+  state.jesters = [jesterById("cavendish")];
+  toggleCard(state.hand[0].id);
+
+  withMockedRandom(0.5, () => playHand());
+
+  assert.equal(_getState().jesters.length, 1);
+});
+
+test("Juggler adds 1 to hand size", () => {
+  _setState(newState());
+  _getState().jesters = [jesterById("juggler")];
+  startRound();
+  assert.equal(_getState().handSize, 9);
+  assert.equal(_getState().hand.length, 9);
+});
+
+test("Drunkard adds 1 discard per round", () => {
+  _setState(newState());
+  _getState().jesters = [jesterById("drunkard")];
+  startRound();
+  assert.equal(_getState().discardsLeft, 4); // START_DISCARDS(3) + 1
+});
+
+test("Credit Card allows buying into debt, down to -$20", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.jesters = [jesterById("credit_card")];
+  const jester = jesterById("juggler");
+  state.shopOffers = [jester];
+  state.money = 0;
+
+  buyJester(jester.id);
+
+  assert.equal(_getState().money, -jester.price);
+});
+
+test("Credit Card still blocks a purchase that would exceed -$20 debt", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.jesters = [jesterById("credit_card")];
+  const jester = jesterById("baron"); // price 8
+  state.shopOffers = [jester];
+  state.money = -19; // buying would land at -27, past the -20 floor
+
+  buyJester(jester.id);
+
+  assert.equal(_getState().jesters.some(j => j.id === "baron"), false);
+  assert.equal(_getState().money, -19);
+});
+
+test("Chaos the Clown makes only the first reroll of a shop visit free", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.jesters = [jesterById("chaos_the_clown")];
+  state.money = 0;
+  state.rerollCost = 2;
+
+  rerollShop();
+  assert.equal(_getState().money, 0); // free
+  assert.equal(_getState().rerollCost, 2); // doesn't escalate on the free reroll
+  assert.equal(_getState().freeRerollUsed, true);
+
+  _getState().money = 2;
+  rerollShop(); // second reroll costs normally
+  assert.equal(_getState().money, 0);
+  assert.equal(_getState().rerollCost, 3);
+});
+
+test("Faceless Joker pays $5 when 3+ face cards are discarded together", () => {
+  const state = freshRoundState();
+  state.jesters = [jesterById("faceless_joker")];
+  state.money = 0;
+  state.hand = [
+    { rank: "J", suit: "♠", id: "J♠" },
+    { rank: "Q", suit: "♥", id: "Q♥" },
+    { rank: "K", suit: "♦", id: "K♦" },
+    { rank: "2", suit: "♣", id: "2♣" },
+  ];
+  for (const id of ["J♠", "Q♥", "K♦"]) toggleCard(id);
+
+  discardSelected();
+
+  assert.equal(_getState().money, 5);
+});
+
+test("Faceless Joker pays nothing for fewer than 3 discarded face cards", () => {
+  const state = freshRoundState();
+  state.jesters = [jesterById("faceless_joker")];
+  state.money = 0;
+  state.hand = [
+    { rank: "J", suit: "♠", id: "J♠" },
+    { rank: "Q", suit: "♥", id: "Q♥" },
+    { rank: "2", suit: "♦", id: "2♦" },
+  ];
+  for (const id of ["J♠", "Q♥"]) toggleCard(id);
+
+  discardSelected();
+
+  assert.equal(_getState().money, 0);
+});
+
 // --- Boss rounds -----------------------------------------------------------
 
 test("rounds 1 and 2 never get a boss modifier", () => {

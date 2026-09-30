@@ -302,6 +302,62 @@ test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
   assert.equal(twoUncommons.multMul, 1.5 * 1.5);
 });
 
+// --- ported Balatro jesters, round 2: needed a small amount of new engine --
+// --- plumbing (see game.js) beyond the plain per-hand apply(ctx) hook ------
+
+test("Hack doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("K", "♣")];
+  _setState(baseState({ jesters: [jesterById("hack")], hand: selected }));
+  const result = scoreSelection(selected);
+  // High Card: base 5 chips + card chips (2+5+9+10=26) = 31, +2nd copy of the 2 and 5 (2+5=7).
+  assert.equal(result.chips, 31 + 7);
+});
+
+test("Cavendish gives a flat X3 Mult", () => {
+  const selected = [card("2", "♠")];
+  _setState(baseState({ jesters: [jesterById("cavendish")], hand: selected }));
+  assert.equal(scoreSelection(selected).multMul, 3);
+});
+
+test("Pareidolia makes every card count as a face card for other jesters", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦")]; // no real face cards
+  _setState(baseState({ jesters: [jesterById("pareidolia"), jesterById("scary_face")], hand: selected }));
+  const result = scoreSelection(selected);
+  // Scary Face: +30 Chips per face card; Pareidolia makes all 3 played cards count.
+  assert.equal(result.chips, 5 + (2 + 5 + 9) + 30 * 3);
+});
+
+test("without Pareidolia, Scary Face only counts real face cards", () => {
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦")];
+  _setState(baseState({ jesters: [jesterById("scary_face")], hand: selected }));
+  const result = scoreSelection(selected);
+  assert.equal(result.chips, 5 + (2 + 5 + 9));
+});
+
+test("evaluateHand: a 4-card flush only counts with Four Fingers owned", () => {
+  const fourSameSuit = [card("2", "♠"), card("5", "♠"), card("9", "♠"), card("K", "♠")];
+  _setState(baseState({ jesters: [], hand: fourSameSuit }));
+  assert.equal(evaluateHand(fourSameSuit).isFlush, false);
+
+  _setState(baseState({ jesters: [jesterById("four_fingers")], hand: fourSameSuit }));
+  assert.equal(evaluateHand(fourSameSuit).isFlush, true);
+});
+
+test("evaluateHand: a 4-card straight only counts with Four Fingers owned", () => {
+  const fourInARow = [card("5", "♠"), card("6", "♥"), card("7", "♦"), card("8", "♣")];
+  _setState(baseState({ jesters: [], hand: fourInARow }));
+  assert.equal(evaluateHand(fourInARow).isStraight, false);
+
+  _setState(baseState({ jesters: [jesterById("four_fingers")], hand: fourInARow }));
+  assert.equal(evaluateHand(fourInARow).isStraight, true);
+});
+
+test("Four Fingers still allows the Ace-low wheel at 4 cards (A-2-3-4)", () => {
+  const wheelFour = [card("A", "♠"), card("2", "♥"), card("3", "♦"), card("4", "♣")];
+  _setState(baseState({ jesters: [jesterById("four_fingers")], hand: wheelFour }));
+  assert.equal(evaluateHand(wheelFour).isStraight, true);
+});
+
 // --- targetForRound scaling -----------------------------------------------
 
 test("targetForRound: ante 1 round 1 is the base target", () => {
