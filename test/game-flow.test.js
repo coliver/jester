@@ -95,6 +95,24 @@ test("playHand scores the selection, spends a hand, and refills to 8 cards", () 
   assert.equal(after.deck.length, before - 3); // 3 cards drawn to refill
 });
 
+test("played and discarded cards are tracked per round for the deck view", () => {
+  const state = freshRoundState();
+  const [a, b, c] = state.hand.slice(0, 3).map(x => x.id);
+  toggleCard(a);
+  playHand();
+  toggleCard(b);
+  toggleCard(c);
+  discardSelected();
+
+  const after = _getState();
+  assert.deepEqual(after.played.map(x => x.id), [a]);
+  assert.deepEqual(after.discarded.map(x => x.id), [b, c]);
+
+  startRound();
+  assert.equal(_getState().played.length, 0);
+  assert.equal(_getState().discarded.length, 0);
+});
+
 test("playHand does nothing with no cards selected", () => {
   const state = freshRoundState();
   const before = JSON.stringify(state.hand);
@@ -367,7 +385,10 @@ test("full round trip: play to the target, shop, then start the next round", () 
   const after = _getState();
   assert.equal(after.phase, "playing");
   assert.equal(after.round, 2);
-  assert.equal(after.hand.length, 8);
+  // The random shop offer may be a hand-size jester (Juggler), so the next
+  // deal is 8 plus whatever the bought jester (if any) adds.
+  const handSizeBonus = after.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0);
+  assert.equal(after.hand.length, 8 + handSizeBonus);
 });
 
 // --- ported Balatro jesters, round 2: new engine plumbing -----------------

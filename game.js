@@ -391,6 +391,8 @@ function newState() {
     discardsLeft: START_DISCARDS,
     deck: [],
     hand: [],
+    played: [],
+    discarded: [],
     selected: new Set(),
     jesters: [],
     shopOffers: [],
@@ -443,6 +445,8 @@ function animateShuffle() {
 function startRound() {
   state.deck = freshDeck();
   state.hand = [];
+  state.played = [];
+  state.discarded = [];
   state.selected = new Set();
   state.roundScore = 0;
   state.bossModifier = state.round === ROUNDS_PER_ANTE
@@ -598,6 +602,7 @@ function playHand() {
   state.handsLeft -= 1;
   Sound.playHandResolve(result.total);
 
+  state.played.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
   const drawn = draw(state.handSize - state.hand.length);
@@ -624,6 +629,7 @@ function discardSelected() {
   if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_jester")) {
     state.money += 5;
   }
+  state.discarded.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
   const drawn = draw(state.handSize - state.hand.length);
@@ -856,7 +862,50 @@ function render() {
   document.getElementById("play-btn").disabled = selected.length === 0 || state.phase !== "playing";
   document.getElementById("discard-btn").disabled = selected.length === 0 || state.discardsLeft <= 0 || state.phase !== "playing";
 
+  renderDeckView();
   renderOverlay();
+}
+
+function cardStatuses() {
+  const status = new Map();
+  for (const c of state.deck) status.set(c.id, "deck");
+  for (const c of state.hand) status.set(c.id, "hand");
+  for (const c of state.played) status.set(c.id, "played");
+  for (const c of state.discarded) status.set(c.id, "discarded");
+  return status;
+}
+
+function renderDeckView() {
+  const modal = document.getElementById("deck-modal");
+  const open = !modal.classList.contains("hidden");
+  const btn = document.getElementById("deck-btn");
+  btn.textContent = `Deck (${state.deck.length}/${state.deck.length + state.hand.length + state.played.length + state.discarded.length})`;
+  if (!open) return;
+
+  const status = cardStatuses();
+  const counts = { deck: 0, hand: 0, played: 0, discarded: 0 };
+  for (const v of status.values()) counts[v] += 1;
+  document.getElementById("deck-legend").innerHTML = ["deck", "hand", "played", "discarded"]
+    .map(k => `<span class="legend-item ${k}">${k === "deck" ? "In deck" : k[0].toUpperCase() + k.slice(1)}: ${counts[k]}</span>`)
+    .join("");
+
+  const grid = document.getElementById("deck-grid");
+  grid.innerHTML = "";
+  for (const suit of SUITS) {
+    for (const rank of [...RANKS].reverse()) {
+      const st = status.get(`${rank}${suit}`) || "deck";
+      const div = document.createElement("div");
+      div.className = `mini-card ${RED_SUITS.has(suit) ? "red" : "black"} ${st}`;
+      div.textContent = `${rank}${suit}`;
+      div.title = `${rank} of ${suit}: ${st === "deck" ? "still in deck" : st}`;
+      grid.appendChild(div);
+    }
+  }
+}
+
+function setDeckViewOpen(open) {
+  document.getElementById("deck-modal").classList.toggle("hidden", !open);
+  renderDeckView();
 }
 
 function renderOverlay() {
@@ -947,6 +996,14 @@ function initApp() {
   document.getElementById("discard-btn").addEventListener("click", discardSelected);
   document.getElementById("sort-rank-btn").addEventListener("click", () => setSortMode("rank"));
   document.getElementById("sort-suit-btn").addEventListener("click", () => setSortMode("suit"));
+
+  const deckModal = document.getElementById("deck-modal");
+  document.getElementById("deck-btn").addEventListener("click", () => setDeckViewOpen(true));
+  document.getElementById("deck-close-btn").addEventListener("click", () => setDeckViewOpen(false));
+  deckModal.addEventListener("click", (e) => { if (e.target === deckModal) setDeckViewOpen(false); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !deckModal.classList.contains("hidden")) setDeckViewOpen(false);
+  });
 
   const muteBtn = document.getElementById("mute-btn");
   function syncMuteBtn() {

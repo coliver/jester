@@ -51,6 +51,7 @@
     <div id="sort-controls">
       <button id="sort-rank-btn" class="sort-btn">Sort by Rank</button>
       <button id="sort-suit-btn" class="sort-btn">Sort by Suit</button>
+      <button id="deck-btn" class="sort-btn">Deck</button>
     </div>
 
     <div id="deck-pile" aria-hidden="true">
@@ -70,6 +71,15 @@
       <summary>Hand Rankings</summary>
       <ol id="hand-reference-list"></ol>
     </details>
+
+    <div id="deck-modal" class="hidden" role="dialog" aria-label="Deck contents">
+      <div id="deck-card">
+        <h2>Deck</h2>
+        <div id="deck-legend"></div>
+        <div id="deck-grid"></div>
+        <button id="deck-close-btn">Close</button>
+      </div>
+    </div>
 
     <div id="overlay" class="hidden">
       <div id="overlay-card">
