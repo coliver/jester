@@ -1350,21 +1350,16 @@ function initApp() {
   }
   document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
 
-  // On a landscape phone the Deck/Shop buttons and the hand-rankings panel
-  // move into the left column (under the HUD) to save vertical space.
+  // On a landscape phone the hand-rankings panel moves into the left column
+  // (under the HUD) to save vertical space.
   if (typeof window.matchMedia === "function") {
     const mq = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
     const sideTools = document.getElementById("side-tools");
-    const sortControls = document.getElementById("sort-controls");
     const handRef = document.getElementById("hand-reference");
     const controls = document.getElementById("controls");
     const placeTools = () => {
-      if (mq.matches) {
-        sideTools.append(document.getElementById("deck-btn"), document.getElementById("shop-btn"), handRef);
-      } else {
-        sortControls.append(document.getElementById("deck-btn"), document.getElementById("shop-btn"));
-        controls.after(handRef);
-      }
+      if (mq.matches) sideTools.append(handRef);
+      else controls.after(handRef);
     };
     placeTools();
     mq.addEventListener("change", placeTools);
