@@ -51,10 +51,6 @@ Tests run on Node's built-in test runner, no install required:
 node --test
 ```
 
-`cards.csv` lists every jester (id, name, rarity, price, description, whether
-art exists); a test keeps its ids in step with `JESTER_POOL`, so add a row
-whenever a jester is added.
-
 Three layers, each testing what the one below it can't reach:
 - `test/scoring.test.js` — pure scoring-math regression tests (hand
   detection, jester effects, target scaling).

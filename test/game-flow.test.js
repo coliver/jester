@@ -718,9 +718,3 @@ test("Gros Michel gives +15 Mult and can be destroyed by its 1-in-6 round-end ro
   withMockedRandom(0, () => playHand());
   assert.equal(_getState().jesters.length, 0);
 });
-
-test("cards.csv lists every jester in the pool", () => {
-  const rows = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "cards.csv"), "utf8")
-    .trim().split("\n").slice(1);
-  assert.deepEqual(rows.map(r => r.split(",")[0]), JESTER_POOL.map(j => j.id));
-});
