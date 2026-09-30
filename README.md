@@ -15,11 +15,11 @@ static (it's also set up for GitHub Pages).
   base chip/mult values.
 - 4 hands and 3 discards per round; reach the round's chip target before
   hands run out.
-- 8 simple jesters (flat chip/mult bonuses, conditional bonuses, one
-  multiplicative one) bought from a 3-item shop after each round win; sell
-  owned jesters or reroll the shop's offers (for an escalating cost) between
-  rounds. Saved money earns interest ($1 per $5 held, capped at $5) on
-  every round win.
+- 37 jesters across three rarities (flat chip/mult bonuses, conditional
+  bonuses, several multiplicative and scaling ones) bought from a 3-item
+  shop after each round win; sell owned jesters or reroll the shop's offers
+  (for an escalating cost) between rounds. Saved money earns interest ($1
+  per $5 held, capped at $5) on every round win.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
   Clearing round 3 of ante 8 wins the run; running out of hands first ends
   it.
