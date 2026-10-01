@@ -31,9 +31,10 @@ real synergies/anti-synergies ✓ (Brainstorm and Blueprint copy another owned j
 Swashbuckler, Campfire and Ringmaster scale off the rest of the roster —
 sell value held, jesters sold, rarity variety — see below), an economy layer (interest on saved money
 ✓, reroll cost ✓, jester resale value ✓), boss-round-style modifiers that
-force different play ✓ (six modifiers — higher target, 1-hand-only,
-no-discard, smaller hand, and two suit debuffs — one picked at random for
-round 3 of every ante). The round-end hook group (Egg, Gros Michel, Cloud 9, Rocket, Gift Card — the
+force different play ✓ (ten courtier modifiers — higher target, 1-hand-only,
+no-discard, smaller hand, two suit debuffs, $1 per hand, no repeated hand type,
+chipless face cards, and a silenced leftmost jester — one picked at random for
+round 3 of every ante, with ante 8's boss always the King). The round-end hook group (Egg, Gros Michel, Cloud 9, Rocket, Gift Card — the
 last two grow per-jester sell value/payout) has landed too. Jester order now matters and is
 player-controlled (drag to reorder; Blueprint copies its right-hand
 neighbor), and hand cards can be dragged into a custom order. Remaining: more of this synergy/anti-synergy work
@@ -49,8 +50,8 @@ the smallest version of each that fits the no-build-step constraint.
 
 **Phase 4 — Feel & presentation**
 Card art (landed for jesters; mask and decree art in progress), scoring
-animation/juice (deal animation, fanned hand and hover/drag feedback landed;
-scoring animation not started), sound (landed: card clips, stings, mute
+animation/juice (deal animation, fanned hand, hover/drag feedback and the
+step-by-step scoring animation landed), sound (landed: card clips, stings, mute
 toggle). Explicitly deferred until the systems are stable, since presentation work
 churns hard if the underlying model is still moving.
 
