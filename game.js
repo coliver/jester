@@ -5,6 +5,8 @@ const RED_SUITS = new Set(["♥", "♦"]);
 const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 const RANK_VALUE = { J: 11, Q: 12, K: 13, A: 14 };
 const FACE_RANKS = new Set(["J", "Q", "K"]);
+// Must match the hand-bob animation duration in styles.css.
+const BOB_PERIOD_MS = 5000;
 const EVEN_RANKS = new Set(["2", "4", "6", "8", "10"]);
 const ODD_RANKS = new Set(["A", "3", "5", "7", "9"]);
 const FIBONACCI_RANKS = new Set(["A", "2", "3", "5", "8"]);
@@ -1487,6 +1489,9 @@ function render() {
     if (isSelected) div.classList.add("selected");
     // Fan position, -1 (leftmost) .. 1 (rightmost); CSS decides whether to use it.
     div.style.setProperty("--fan", handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
+    // The hand is rebuilt on every render; deriving the bob's phase from the
+    // clock (staggered per card) keeps it continuous instead of restarting.
+    div.style.setProperty("--bob-delay", `-${(performance.now() + i * 620) % BOB_PERIOD_MS}ms`);
     if (dealt.has(card.id)) {
       div.classList.add("dealt");
       div.style.animationDelay = `${dealt.get(card.id) * 70}ms`;

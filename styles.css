@@ -707,7 +707,7 @@ body {
 }
 
 #hud {
-  background: linear-gradient(180deg, #33203f, #251632);
+  background: linear-gradient(180deg, rgba(51, 32, 63, 0.72), rgba(37, 22, 50, 0.72));
   border: 1px solid rgba(255, 207, 86, 0.18);
 }
 #score-val { font-size: 22px; color: #fff; text-shadow: 0 0 12px rgba(255, 207, 86, 0.45); }
@@ -805,3 +805,48 @@ body {
 
 .card.dragging { cursor: grabbing; transition: none; box-shadow: 0 14px 24px rgba(0, 0, 0, 0.55); }
 .jester-slot, #owned-jesters .jester { transition: translate 0.15s ease; }
+
+/* Acidwarp-style palette-cycling table background (see warp.js). Dimmed and
+   vignetted so cards and text stay readable on top. */
+#warp {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  opacity: 0.22;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(27, 16, 35, 0.85) 100%);
+}
+
+/* Hand cards drift up and down a couple of pixels. Animating the individual
+   `translate` property keeps it on the compositor with sub-pixel smoothness
+   (top/margin snap to whole pixels) and leaves `transform` free for the fan,
+   hover lift and deal-in. Drag-reorder gap sliding also uses `translate`, and
+   an animation would override its inline value, so the bob pauses for the
+   duration of a drag. The per-card phase comes from --bob-delay, set in
+   render(). */
+@keyframes hand-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -2px; }
+}
+#hand-row .card {
+  animation: hand-bob 5s ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s);
+}
+#hand-row .card.dealt {
+  animation: card-deal 0.32s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards,
+             hand-bob 5s ease-in-out infinite;
+}
+#hand-row:has(.dragging) .card { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  #hand-row .card, #hand-row .card.dealt { animation: none; }
+}

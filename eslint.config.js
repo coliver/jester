@@ -16,6 +16,7 @@ const browserGlobals = {
   Audio: "readonly",
   setTimeout: "readonly",
   clearTimeout: "readonly",
+  performance: "readonly",
   // game.js also has a Node-only tail (module.exports guarded by
   // `typeof module !== "undefined"`) so its test suite can import the pure
   // functions; these stay `undefined` in the browser.
@@ -42,7 +43,7 @@ module.exports = [
   { ignores: ["node_modules/**"] },
   js.configs.recommended,
   {
-    files: ["game.js", "sounds.js"],
+    files: ["game.js", "sounds.js", "warp.js"],
     languageOptions: {
       sourceType: "script",
       ecmaVersion: 2022,
