@@ -423,6 +423,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 #trick-row { padding: 6px; }
 #trick-row.hidden { display: none; }
 #shop-tricks { margin-bottom: 16px; }
+#shop-voucher { display: flex; justify-content: center; margin-bottom: 8px; }
+#shop-voucher:empty { display: none; }
+#owned-vouchers { margin: 0 0 12px; font-size: 0.85rem; opacity: 0.8; }
+#owned-vouchers:empty { display: none; }
 #pack-section { margin-bottom: 16px; }
 #owned-tricks-section { margin-bottom: 16px; }
 #pack-section.hidden, #owned-tricks-section.hidden { display: none; }

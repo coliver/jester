@@ -24,6 +24,26 @@ const FINAL_ANTE = 8;
 const REROLL_BASE_COST = 2;
 const INTEREST_UNIT = 5;
 const INTEREST_CAP = 5;
+const VOUCHER_PRICE = 8;
+
+// Permanent upgrades, one offered per ante (in the shop after its first
+// round) and bought once per run. Each sets numeric deltas read by the
+// helpers below.
+const VOUCHER_POOL = [
+  { id: "extra_hand", name: "Extra Hand", desc: "+1 hand each round.", handsDelta: 1 },
+  { id: "extra_discard", name: "Extra Discard", desc: "+1 discard each round.", discardsDelta: 1 },
+  { id: "big_hand", name: "Big Hand", desc: "+1 hand size.", handSizeDelta: 1 },
+  { id: "haggler", name: "Haggler", desc: "Shop rerolls start $1 cheaper.", rerollDelta: -1 },
+  { id: "wide_stage", name: "Wide Stage", desc: "+1 jester slot.", jesterSlotsDelta: 1 },
+  { id: "trick_tray", name: "Trick Tray", desc: "+1 trick slot.", trickSlotsDelta: 1 },
+];
+
+function voucherSum(key) {
+  return (state.vouchers || []).reduce((sum, v) => sum + (v[key] || 0), 0);
+}
+function jesterSlots() { return JESTER_SLOTS + voucherSum("jesterSlotsDelta"); }
+function trickSlots() { return TRICK_SLOTS + voucherSum("trickSlotsDelta"); }
+function rerollBaseCost() { return Math.max(1, REROLL_BASE_COST + voucherSum("rerollDelta")); }
 
 // Resale price of an owned jester: half its cost (min $1) plus whatever
 // round-end jesters (Egg, Gift Card) have added to it since it was bought.
@@ -485,6 +505,8 @@ function newState() {
     selected: new Set(),
     jesters: [],
     tricks: [],
+    vouchers: [],
+    shopVoucher: null,
     handLevels: {},
     shopOffers: [],
     shopTricks: [],
@@ -547,10 +569,10 @@ function startRound() {
   state.bossModifier = state.round === ROUNDS_PER_ANTE
     ? BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)]
     : null;
-  const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0);
-  const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0);
+  const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0) + voucherSum("handSizeDelta");
+  const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0) + voucherSum("discardsDelta");
   state.handSize = HAND_SIZE + (state.bossModifier?.handSizeDelta || 0) + jesterHandSizeDelta;
-  state.handsLeft = state.bossModifier?.handsOverride ?? START_HANDS;
+  state.handsLeft = (state.bossModifier?.handsOverride ?? START_HANDS) + voucherSum("handsDelta");
   state.discardsLeft = (state.bossModifier?.discardsOverride ?? START_DISCARDS) + jesterDiscardsDelta;
   state.target = targetForRound(state.ante, state.round);
   if (state.bossModifier?.targetMult) {
@@ -651,7 +673,7 @@ function scoreSelection(selected) {
     money: state.money,
     deckSize: state.deck.length,
     jesters: state.jesters,
-    jesterSlots: JESTER_SLOTS,
+    jesterSlots: jesterSlots(),
     pareidolia: state.jesters.some(j => j.id === "pareidolia"),
     jestersSold: state.jestersSold,
   };
@@ -772,7 +794,7 @@ function finishRoundWin() {
 
   Sound.roundWin();
   state.phase = "shop";
-  state.rerollCost = REROLL_BASE_COST;
+  state.rerollCost = rerollBaseCost();
   state.freeRerollUsed = false;
   const owned = new Set(state.jesters.map(j => j.id));
   const pool = JESTER_POOL.filter(j => !owned.has(j.id));
@@ -783,6 +805,11 @@ function finishRoundWin() {
   state.shopOffers = pool.slice(0, 3);
   rollTrickOffers();
   state.packAvailable = true;
+  if (state.round === 1) {
+    const have = new Set(state.vouchers.map(v => v.id));
+    const left = VOUCHER_POOL.filter(v => !have.has(v.id));
+    state.shopVoucher = left.length ? left[Math.floor(Math.random() * left.length)] : null;
+  }
 }
 
 function debtFloor() {
@@ -790,7 +817,7 @@ function debtFloor() {
 }
 
 function buyJester(id) {
-  if (state.jesters.length >= JESTER_SLOTS) return;
+  if (state.jesters.length >= jesterSlots()) return;
   const idx = state.shopOffers.findIndex(j => j.id === id);
   if (idx === -1) return;
   const jester = state.shopOffers[idx];
@@ -901,8 +928,18 @@ function canAct() {
   return inShop() || state.phase === "playing";
 }
 
+function buyVoucher() {
+  const v = state.shopVoucher;
+  if (!inShop() || !v || state.money - VOUCHER_PRICE < debtFloor()) return;
+  state.money -= VOUCHER_PRICE;
+  state.vouchers.push(v);
+  state.shopVoucher = null;
+  Sound.coinBuy();
+  render();
+}
+
 function buyTrick(id) {
-  if (!inShop() || state.tricks.length >= TRICK_SLOTS) return;
+  if (!inShop() || state.tricks.length >= trickSlots()) return;
   const idx = state.shopTricks.findIndex(t => t.id === id);
   if (idx === -1) return;
   const trick = state.shopTricks[idx];
@@ -1140,8 +1177,8 @@ function render() {
   trickRow.classList.toggle("hidden", state.tricks.length === 0);
   document.getElementById("trick-group").classList.toggle("hidden", state.tricks.length === 0);
   fillTrickList(trickRow, false);
-  document.getElementById("jester-count").textContent = `${state.jesters.length}/${JESTER_SLOTS}`;
-  document.getElementById("trick-count").textContent = `${state.tricks.length}/${TRICK_SLOTS}`;
+  document.getElementById("jester-count").textContent = `${state.jesters.length}/${jesterSlots()}`;
+  document.getElementById("trick-count").textContent = `${state.tricks.length}/${trickSlots()}`;
   renderHandReference();
 
   document.getElementById("sort-rank-btn").classList.toggle("active", state.sortMode === "rank");
@@ -1262,7 +1299,7 @@ function renderOverlay() {
     for (const j of state.shopOffers) {
       const div = document.createElement("div");
       div.className = "shop-item";
-      const canBuy = state.money - j.price >= debtFloor() && state.jesters.length < JESTER_SLOTS;
+      const canBuy = state.money - j.price >= debtFloor() && state.jesters.length < jesterSlots();
       if (!canBuy) div.classList.add("unaffordable");
       div.innerHTML = `
         ${jesterHeaderHTML(j)}
@@ -1274,13 +1311,27 @@ function renderOverlay() {
       shopItems.appendChild(div);
     }
 
+    const voucherEl = document.getElementById("shop-voucher");
+    voucherEl.innerHTML = "";
+    const voucher = state.shopVoucher;
+    if (voucher) {
+      const canBuy = state.money - VOUCHER_PRICE >= debtFloor();
+      const div = document.createElement("div");
+      div.className = "shop-item voucher" + (canBuy ? "" : " unaffordable");
+      div.innerHTML = `<span class="trick-glyph">★</span><span class="trick-name">Voucher: ${voucher.name}</span><span class="trick-desc">${voucher.desc}</span><div class="price">$${VOUCHER_PRICE}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`;
+      div.querySelector("button").addEventListener("click", buyVoucher);
+      voucherEl.appendChild(div);
+    }
+    const ownedVouchers = document.getElementById("owned-vouchers");
+    ownedVouchers.textContent = state.vouchers.length ? `Vouchers: ${state.vouchers.map(v => v.name).join(", ")}` : "";
+
     const shopTricks = document.getElementById("shop-tricks");
     shopTricks.innerHTML = "";
     const trickOffers = state.shopTricks.map(t => ({ t, pack: false }));
     if (state.packAvailable) trickOffers.push({ pack: true });
     for (const { t, pack } of trickOffers) {
       const price = pack ? PACK_PRICE : t.price;
-      const canBuy = state.money - price >= debtFloor() && (pack ? !state.pack : state.tricks.length < TRICK_SLOTS);
+      const canBuy = state.money - price >= debtFloor() && (pack ? !state.pack : state.tricks.length < trickSlots());
       const div = document.createElement("div");
       div.className = "shop-item trick" + (canBuy ? "" : " unaffordable");
       div.innerHTML = `${pack
@@ -1339,6 +1390,7 @@ function renderOverlay() {
     document.getElementById("overlay-sub").textContent = `Cleared Ante ${FINAL_ANTE} with ${state.jesters.length} jester(s) held.`;
     document.getElementById("shop-items").innerHTML = "";
     document.getElementById("shop-tricks").innerHTML = "";
+    document.getElementById("shop-voucher").innerHTML = "";
     document.getElementById("pack-section").classList.add("hidden");
     document.getElementById("owned-tricks-section").classList.add("hidden");
     rerollBtn.classList.add("hidden");
@@ -1352,6 +1404,7 @@ function renderOverlay() {
     document.getElementById("overlay-sub").textContent = `You reached Ante ${state.ante}, Round ${state.round}.`;
     document.getElementById("shop-items").innerHTML = "";
     document.getElementById("shop-tricks").innerHTML = "";
+    document.getElementById("shop-voucher").innerHTML = "";
     document.getElementById("pack-section").classList.add("hidden");
     document.getElementById("owned-tricks-section").classList.add("hidden");
     rerollBtn.classList.add("hidden");
@@ -1466,6 +1519,9 @@ const testHooks = {
   buyJester,
   sellJester,
   rerollShop,
+  buyVoucher,
+  finishRoundWin,
+  VOUCHER_POOL,
   buyTrick,
   useTrick,
   sellTrick,

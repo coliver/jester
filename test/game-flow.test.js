@@ -25,6 +25,9 @@ const {
   buyJester,
   sellJester,
   rerollShop,
+  buyVoucher,
+  finishRoundWin,
+  VOUCHER_POOL,
   nextRound,
   _getState,
   _setState,
@@ -785,4 +788,75 @@ test("Space Jester levels the played hand when its 1-in-4 roll hits", () => {
   state.selected = new Set(["5♠"]);
   withMockedRandom(0.1, () => playHand());
   assert.equal(_getState().handLevels["High Card"], 2);
+});
+
+const voucherById = (id) => VOUCHER_POOL.find(v => v.id === id);
+
+test("buying a voucher charges $8, records it, and clears the offer", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 10;
+  state.shopVoucher = voucherById("extra_hand");
+  buyVoucher();
+  assert.equal(state.money, 2);
+  assert.deepEqual(state.vouchers.map(v => v.id), ["extra_hand"]);
+  assert.equal(state.shopVoucher, null);
+  buyVoucher(); // nothing on offer: no-op
+  assert.equal(state.money, 2);
+});
+
+test("a voucher can't be bought without enough money", () => {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 7;
+  state.shopVoucher = voucherById("extra_hand");
+  buyVoucher();
+  assert.equal(state.vouchers.length, 0);
+  assert.equal(state.money, 7);
+});
+
+test("hand, discard and hand-size vouchers apply at round start", () => {
+  _setState(newState());
+  _getState().vouchers = ["extra_hand", "extra_discard", "big_hand"].map(voucherById);
+  startRound();
+  const s = _getState();
+  assert.equal(s.handsLeft, 5);
+  assert.equal(s.discardsLeft, 4);
+  assert.equal(s.handSize, 9);
+});
+
+test("Haggler lowers reroll base cost; Wide Stage adds a jester slot", () => {
+  const state = freshRoundState();
+  state.vouchers = ["haggler", "wide_stage"].map(voucherById);
+  state.jesters = JESTER_POOL.slice(0, 5).map(j => ({ ...j, sellBonus: 0 }));
+  finishRoundWin();
+  assert.equal(state.rerollCost, 1);
+  state.money = 20;
+  state.shopOffers = [JESTER_POOL[10]];
+  buyJester(JESTER_POOL[10].id);
+  assert.equal(state.jesters.length, 6);
+});
+
+test("the shop after round 1 rolls a voucher; later shops keep it", () => {
+  const state = freshRoundState();
+  finishRoundWin();
+  const offered = state.shopVoucher;
+  assert.ok(offered);
+  state.round = 2;
+  finishRoundWin();
+  assert.equal(state.shopVoucher, offered);
+});
+
+test("no voucher is offered once all have been bought", () => {
+  const state = freshRoundState();
+  state.vouchers = [...VOUCHER_POOL];
+  finishRoundWin();
+  assert.equal(state.shopVoucher, null);
+});
+
+test("Haggler's reroll discount never drops the base cost below $1", () => {
+  const state = freshRoundState();
+  state.vouchers = [voucherById("haggler"), { id: "x", rerollDelta: -5 }];
+  finishRoundWin();
+  assert.equal(state.rerollCost, 1);
 });

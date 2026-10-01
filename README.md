@@ -29,6 +29,9 @@ static (it's also set up for GitHub Pages).
   base. The shop sells two tricks plus a Trick Pack (pick 1 of 3, used
   immediately); you can hold 2 and use or sell them. The Hand Rankings panel
   shows current levels. Constellation and Space Jester build on them.
+- Vouchers: one permanent upgrade ($8) is offered in the shop after the first
+  round of each ante and can be bought once per run — +1 hand, +1 discard,
+  +1 hand size, cheaper rerolls, +1 jester slot, or +1 trick slot.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
   The last round of each ante is a boss round: one of six modifiers (higher
   target, 1 hand only, no discards, a smaller hand, or a debuffed suit)

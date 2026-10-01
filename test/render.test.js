@@ -411,3 +411,23 @@ test("if missing_no itself fails, the handler detaches instead of looping", () =
   failToLoad(img);
   assert.equal(img.onerror, null); // a browser fires no further error events once cleared
 });
+
+test("shop: voucher offer renders, buys via its button, and is listed as owned", () => {
+  const voucher = gameModule.VOUCHER_POOL[0];
+  dealtState({ phase: "shop", shopVoucher: voucher, money: 20, vouchers: [] });
+  gameModule.render();
+  const item = document.querySelector("#shop-voucher .shop-item");
+  assert.match(item.textContent, new RegExp(voucher.name));
+  item.querySelector("button").click();
+  assert.equal(gameModule._getState().vouchers.length, 1);
+  assert.equal(document.querySelectorAll("#shop-voucher .shop-item").length, 0);
+  assert.match(document.getElementById("owned-vouchers").textContent, new RegExp(voucher.name));
+});
+
+test("shop: an unaffordable voucher is marked unaffordable", () => {
+  dealtState({ phase: "shop", shopVoucher: gameModule.VOUCHER_POOL[0], money: 0, vouchers: [] });
+  gameModule.render();
+  const item = document.querySelector("#shop-voucher .shop-item");
+  assert.ok(item.classList.contains("unaffordable"));
+  assert.ok(item.querySelector("button").disabled);
+});
