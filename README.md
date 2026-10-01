@@ -29,6 +29,12 @@ static (it's also set up for GitHub Pages).
   base. The shop sells two tricks plus a Trick Pack (pick 1 of 3, used
   immediately); you can hold 2 and use or sell them. The Hand Rankings panel
   shows current levels. Constellation and Space Jester build on them.
+- Tarot cards: ten deck-editing cards that share the trick slots. Used mid-round
+  on 1-3 selected cards, they permanently change the run's deck: enhancements
+  (Bonus +30 chips, Mult +4 mult, Wild counts as every suit, Glass X2 mult with
+  a 25% chance to shatter after being played), set a suit, raise a rank, or
+  destroy cards. The shop sells two tarots plus a Tarot Pack (pick 1 of 3, kept
+  in a slot); enhanced cards show a badge in hand and tint in the Deck view.
 - Vouchers: one permanent upgrade ($8) is offered in the shop after the first
   round of each ante and can be bought once per run — +1 hand, +1 discard,
   +1 hand size, cheaper rerolls, +1 jester slot, or +1 trick slot.
@@ -46,8 +52,8 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Animations/juice, a Balatro-sized jester roster, tarot/spectral-style cards,
-vouchers, decks, and stakes. This is the "real basic" version — small and
+Animations/juice, a Balatro-sized jester roster, spectral-style cards, decks,
+and stakes. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for most
 jesters landed early since it's additive and non-breaking — see

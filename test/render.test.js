@@ -431,3 +431,106 @@ test("shop: an unaffordable voucher is marked unaffordable", () => {
   assert.ok(item.classList.contains("unaffordable"));
   assert.ok(item.querySelector("button").disabled);
 });
+
+test("shop: tarot offers and both packs render, and a tarot buys into a slot", () => {
+  const tarot = gameModule.TAROT_POOL[0];
+  dealtState({ phase: "shop", money: 20, shopTarots: [tarot], shopTricks: [], packAvailable: true, tarotPackAvailable: true });
+  gameModule.render();
+  const items = [...document.querySelectorAll("#shop-tricks .shop-item")];
+  assert.equal(items.length, 3);
+  assert.match(items[0].textContent, new RegExp(tarot.name));
+  assert.match(items[2].textContent, /Tarot Pack/);
+  items[0].querySelector("button").click();
+  assert.equal(gameModule._getState().tricks[0].id, tarot.id);
+});
+
+test("tarot Use button enables only with a valid selection and edits the hand card", () => {
+  const tarot = gameModule.TAROT_POOL.find((t) => t.id === "tarot_lovers");
+  const state = dealtState({ tricks: [{ ...tarot }] });
+  gameModule.render();
+  const useBtn = () => document.querySelector("#trick-row .use-btn");
+  assert.ok(useBtn().disabled);
+  document.querySelector("#hand-row .card").click();
+  assert.ok(!useBtn().disabled);
+  useBtn().click();
+  assert.equal(document.querySelectorAll("#hand-row .enh-wild").length, 1);
+  assert.equal(document.querySelectorAll("#hand-row .enh-badge").length, 1);
+  assert.equal(gameModule._getState().tricks.length, 0);
+  assert.ok(state);
+});
+
+test("tarot cards load optional art, and a missing file leaves the glyph", () => {
+  const tarot = gameModule.TAROT_POOL[0];
+  dealtState({ tricks: [{ ...tarot }] });
+  gameModule.render();
+  const card = document.querySelector("#trick-row .trick");
+  const img = card.querySelector(".tarot-art");
+  assert.equal(img.getAttribute("src"), `assets/tarot/${tarot.id}.png`);
+  assert.ok(img.hidden);
+  failToLoad(img);
+  assert.equal(card.querySelector(".tarot-art"), null);
+  assert.ok(!card.querySelector(".trick-glyph").hidden);
+  // ...and when the file loads, the art replaces the glyph.
+  gameModule.render();
+  const loaded = document.querySelector("#trick-row .tarot-art");
+  new Function(loaded.getAttribute("onload")).call(loaded);
+  assert.ok(!loaded.hidden);
+  assert.ok(document.querySelector("#trick-row .trick-glyph").hidden);
+});
+
+test("an open tarot pack is titled as one and blocks Take when slots are full", () => {
+  const { TAROT_POOL } = gameModule;
+  dealtState({
+    phase: "shop", pack: TAROT_POOL.slice(0, 3), packKind: "tarot",
+    tricks: [{ ...TAROT_POOL[3] }, { ...TAROT_POOL[4] }],
+  });
+  gameModule.render();
+  assert.match(text("pack-title"), /^Tarot Pack/);
+  const take = document.querySelector("#pack-items button");
+  assert.ok(take.disabled);
+  gameModule._getState().packKind = "trick";
+  gameModule._getState().pack = [gameModule.TRICK_POOL[0]];
+  gameModule.render();
+  assert.match(text("pack-title"), /^Trick Pack/);
+  assert.ok(!document.querySelector("#pack-items button").disabled);
+});
+
+test("deck view shows enhancements and marks discarded and played cards", () => {
+  const state = dealtState();
+  state.masterDeck[0].enh = "glass";
+  state.masterDeck[1].enh = "wild";
+  state.played = [state.masterDeck[2]];
+  state.discarded = [state.masterDeck[3]];
+  gameModule.render();
+  document.getElementById("deck-btn").click();
+  assert.equal(document.querySelectorAll("#deck-grid .mini-card").length, 52);
+  assert.equal(document.querySelectorAll("#deck-grid .enh-glass").length, 1);
+  assert.ok(document.querySelector("#deck-grid .mini-card[title*='(Glass)']"));
+  assert.ok(document.querySelector("#deck-grid .mini-card.played"));
+  assert.ok(document.querySelector("#deck-grid .mini-card.discarded"));
+  document.getElementById("deck-close-btn").click();
+});
+
+test("shop: reroll button shows a free reroll, and a boss banner shows in play", () => {
+  dealtState({ phase: "shop", jesters: [jesterByName("Chaos the Clown")], lastEarnings: { reward: 5, interest: 1, bonus: 2 } });
+  gameModule.render();
+  assert.match(text("reroll-btn"), /Free/);
+  assert.match(text("overlay-sub"), /interest/);
+  assert.match(text("overlay-sub"), /jesters/);
+  const boss = gameModule.BOSS_MODIFIERS[0];
+  dealtState({ bossModifier: boss });
+  gameModule.render();
+  assert.ok(!document.getElementById("boss-banner").classList.contains("hidden"));
+  assert.equal(text("boss-name"), boss.name);
+});
+
+test("skipping a pack closes it, and Escape closes the deck view", () => {
+  dealtState({ phase: "shop", pack: [gameModule.TRICK_POOL[0]], packKind: "trick" });
+  gameModule.render();
+  document.getElementById("pack-skip-btn").click();
+  assert.equal(gameModule._getState().pack, null);
+  document.getElementById("deck-btn").click();
+  assert.ok(!document.getElementById("deck-modal").classList.contains("hidden"));
+  document.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape" }));
+  assert.ok(document.getElementById("deck-modal").classList.contains("hidden"));
+});

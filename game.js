@@ -17,6 +17,7 @@ const START_MONEY = 4;
 const JESTER_SLOTS = 5;
 const TRICK_SLOTS = 2;
 const TRICK_PRICE = 3;
+const TAROT_PRICE = 3;
 const PACK_PRICE = 4;
 const PACK_SIZE = 3;
 const ROUNDS_PER_ANTE = 3;
@@ -25,6 +26,10 @@ const REROLL_BASE_COST = 2;
 const INTEREST_UNIT = 5;
 const INTEREST_CAP = 5;
 const VOUCHER_PRICE = 8;
+const BONUS_CHIPS = 30;
+const MULT_BONUS = 4;
+const GLASS_MULT = 2;
+const GLASS_BREAK_CHANCE = 0.25;
 
 // Permanent upgrades, one offered per ante (in the shop after its first
 // round) and bought once per run. Each sets numeric deltas read by the
@@ -84,6 +89,44 @@ function handBase(type) {
   return { chips: type.chips + extra * type.levelChips, mult: type.mult + extra * type.levelMult };
 }
 
+// Tarot cards edit the run's deck. Each acts on 1..max of the cards selected
+// in hand during a round, and the change is permanent (it is written to the
+// run's master deck as well as the copy in hand). They share trick slots.
+// An enhancement sets card.enh; Wild counts as every suit, Bonus adds chips,
+// Mult adds mult, Glass doubles the score but may shatter after it's played.
+const ENHANCEMENTS = {
+  bonus: { label: "+30", name: "Bonus" },
+  mult: { label: "+4", name: "Mult" },
+  wild: { label: "W", name: "Wild" },
+  glass: { label: "×2", name: "Glass" },
+};
+
+function enhancer(id, name, enh, max, desc) {
+  return { id, name, max, desc, apply: card => { card.enh = enh; } };
+}
+function suitChanger(id, name, suit, suitName) {
+  return { id, name, max: 3, desc: `Turn up to 3 selected cards into ${suitName}.`, apply: card => { card.suit = suit; } };
+}
+
+const TAROT_POOL = [
+  enhancer("tarot_hierophant", "The Hierophant", "bonus", 2, `Make up to 2 selected cards Bonus Cards: +${BONUS_CHIPS} chips when played.`),
+  enhancer("tarot_empress", "The Empress", "mult", 2, `Make up to 2 selected cards Mult Cards: +${MULT_BONUS} mult when played.`),
+  enhancer("tarot_lovers", "The Lovers", "wild", 1, "Make 1 selected card a Wild Card: counts as every suit."),
+  enhancer("tarot_justice", "Justice", "glass", 1, `Make 1 selected card a Glass Card: X${GLASS_MULT} mult when played, ${GLASS_BREAK_CHANCE * 100}% chance to shatter after.`),
+  suitChanger("tarot_star", "The Star", "♦", "Diamonds"),
+  suitChanger("tarot_moon", "The Moon", "♣", "Clubs"),
+  suitChanger("tarot_sun", "The Sun", "♥", "Hearts"),
+  suitChanger("tarot_world", "The World", "♠", "Spades"),
+  { id: "tarot_strength", name: "Strength", max: 2, desc: "Raise the rank of up to 2 selected cards by 1 (Ace wraps to 2).",
+    apply: card => { card.rank = RANKS[(RANKS.indexOf(card.rank) + 1) % RANKS.length]; } },
+  { id: "tarot_hanged_man", name: "The Hanged Man", max: 2, desc: "Destroy up to 2 selected cards, thinning your deck.", destroy: true },
+].map(t => ({ ...t, tarot: true, price: TAROT_PRICE }));
+
+// A wild card counts as every suit.
+function cardIsSuit(card, suit) {
+  return card.suit === suit || card.enh === "wild";
+}
+
 const JESTER_POOL = [
   // --- Ported from Balatro (jesters "Available from start" whose effects --
   // --- fit this engine's scoring hook without adding new state tracking) -
@@ -95,22 +138,22 @@ const JESTER_POOL = [
   {
     id: "greedy_jester", name: "Greedy Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Diamond played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => c.suit === "♦").length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♦")).length }),
   },
   {
     id: "lusty_jester", name: "Lusty Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Heart played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => c.suit === "♥").length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♥")).length }),
   },
   {
     id: "wrathful_jester", name: "Wrathful Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Spade played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => c.suit === "♠").length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♠")).length }),
   },
   {
     id: "gluttonous_jester", name: "Gluttonous Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Club played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => c.suit === "♣").length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♣")).length }),
   },
   {
     id: "jolly_jester", name: "Jolly Jester", price: 3, rarity: "Common",
@@ -241,7 +284,7 @@ const JESTER_POOL = [
   {
     id: "blackboard", name: "Blackboard", price: 6, rarity: "Uncommon",
     desc: "X3 Mult if all cards held in hand are Spades or Clubs",
-    apply: (ctx) => ({ multMul: ctx.heldHand.every(c => c.suit === "♠" || c.suit === "♣") ? 3 : 1 }),
+    apply: (ctx) => ({ multMul: ctx.heldHand.every(c => cardIsSuit(c, "♠") || cardIsSuit(c, "♣")) ? 3 : 1 }),
   },
   {
     id: "blue_jester", name: "Blue Jester", price: 5, rarity: "Common",
@@ -498,6 +541,7 @@ function newState() {
     money: START_MONEY,
     handsLeft: START_HANDS,
     discardsLeft: START_DISCARDS,
+    masterDeck: baseDeck(),
     deck: [],
     hand: [],
     played: [],
@@ -510,8 +554,11 @@ function newState() {
     handLevels: {},
     shopOffers: [],
     shopTricks: [],
+    shopTarots: [],
     packAvailable: false,
+    tarotPackAvailable: false,
     pack: null,
+    packKind: "trick", // trick | tarot
     rerollCost: REROLL_BASE_COST,
     sortMode: "rank", // rank | suit
     phase: "playing", // playing | shop | gameover | win
@@ -526,11 +573,19 @@ function newState() {
   };
 }
 
-function freshDeck() {
+// The standard 52. A card's id is its identity for the whole run: tarots may
+// change its rank/suit, but never its id.
+function baseDeck() {
   const deck = [];
   for (const suit of SUITS) {
     for (const rank of RANKS) deck.push({ suit, rank, id: `${rank}${suit}` });
   }
+  return deck;
+}
+
+// A shuffled copy of the run's deck (tarot edits included).
+function freshDeck() {
+  const deck = (state?.masterDeck || baseDeck()).map(c => ({ ...c }));
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -622,9 +677,7 @@ function evaluateHand(cards) {
 
   let isFlush = false;
   if (cards.length >= runSize) {
-    const bySuit = {};
-    for (const c of cards) bySuit[c.suit] = (bySuit[c.suit] || 0) + 1;
-    isFlush = Object.values(bySuit).some(n => n >= runSize);
+    isFlush = SUITS.some(s => cards.filter(c => cardIsSuit(c, s)).length >= runSize);
   }
 
   let isStraight = false;
@@ -643,7 +696,7 @@ function evaluateHand(cards) {
 }
 
 function cardChipValue(card) {
-  if (state?.bossModifier?.suitDebuff === card.suit) return 0;
+  if (state?.bossModifier?.suitDebuff && cardIsSuit(card, state.bossModifier.suitDebuff)) return 0;
   if (card.rank === "A") return 11;
   if (RANK_VALUE[card.rank]) return 10;
   return parseInt(card.rank, 10);
@@ -661,6 +714,11 @@ function scoreSelection(selected) {
   let mult = hand.baseMult;
   let multMul = 1;
   let money = 0;
+  for (const c of selected) {
+    if (c.enh === "bonus") chips += BONUS_CHIPS;
+    else if (c.enh === "mult") mult += MULT_BONUS;
+    else if (c.enh === "glass") multMul *= GLASS_MULT;
+  }
 
   // Cards still in hand after this selection is played/discarded — used by
   // jesters that key off what's "held in hand" rather than what's played.
@@ -729,6 +787,8 @@ function playHand() {
   state.played.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   state.selected = new Set();
+  const shattered = selected.filter(c => c.enh === "glass" && Math.random() < GLASS_BREAK_CHANCE).map(c => c.id);
+  if (shattered.length) destroyCards(shattered);
   const drawn = draw(state.handSize - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
@@ -805,6 +865,7 @@ function finishRoundWin() {
   state.shopOffers = pool.slice(0, 3);
   rollTrickOffers();
   state.packAvailable = true;
+  state.tarotPackAvailable = true;
   if (state.round === 1) {
     const have = new Set(state.vouchers.map(v => v.id));
     const left = VOUCHER_POOL.filter(v => !have.has(v.id));
@@ -844,7 +905,16 @@ function rollShopOffers() {
   state.shopOffers = pool.slice(0, 3);
 }
 
-// Two random trick cards for sale (duplicates of owned ones are fine).
+function shuffled(list) {
+  const pool = [...list];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const r = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[r]] = [pool[r], pool[i]];
+  }
+  return pool;
+}
+
+// Two random trick cards and two tarots for sale (duplicates of owned ones are fine).
 function rollTrickOffers() {
   const pool = [...TRICK_POOL];
   for (let i = pool.length - 1; i > 0; i--) {
@@ -852,6 +922,7 @@ function rollTrickOffers() {
     [pool[i], pool[r]] = [pool[r], pool[i]];
   }
   state.shopTricks = pool.slice(0, 2);
+  state.shopTarots = shuffled(TAROT_POOL).slice(0, 2);
 }
 
 function inShop() {
@@ -866,6 +937,7 @@ function setDebugShop(open) {
     rollShopOffers();
     rollTrickOffers();
     state.packAvailable = true;
+    state.tarotPackAvailable = true;
   }
   render();
 }
@@ -951,11 +1023,72 @@ function buyTrick(id) {
   render();
 }
 
+function buyTarot(id) {
+  if (!inShop() || state.tricks.length >= trickSlots()) return;
+  const idx = state.shopTarots.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  const tarot = state.shopTarots[idx];
+  if (state.money - tarot.price < debtFloor()) return;
+  state.money -= tarot.price;
+  state.tricks.push({ ...tarot });
+  state.shopTarots.splice(idx, 1);
+  Sound.coinBuy();
+  render();
+}
+
 function useTrick(index) {
   if (!canAct() || state.pack) return;
-  const [trick] = state.tricks.splice(index, 1);
-  if (!trick) return;
-  trickUsed(trick);
+  const item = state.tricks[index];
+  if (!item) return;
+  if (item.tarot) {
+    useTarot(index);
+    return;
+  }
+  state.tricks.splice(index, 1);
+  trickUsed(item);
+  Sound.coinBuy();
+  render();
+}
+
+// --- Tarot cards ---------------------------------------------------------------
+
+// A tarot can be used mid-round with between 1 and its max cards selected.
+function canUseTarot(tarot) {
+  const n = state.selected.size;
+  return state.phase === "playing" && !state.debugShop && !state.pack && n >= 1 && n <= tarot.max;
+}
+
+// Apply fn to a card both where it currently sits and in the run's master deck.
+function editCard(id, fn) {
+  for (const list of [state.hand, state.deck, state.played, state.discarded, state.masterDeck]) {
+    const c = list?.find(card => card.id === id);
+    if (c) fn(c);
+  }
+}
+
+// Permanently remove cards from the run, wherever they currently are.
+function destroyCards(ids) {
+  const gone = new Set(ids);
+  for (const key of ["hand", "deck", "played", "discarded", "masterDeck"]) {
+    if (state[key]) state[key] = state[key].filter(c => !gone.has(c.id));
+  }
+}
+
+function useTarot(index) {
+  const tarot = state.tricks[index];
+  if (!tarot || !tarot.tarot || !canUseTarot(tarot)) return;
+  const ids = getSelectedCards().map(c => c.id);
+  state.tricks.splice(index, 1);
+  state.selected = new Set();
+  if (tarot.destroy) {
+    destroyCards(ids);
+    const drawn = draw(state.handSize - state.hand.length);
+    state.hand.push(...drawn);
+    state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
+    if (drawn.length) Sound.dealHand(drawn.length);
+  } else {
+    for (const id of ids) editCard(id, tarot.apply);
+  }
   Sound.coinBuy();
   render();
 }
@@ -969,28 +1102,32 @@ function sellTrick(index) {
   render();
 }
 
-// A trick pack offers PACK_SIZE distinct tricks; you pick one and it's used
-// immediately (no slot needed), or skip the rest.
-function buyPack() {
-  if (!inShop() || !state.packAvailable || state.pack) return;
+// A pack offers PACK_SIZE distinct cards and you pick one, or skip the rest.
+// A trick pack's pick is used immediately (no slot needed); a tarot pack's
+// pick goes into a slot to be used on a later round's hand.
+function buyPack(kind = "trick") {
+  const tarot = kind === "tarot";
+  if (!inShop() || !(tarot ? state.tarotPackAvailable : state.packAvailable) || state.pack) return;
   if (state.money - PACK_PRICE < debtFloor()) return;
   state.money -= PACK_PRICE;
-  state.packAvailable = false;
-  const pool = [...TRICK_POOL];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const r = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[r]] = [pool[r], pool[i]];
-  }
-  state.pack = pool.slice(0, PACK_SIZE);
+  if (tarot) state.tarotPackAvailable = false;
+  else state.packAvailable = false;
+  state.packKind = kind;
+  state.pack = shuffled(tarot ? TAROT_POOL : TRICK_POOL).slice(0, PACK_SIZE);
   Sound.coinBuy();
   render();
 }
 
 function pickFromPack(id) {
   if (!state.pack) return;
-  const trick = state.pack.find(t => t.id === id);
-  if (!trick) return;
-  trickUsed(trick);
+  const card = state.pack.find(t => t.id === id);
+  if (!card) return;
+  if (card.tarot) {
+    if (state.tricks.length >= trickSlots()) return;
+    state.tricks.push({ ...card });
+  } else {
+    trickUsed(card);
+  }
   state.pack = null;
   render();
 }
@@ -1103,8 +1240,14 @@ function toggleInspect(anchor, html) {
   tip.style.top = `${rect.bottom + 6}px`;
 }
 
+// Tarot art is optional (see assets/tarot/PROMPTS.md): the glyph shows until
+// <id>.png loads, and a missing file just leaves the glyph in place.
+function tarotArtHTML(id) {
+  return `<img class="tarot-art" src="assets/tarot/${id}.png" alt="" hidden onload="this.hidden=false; this.previousElementSibling.hidden=true;" onerror="this.remove()">`;
+}
+
 function trickCardHTML(t) {
-  return `<span class="trick-glyph">✦</span><span class="trick-name">${t.name}</span><span class="trick-hand">${t.hand}</span><span class="trick-desc">${t.desc}</span>`;
+  return `<span class="trick-glyph">${t.tarot ? "☾" : "✦"}</span>${t.tarot ? tarotArtHTML(t.id) : ""}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.tarot ? "Tarot" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
 
 // Held trick cards, with a Use button (and Sell in the shop) on each.
@@ -1112,13 +1255,14 @@ function fillTrickList(container, withSell) {
   container.innerHTML = "";
   state.tricks.forEach((t, i) => {
     const div = document.createElement("div");
-    div.className = "trick";
+    div.className = "trick" + (t.tarot ? " tarot" : "");
     div.innerHTML = trickCardHTML(t);
     makeInspectable(div, () => `<div class="trick">${trickCardHTML(t)}</div>`);
     const useBtn = document.createElement("button");
     useBtn.className = "use-btn";
     useBtn.textContent = "Use";
-    useBtn.disabled = Boolean(state.pack);
+    useBtn.disabled = Boolean(state.pack) || (t.tarot && !canUseTarot(t));
+    if (t.tarot) useBtn.title = `Select 1-${t.max} card${t.max > 1 ? "s" : ""} in hand during a round`;
     useBtn.addEventListener("click", () => useTrick(i));
     div.appendChild(useBtn);
     if (withSell) {
@@ -1192,6 +1336,8 @@ function render() {
   for (const card of sortedHand()) {
     const div = document.createElement("div");
     div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
+    const enh = ENHANCEMENTS[card.enh];
+    if (enh) div.classList.add("enh-" + card.enh);
     const isSelected = state.selected.has(card.id);
     if (isSelected) div.classList.add("selected");
     if (dealt.has(card.id)) {
@@ -1202,11 +1348,12 @@ function render() {
       <span class="rank-top">${card.rank}${card.suit}</span>
       <span class="suit-mid">${card.suit}</span>
       <span class="rank-bottom">${card.rank}${card.suit}</span>
+      ${enh ? `<span class="enh-badge" title="${enh.name} Card">${enh.label}</span>` : ""}
     `;
     div.tabIndex = 0;
     div.setAttribute("role", "button");
     div.setAttribute("aria-pressed", String(isSelected));
-    div.setAttribute("aria-label", `${card.rank} of ${card.suit}`);
+    div.setAttribute("aria-label", `${card.rank} of ${card.suit}${enh ? `, ${enh.name} Card` : ""}`);
     div.addEventListener("click", () => toggleCard(card.id));
     div.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -1260,15 +1407,16 @@ function renderDeckView() {
 
   const grid = document.getElementById("deck-grid");
   grid.innerHTML = "";
-  for (const suit of SUITS) {
-    for (const rank of [...RANKS].reverse()) {
-      const st = status.get(`${rank}${suit}`) || "deck";
-      const div = document.createElement("div");
-      div.className = `mini-card ${RED_SUITS.has(suit) ? "red" : "black"} ${st}`;
-      div.textContent = `${rank}${suit}`;
-      div.title = `${rank} of ${suit}: ${st === "deck" ? "still in deck" : st}`;
-      grid.appendChild(div);
-    }
+  const cards = [...(state.masterDeck || [])].sort((a, b) =>
+    SUIT_ORDER.get(a.suit) - SUIT_ORDER.get(b.suit) || rankNum(b.rank) - rankNum(a.rank));
+  for (const card of cards) {
+    const st = status.get(card.id) || "deck";
+    const enh = ENHANCEMENTS[card.enh];
+    const div = document.createElement("div");
+    div.className = `mini-card ${RED_SUITS.has(card.suit) ? "red" : "black"} ${st}${enh ? " enh-" + card.enh : ""}`;
+    div.textContent = `${card.rank}${card.suit}`;
+    div.title = `${card.rank} of ${card.suit}${enh ? ` (${enh.name})` : ""}: ${st === "deck" ? "still in deck" : st}`;
+    grid.appendChild(div);
   }
 }
 
@@ -1327,28 +1475,32 @@ function renderOverlay() {
 
     const shopTricks = document.getElementById("shop-tricks");
     shopTricks.innerHTML = "";
-    const trickOffers = state.shopTricks.map(t => ({ t, pack: false }));
-    if (state.packAvailable) trickOffers.push({ pack: true });
-    for (const { t, pack } of trickOffers) {
+    const trickOffers = state.shopTricks.map(t => ({ t, buy: () => buyTrick(t.id) }));
+    trickOffers.push(...(state.shopTarots || []).map(t => ({ t, buy: () => buyTarot(t.id) })));
+    if (state.packAvailable) trickOffers.push({ pack: "trick" });
+    if (state.tarotPackAvailable) trickOffers.push({ pack: "tarot" });
+    for (const { t, pack, buy } of trickOffers) {
       const price = pack ? PACK_PRICE : t.price;
       const canBuy = state.money - price >= debtFloor() && (pack ? !state.pack : state.tricks.length < trickSlots());
       const div = document.createElement("div");
-      div.className = "shop-item trick" + (canBuy ? "" : " unaffordable");
+      div.className = "shop-item trick" + (pack === "tarot" || t?.tarot ? " tarot" : "") + (canBuy ? "" : " unaffordable");
       div.innerHTML = `${pack
-        ? `<span class="trick-glyph">✦✦✦</span><span class="trick-name">Trick Pack</span><span class="trick-desc">Pick 1 of ${PACK_SIZE} tricks, used right away.</span>`
+        ? `<span class="trick-glyph">${pack === "tarot" ? "☾☾☾" : "✦✦✦"}</span><span class="trick-name">${pack === "tarot" ? "Tarot" : "Trick"} Pack</span><span class="trick-desc">${pack === "tarot" ? `Pick 1 of ${PACK_SIZE} tarots, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} tricks, used right away.`}</span>`
         : trickCardHTML(t)}<div class="price">$${price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`;
-      div.querySelector("button").addEventListener("click", () => (pack ? buyPack() : buyTrick(t.id)));
+      div.querySelector("button").addEventListener("click", pack ? () => buyPack(pack) : buy);
       shopTricks.appendChild(div);
     }
 
     const packSection = document.getElementById("pack-section");
     packSection.classList.toggle("hidden", !state.pack);
+    document.getElementById("pack-title").textContent = `${state.packKind === "tarot" ? "Tarot" : "Trick"} Pack: pick one`;
     const packItems = document.getElementById("pack-items");
     packItems.innerHTML = "";
     for (const t of state.pack || []) {
       const div = document.createElement("div");
-      div.className = "shop-item trick";
-      div.innerHTML = `${trickCardHTML(t)}<button>Take</button>`;
+      div.className = "shop-item trick" + (t.tarot ? " tarot" : "");
+      const full = t.tarot && state.tricks.length >= trickSlots();
+      div.innerHTML = `${trickCardHTML(t)}<button ${full ? "disabled title=\"No free slot\"" : ""}>Take</button>`;
       div.querySelector("button").addEventListener("click", () => pickFromPack(t.id));
       packItems.appendChild(div);
     }
@@ -1507,6 +1659,7 @@ const testHooks = {
   freshDeck,
   HAND_TYPES,
   TRICK_POOL,
+  TAROT_POOL,
   JESTER_POOL,
   BOSS_MODIFIERS,
   // state machine
@@ -1523,6 +1676,7 @@ const testHooks = {
   finishRoundWin,
   VOUCHER_POOL,
   buyTrick,
+  buyTarot,
   useTrick,
   sellTrick,
   buyPack,

@@ -860,3 +860,301 @@ test("Haggler's reroll discount never drops the base cost below $1", () => {
   finishRoundWin();
   assert.equal(state.rerollCost, 1);
 });
+
+// --- Tarot cards (deck editing) ----------------------------------------------
+
+function tarotById(id) {
+  const { TAROT_POOL } = require("../game.js");
+  const t = TAROT_POOL.find(t => t.id === id);
+  assert.ok(t, `no such tarot: ${id}`);
+  return { ...t };
+}
+
+// Select the first n cards of the dealt hand and give the player a tarot.
+function holdTarot(id, n) {
+  const state = freshRoundState();
+  state.tricks.push(tarotById(id));
+  state.selected = new Set(state.hand.slice(0, n).map(c => c.id));
+  return state;
+}
+
+test("tarot enhancement edits the card in hand and in the master deck", () => {
+  const { useTrick } = require("../game.js");
+  const state = holdTarot("tarot_hierophant", 2);
+  const ids = [...state.selected];
+  useTrick(0);
+  const s = _getState();
+  assert.equal(s.tricks.length, 0);
+  assert.equal(s.selected.size, 0);
+  for (const id of ids) {
+    assert.equal(s.hand.find(c => c.id === id).enh, "bonus");
+    assert.equal(s.masterDeck.find(c => c.id === id).enh, "bonus");
+  }
+  // A fresh round's deck carries the edit forward.
+  startRound();
+  const all = [..._getState().deck, ..._getState().hand];
+  assert.equal(all.filter(c => c.enh === "bonus").length, 2);
+});
+
+test("tarot refuses to act with too many or no cards selected", () => {
+  const { useTrick } = require("../game.js");
+  const state = holdTarot("tarot_lovers", 2); // Lovers takes 1
+  useTrick(0);
+  assert.equal(_getState().tricks.length, 1);
+  state.selected = new Set();
+  useTrick(0);
+  assert.equal(_getState().tricks.length, 1);
+  assert.ok(!_getState().masterDeck.some(c => c.enh));
+});
+
+test("suit-changing tarot permanently changes suits", () => {
+  const { useTrick } = require("../game.js");
+  const state = holdTarot("tarot_sun", 3);
+  const ids = [...state.selected];
+  useTrick(0);
+  for (const id of ids) {
+    assert.equal(_getState().hand.find(c => c.id === id).suit, "♥");
+    assert.equal(_getState().masterDeck.find(c => c.id === id).suit, "♥");
+  }
+});
+
+test("Strength raises rank by one and Ace wraps to 2", () => {
+  const { useTrick } = require("../game.js");
+  const state = freshRoundState();
+  state.hand = [{ suit: "♠", rank: "K", id: "K♠" }, { suit: "♠", rank: "A", id: "A♠" }];
+  state.masterDeck = state.hand.map(c => ({ ...c }));
+  state.tricks.push(tarotById("tarot_strength"));
+  state.selected = new Set(["K♠", "A♠"]);
+  useTrick(0);
+  assert.equal(_getState().hand.find(c => c.id === "K♠").rank, "A");
+  assert.equal(_getState().masterDeck.find(c => c.id === "A♠").rank, "2");
+});
+
+test("The Hanged Man destroys cards for the run and refills the hand", () => {
+  const { useTrick } = require("../game.js");
+  const state = holdTarot("tarot_hanged_man", 2);
+  const ids = [...state.selected];
+  useTrick(0);
+  const s = _getState();
+  assert.equal(s.masterDeck.length, 50);
+  assert.equal(s.hand.length, s.handSize);
+  assert.ok(ids.every(id => !s.hand.some(c => c.id === id)));
+  startRound();
+  assert.equal(_getState().deck.length + _getState().hand.length, 50);
+});
+
+test("Bonus, Mult and Glass cards add chips, mult and X2 when scored", () => {
+  const state = freshRoundState();
+  state.jesters = [];
+  const plain = scoreSelection([{ suit: "♠", rank: "5", id: "a" }]);
+  const bonus = scoreSelection([{ suit: "♠", rank: "5", id: "a", enh: "bonus" }]);
+  const mult = scoreSelection([{ suit: "♠", rank: "5", id: "a", enh: "mult" }]);
+  const glass = scoreSelection([{ suit: "♠", rank: "5", id: "a", enh: "glass" }]);
+  assert.equal(bonus.chips - plain.chips, 30);
+  assert.equal(mult.mult - plain.mult, 4);
+  assert.equal(glass.multMul, 2);
+});
+
+test("a Wild card completes a flush and counts for suit jesters", () => {
+  const { evaluateHand } = require("../game.js");
+  const state = freshRoundState();
+  const hand = [
+    { suit: "♠", rank: "2", id: "a" }, { suit: "♠", rank: "5", id: "b" },
+    { suit: "♠", rank: "9", id: "c" }, { suit: "♠", rank: "J", id: "d" },
+    { suit: "♥", rank: "K", id: "e", enh: "wild" },
+  ];
+  assert.equal(evaluateHand(hand).name, "Flush");
+  hand[4] = { ...hand[4], enh: undefined };
+  assert.equal(evaluateHand(hand).name, "High Card");
+  state.jesters = [{ ...jesterById("greedy_jester") }];
+  const lone = [{ suit: "♠", rank: "5", id: "a", enh: "wild" }];
+  assert.equal(scoreSelection(lone).mult, 1 + 3);
+});
+
+test("a played Glass card can shatter and is removed from the run", () => {
+  const state = freshRoundState();
+  const target = state.hand[0];
+  target.enh = "glass";
+  state.masterDeck.find(c => c.id === target.id).enh = "glass";
+  state.selected = new Set([target.id]);
+  withMockedRandom(0.1, () => playHand());
+  assert.ok(!_getState().masterDeck.some(c => c.id === target.id));
+  assert.equal(_getState().masterDeck.length, 51);
+});
+
+test("a played Glass card survives when the roll misses", () => {
+  const state = freshRoundState();
+  const target = state.hand[0];
+  target.enh = "glass";
+  state.masterDeck.find(c => c.id === target.id).enh = "glass";
+  state.selected = new Set([target.id]);
+  withMockedRandom(0.9, () => playHand());
+  assert.equal(_getState().masterDeck.length, 52);
+});
+
+test("buyTarot respects money and trick slots; tarots can be sold", () => {
+  const { buyTarot, sellTrick, TAROT_POOL } = require("../game.js");
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 10;
+  state.shopTarots = [TAROT_POOL[0], TAROT_POOL[1], TAROT_POOL[2]];
+  buyTarot(TAROT_POOL[0].id);
+  buyTarot(TAROT_POOL[1].id);
+  buyTarot(TAROT_POOL[2].id); // slots full
+  assert.equal(_getState().tricks.length, 2);
+  assert.equal(_getState().money, 4);
+  sellTrick(0);
+  assert.equal(_getState().money, 5);
+});
+
+test("tarot pack: pick goes to a slot instead of being used, blocked when full", () => {
+  const { buyPack, pickFromPack } = require("../game.js");
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 10;
+  state.tarotPackAvailable = true;
+  buyPack("tarot");
+  assert.equal(_getState().money, 6);
+  assert.equal(_getState().tarotPackAvailable, false);
+  assert.equal(_getState().pack.length, 3);
+  assert.ok(_getState().pack.every(t => t.tarot));
+  state.tricks.push(tarotById("tarot_star"), tarotById("tarot_moon")); // full
+  pickFromPack(_getState().pack[0].id);
+  assert.ok(_getState().pack, "pack stays open when slots are full");
+  state.tricks.pop();
+  pickFromPack(_getState().pack[0].id);
+  assert.equal(_getState().tricks.length, 2);
+  assert.equal(_getState().pack, null);
+});
+
+test("finishRoundWin stocks the shop with tarot offers and a tarot pack", () => {
+  const state = freshRoundState();
+  finishRoundWin();
+  assert.equal(_getState().shopTarots.length, 2);
+  assert.equal(_getState().tarotPackAvailable, true);
+  assert.ok(state);
+});
+
+// --- Shop action guards --------------------------------------------------------
+// Each action silently ignores a call that can't legally happen (wrong phase,
+// unknown id, no money, no room); these pin that none of them change state.
+
+function shopState(overrides = {}) {
+  const state = freshRoundState();
+  state.phase = "shop";
+  state.money = 20;
+  return Object.assign(state, overrides);
+}
+
+test("buyJester ignores unknown ids, unaffordable offers and a full roster", () => {
+  const { buyJester } = require("../game.js");
+  const [a, b, c] = JESTER_POOL;
+  const state = shopState({ shopOffers: [a, b] });
+  buyJester("nope");
+  assert.equal(state.jesters.length, 0);
+  state.money = 0;
+  buyJester(a.id);
+  assert.equal(state.jesters.length, 0);
+  state.money = 50;
+  state.jesters = Array.from({ length: 5 }, () => ({ ...c }));
+  buyJester(a.id);
+  assert.equal(state.jesters.length, 5);
+  assert.equal(state.money, 50);
+});
+
+test("sellJester ignores unknown ids and calls outside the shop", () => {
+  const { sellJester } = require("../game.js");
+  const state = shopState({ jesters: [{ ...JESTER_POOL[0], sellBonus: 0 }] });
+  sellJester("nope");
+  assert.equal(state.jesters.length, 1);
+  state.phase = "playing";
+  sellJester(JESTER_POOL[0].id);
+  assert.equal(state.jesters.length, 1);
+  assert.equal(state.money, 20);
+});
+
+test("buyTrick and buyTarot ignore unknown ids, unaffordable offers and calls outside the shop", () => {
+  const { buyTrick, buyTarot, TRICK_POOL, TAROT_POOL } = require("../game.js");
+  const state = shopState({ shopTricks: [TRICK_POOL[0]], shopTarots: [TAROT_POOL[0]] });
+  buyTrick("nope");
+  buyTarot("nope");
+  state.money = 0;
+  buyTrick(TRICK_POOL[0].id);
+  buyTarot(TAROT_POOL[0].id);
+  state.money = 20;
+  state.phase = "playing";
+  buyTrick(TRICK_POOL[0].id);
+  buyTarot(TAROT_POOL[0].id);
+  assert.equal(state.tricks.length, 0);
+  assert.equal(state.money, 20);
+});
+
+test("sellTrick ignores calls outside the shop and bad indexes", () => {
+  const { sellTrick } = require("../game.js");
+  const state = shopState({ tricks: [tarotById("tarot_star")] });
+  sellTrick(5);
+  state.phase = "playing";
+  sellTrick(0);
+  assert.equal(state.tricks.length, 1);
+  assert.equal(state.money, 20);
+});
+
+test("useTrick ignores a bad index and does nothing while a pack is open", () => {
+  const { useTrick, TRICK_POOL } = require("../game.js");
+  const state = freshRoundState();
+  state.tricks.push({ ...TRICK_POOL[0] });
+  useTrick(3);
+  state.pack = [TRICK_POOL[1]];
+  useTrick(0);
+  assert.equal(state.tricks.length, 1);
+  assert.equal(state.handLevels[TRICK_POOL[0].hand], undefined);
+});
+
+test("a tarot can't be used from the shop, with a pack open, or in the debug shop", () => {
+  const { useTrick } = require("../game.js");
+  const state = holdTarot("tarot_sun", 1);
+  state.debugShop = true;
+  useTrick(0);
+  state.debugShop = false;
+  state.phase = "shop";
+  useTrick(0);
+  assert.equal(state.tricks.length, 1);
+  assert.ok(!state.masterDeck.some(c => c.suit === "♥" && c.enh));
+});
+
+test("buyPack ignores calls outside the shop, a sold-out pack, an open pack and no money", () => {
+  const { buyPack } = require("../game.js");
+  const state = shopState({ packAvailable: true, tarotPackAvailable: false });
+  buyPack("tarot"); // tarot pack already bought
+  state.money = 1;
+  buyPack(); // can't afford
+  state.money = 20;
+  state.pack = [];
+  buyPack(); // a pack is already open
+  state.pack = null;
+  state.phase = "playing";
+  buyPack();
+  assert.equal(state.money, 20);
+  assert.equal(state.pack, null);
+  assert.equal(state.packAvailable, true);
+});
+
+test("pickFromPack ignores a missing pack and an id that isn't in it", () => {
+  const { pickFromPack, TRICK_POOL } = require("../game.js");
+  const state = shopState();
+  pickFromPack("nope");
+  state.pack = [TRICK_POOL[0]];
+  pickFromPack("nope");
+  assert.equal(state.pack.length, 1);
+  assert.equal(state.handLevels[TRICK_POOL[0].hand], undefined);
+});
+
+test("the free reroll from Chaos the Clown costs nothing once per shop visit", () => {
+  const state = shopState({ jesters: [{ ...jesterById("chaos_the_clown") }], money: 0 });
+  rerollShop();
+  assert.equal(state.money, 0);
+  assert.equal(state.freeRerollUsed, true);
+  rerollShop(); // no longer free and no money
+  assert.equal(state.money, 0);
+  assert.equal(state.rerollCost, 2);
+});
