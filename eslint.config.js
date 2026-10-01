@@ -43,7 +43,7 @@ module.exports = [
   { ignores: ["node_modules/**"] },
   js.configs.recommended,
   {
-    files: ["game.js", "sounds.js", "warp.js"],
+    files: ["game.js", "sounds.js", "court.js"],
     languageOptions: {
       sourceType: "script",
       ecmaVersion: 2022,

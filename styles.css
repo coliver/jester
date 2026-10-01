@@ -716,16 +716,15 @@ body {
 .card.dragging { cursor: grabbing; transition: none; box-shadow: 0 14px 24px rgba(0, 0, 0, 0.55); }
 .jester-slot, #owned-jesters .jester { transition: translate 0.15s ease; }
 
-/* Acidwarp-style palette-cycling table background (see warp.js). Dimmed and
-   vignetted so cards and text stay readable on top. */
-#warp {
+/* Candlelit masquerade-hall backdrop (see court.js): gilt damask lit by
+   flickering sconces. Dimmed and vignetted so cards and text stay readable. */
+#court {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   z-index: -1;
-  opacity: 0.22;
-  image-rendering: pixelated;
+  opacity: 0.6;
   pointer-events: none;
 }
 body::before {
@@ -734,7 +733,7 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(27, 16, 35, 0.85) 100%);
+  background: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(14, 6, 16, 0.8) 100%);
 }
 
 /* Hand cards drift up and down a couple of pixels. Animating the individual
