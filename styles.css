@@ -863,7 +863,6 @@ body::before {
   line-height: 1.3;
   text-align: center;
 }
-.shop-item .jester-art { aspect-ratio: 5 / 4; }
 .shop-item .card-art { width: 56px; height: 56px; }
 .shop-item .jester-name { color: var(--accent-2); font-weight: 700; }
 .shop-item .price { color: var(--accent); font-weight: 700; font-size: 14px; margin: 6px 0; }
@@ -995,3 +994,108 @@ body::before {
 #amusement { flex: none; height: 74px; overflow: hidden; } /* fixed so a longer mood label can't push the panels below it */
 #amusement-label { line-height: 1.2; min-height: 2.4em; }
 .preview-note { display: block; font-family: inherit; font-style: normal; font-size: 0.6em; font-weight: 400; color: var(--muted); letter-spacing: 0.02em; }
+
+/* Jester cards: the same antique stock as the playing cards, in portrait: a ruled
+   inner frame, the art in a gilt-edged window, the name and rarity on the plate
+   below. Shop offers (the bare .shop-item, not props or tricks) get the same face.
+   The frame and foxing are pseudo-elements, as on .card, so they never fight the
+   drag/deal transforms. The aspect ratio is only a floor: a long description
+   grows the card rather than overflowing it. */
+.jester, .shop-item:not(.prop):not(.trick) {
+  position: relative;
+  background: var(--stock);
+  border: 0;
+  border-radius: 5px;
+  padding: 8px 7px 7px;
+  color: #3a2a1c;
+  font-family: var(--card-font);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+}
+.jester { aspect-ratio: 5 / 7; }
+.jester::before, .shop-item:not(.prop):not(.trick)::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(70, 40, 15, 0.55);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.jester::after, .shop-item:not(.prop):not(.trick)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 14px rgba(110, 70, 25, 0.38);
+  pointer-events: none;
+}
+.jester:hover, .jester:focus-visible { box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5); }
+.jester:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.jester.dragging { box-shadow: 0 8px 18px rgba(0, 0, 0, 0.55); }
+
+.jester .jester-art, .shop-item:not(.prop):not(.trick) .jester-art {
+  border: 1px solid var(--gilt);
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(255, 250, 232, 0.55), 0 0 0 3px rgba(70, 40, 15, 0.4);
+  margin: 2px 0 7px;
+  width: calc(100% - 6px);
+  margin-left: 3px;
+}
+.jester .jester-name, .shop-item:not(.prop):not(.trick) .jester-name {
+  color: var(--ink-black);
+  font-size: 1.08em;
+  letter-spacing: 0.01em;
+  padding-bottom: 2px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid rgba(70, 40, 15, 0.4);
+}
+.jester .jester-rarity, .shop-item:not(.prop):not(.trick) .jester-rarity {
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 0.9em;
+  margin-bottom: 3px;
+}
+.jester .jester-rarity::before, .shop-item:not(.prop):not(.trick) .jester-rarity::before { content: "\2766\00a0"; }
+.jester .jester-rarity::after, .shop-item:not(.prop):not(.trick) .jester-rarity::after { content: "\00a0\2767"; }
+.jester .rarity-common, .shop-item .rarity-common { color: #2c5f8a; }
+.jester .rarity-uncommon, .shop-item .rarity-uncommon { color: #2f6f46; }
+.jester .rarity-rare, .shop-item .rarity-rare { color: var(--ink-red); }
+.shop-item:not(.prop):not(.trick) .jester-name { color: var(--ink-black); }
+.shop-item:not(.prop):not(.trick) .price { color: #6b4c10; }
+.shop-item.unaffordable:not(.prop):not(.trick) .price { color: var(--ink-red); }
+.shop-item:not(.prop):not(.trick) .shop-desc { color: #3a2a1c; }
+
+/* The inspect tooltip shows the text only, on its own panel. */
+#inspect .jester { aspect-ratio: auto; box-shadow: none; color: inherit; font-family: inherit; }
+#inspect .jester::before, #inspect .jester::after { display: none; }
+#inspect .jester .jester-name { color: var(--accent-2); border-bottom: 0; padding-bottom: 0; font-size: inherit; }
+#inspect .jester .rarity-common { color: #4db8ff; }
+#inspect .jester .rarity-uncommon { color: #35d68a; }
+#inspect .jester .rarity-rare { color: #ff5d6c; }
+#inspect .jester .jester-rarity { font-style: normal; text-transform: uppercase; font-size: 9px; }
+#inspect .jester .jester-rarity::before, #inspect .jester .jester-rarity::after { content: none; }
+
+/* Play-row jesters are exactly playing-card sized (--card-w x --card-h, so they
+   scale with the hand in every layout). The art is the same square as everywhere
+   else (sized off the card so a two-line name still fits); the description lives in the tap-to-read tooltip. */
+#jester-row .jester-slot { width: var(--card-w); min-height: var(--card-h); }
+#jester-row .jester {
+  width: var(--card-w);
+  height: var(--card-h);
+  aspect-ratio: auto;
+  padding: calc(var(--card-w) * 0.08) calc(var(--card-w) * 0.08) calc(var(--card-w) * 0.06);
+  font-size: max(7px, calc(var(--card-w) * 0.12));
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#jester-row .jester-art {
+  flex: none;
+  width: calc(var(--card-w) * 0.7);
+  aspect-ratio: 1;
+  margin: 1px auto calc(var(--card-w) * 0.05);
+}
+#jester-row .jester-name { flex: none; margin-bottom: 1px; padding-bottom: 1px; }
+#jester-row .jester-rarity { flex: none; margin: auto 0 0; font-size: 0.85em; }
+#jester-row .jester-desc { display: none; }
