@@ -119,7 +119,6 @@ test("selecting a card updates aria-pressed, the preview, and enables play/disca
   assert.equal(card.getAttribute("aria-pressed"), "true");
   assert.ok(card.classList.contains("selected"));
   assert.notEqual(text("preview-name").trim(), "");
-  assert.match(text("preview-math"), /chips × .+ mult = \d+/);
   assert.equal(document.getElementById("play-btn").disabled, false);
   assert.equal(document.getElementById("discard-btn").disabled, false);
 
@@ -332,30 +331,11 @@ test("sort buttons re-order the hand and toggle the active class", () => {
   assert.ok(rankBtn.classList.contains("active"));
 });
 
-// --- preview math formatting -------------------------------------------------
-
-test("preview math shows one decimal place when a multiplicative jester is owned", () => {
-  // Baron: X1.5 Mult per King held in hand. Fix the hand so exactly one
-  // King is held (not selected), independent of the random shuffle.
-  const hand = [
-    { rank: "2", suit: "♠", id: "2♠" },
-    { rank: "3", suit: "♥", id: "3♥" },
-    { rank: "4", suit: "♦", id: "4♦" },
-    { rank: "5", suit: "♣", id: "5♣" },
-    { rank: "6", suit: "♠", id: "6♠" },
-    { rank: "7", suit: "♥", id: "7♥" },
-    { rank: "9", suit: "♣", id: "9♣" },
-    { rank: "K", suit: "♦", id: "K♦" },
-  ];
-  dealtState({ hand, jesters: [jesterByName("Baron")] });
-  document.querySelector("#hand-row .card").click(); // sorted by rank: selects the 2♠, leaving the K♦ held
-  assert.match(text("preview-math"), /× 1\.5 mult/);
-});
+// --- preview -----------------------------------------------------------------
 
 test("preview is blank with nothing selected", () => {
   dealtState();
   assert.equal(text("preview-name").trim(), "");
-  assert.equal(text("preview-math"), "");
 });
 
 // --- jester-row rendering (owned jesters outside the shop) --------------------

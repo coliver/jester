@@ -1182,14 +1182,11 @@ function render() {
 
   const selected = getSelectedCards();
   const previewName = document.getElementById("preview-name");
-  const previewMath = document.getElementById("preview-math");
   if (selected.length > 0) {
     const result = scoreSelection(selected);
     previewName.textContent = result.hand.name;
-    previewMath.textContent = `${result.chips} chips × ${(result.mult * result.multMul).toFixed(result.multMul !== 1 ? 1 : 0)} mult = ${result.total}`;
   } else {
     previewName.textContent = " ";
-    previewMath.textContent = "";
   }
 
   document.getElementById("play-btn").disabled = selected.length === 0 || state.phase !== "playing";

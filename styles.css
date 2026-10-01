@@ -592,7 +592,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #app > * { grid-column: 2; }
   #boss-banner { grid-row: 1; }
   #top-row { grid-row: 2; }
-  #preview { grid-row: 4; }
   #hand-area { grid-row: 5; }
   #controls { grid-row: 6; margin-top: 8px; }
   #hud {
@@ -643,7 +642,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #trick-row { gap: 6px; }
   #trick-row .trick { width: 74px; padding: 4px; }
   #trick-row .trick-glyph { font-size: 16px; }
-  #preview { min-height: 14px; font-size: 12px; line-height: 1.1; }
+  #preview { min-height: 18px; font-size: 12px; line-height: 1.1; text-align: left; padding: 0 4px; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
   .card { flex: 0 0 auto; padding: 5px; }
   .card + .card { margin-left: -14px; }
