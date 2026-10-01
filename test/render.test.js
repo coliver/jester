@@ -244,14 +244,14 @@ test("shop: reroll button is disabled when reroll is unaffordable", () => {
 
 // --- game over overlay ------------------------------------------------------
 
-test("running out of hands opens the Game Over overlay; Restart resets the run", () => {
+test("running out of hands opens the Off With Your Head overlay; Restart resets the run", () => {
   dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1 }); // one hand left, unreachable target
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
 
   assert.equal(gameModule._getState().phase, "gameover");
   assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
-  assert.equal(text("overlay-title"), "Game Over");
+  assert.equal(text("overlay-title"), "Off With Your Head");
   assert.ok(document.getElementById("reroll-btn").classList.contains("hidden"));
   assert.equal(text("overlay-btn"), "Restart");
 
@@ -264,14 +264,14 @@ test("running out of hands opens the Game Over overlay; Restart resets the run",
 
 // --- win overlay -------------------------------------------------------------
 
-test("clearing the final ante opens the You Win overlay", () => {
+test("clearing the final ante opens the Court Is Amused overlay", () => {
   dealtState({ ante: 8, round: 3, target: 1 }); // FINAL_ANTE, ROUNDS_PER_ANTE
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
 
   assert.equal(gameModule._getState().phase, "win");
-  assert.equal(text("overlay-title"), "You Win!");
-  assert.match(text("overlay-sub"), /Cleared Ante 8/);
+  assert.equal(text("overlay-title"), "The Court Is Amused");
+  assert.match(text("overlay-sub"), /cleared The Throne Room/);
   assert.ok(document.getElementById("reroll-btn").classList.contains("hidden"));
   assert.ok(document.getElementById("owned-jesters-section").classList.contains("hidden"));
   assert.equal(text("overlay-btn"), "Play Again");
@@ -432,23 +432,23 @@ test("shop: an unaffordable prop is marked unaffordable", () => {
   assert.ok(item.querySelector("button").disabled);
 });
 
-test("shop: tarot offers and both packs render, and a tarot buys into a slot", () => {
-  const tarot = gameModule.TAROT_POOL[0];
-  dealtState({ phase: "shop", money: 20, shopTarots: [tarot], shopTricks: [], packAvailable: true, tarotPackAvailable: true });
+test("shop: decree offers and both packs render, and a decree buys into a slot", () => {
+  const decree = gameModule.DECREE_POOL[0];
+  dealtState({ phase: "shop", money: 20, shopDecrees: [decree], shopTricks: [], packAvailable: true, decreePackAvailable: true });
   gameModule.render();
   const items = [...document.querySelectorAll("#shop-tricks .shop-item")];
   assert.equal(items.length, 1);
-  assert.match(items[0].textContent, new RegExp(tarot.name));
+  assert.match(items[0].textContent, new RegExp(decree.name));
   const packs = [...document.querySelectorAll("#shop-packs .shop-item")];
   assert.equal(packs.length, 2);
-  assert.match(packs[1].textContent, /Tarot Pack/);
+  assert.match(packs[1].textContent, /Decree Pack/);
   items[0].querySelector("button").click();
-  assert.equal(gameModule._getState().tricks[0].id, tarot.id);
+  assert.equal(gameModule._getState().tricks[0].id, decree.id);
 });
 
-test("tarot Use button enables only with a valid selection and edits the hand card", () => {
-  const tarot = gameModule.TAROT_POOL.find((t) => t.id === "tarot_lovers");
-  const state = dealtState({ tricks: [{ ...tarot }] });
+test("decree Use button enables only with a valid selection and edits the hand card", () => {
+  const decree = gameModule.DECREE_POOL.find((t) => t.id === "decree_marriage");
+  const state = dealtState({ tricks: [{ ...decree }] });
   gameModule.render();
   const useBtn = () => document.querySelector("#trick-row .use-btn");
   assert.ok(useBtn().disabled);
@@ -461,33 +461,33 @@ test("tarot Use button enables only with a valid selection and edits the hand ca
   assert.ok(state);
 });
 
-test("tarot cards load optional art, and a missing file leaves the glyph", () => {
-  const tarot = gameModule.TAROT_POOL[0];
-  dealtState({ tricks: [{ ...tarot }] });
+test("decree cards load optional art, and a missing file leaves the glyph", () => {
+  const decree = gameModule.DECREE_POOL[0];
+  dealtState({ tricks: [{ ...decree }] });
   gameModule.render();
   const card = document.querySelector("#trick-row .trick");
-  const img = card.querySelector(".tarot-art");
-  assert.equal(img.getAttribute("src"), `assets/tarot/${tarot.id}.png`);
+  const img = card.querySelector(".card-art");
+  assert.equal(img.getAttribute("src"), `assets/decrees/${decree.id}.png`);
   assert.ok(img.hidden);
   failToLoad(img);
-  assert.equal(card.querySelector(".tarot-art"), null);
+  assert.equal(card.querySelector(".card-art"), null);
   assert.ok(!card.querySelector(".trick-glyph").hidden);
   // ...and when the file loads, the art replaces the glyph.
   gameModule.render();
-  const loaded = document.querySelector("#trick-row .tarot-art");
+  const loaded = document.querySelector("#trick-row .card-art");
   new Function(loaded.getAttribute("onload")).call(loaded);
   assert.ok(!loaded.hidden);
   assert.ok(document.querySelector("#trick-row .trick-glyph").hidden);
 });
 
-test("an open tarot pack is titled as one and blocks Take when slots are full", () => {
-  const { TAROT_POOL } = gameModule;
+test("an open decree pack is titled as one and blocks Take when slots are full", () => {
+  const { DECREE_POOL } = gameModule;
   dealtState({
-    phase: "shop", pack: TAROT_POOL.slice(0, 3), packKind: "tarot",
-    tricks: [{ ...TAROT_POOL[3] }, { ...TAROT_POOL[4] }],
+    phase: "shop", pack: DECREE_POOL.slice(0, 3), packKind: "decree",
+    tricks: [{ ...DECREE_POOL[3] }, { ...DECREE_POOL[4] }],
   });
   gameModule.render();
-  assert.match(text("pack-title"), /^Tarot Pack/);
+  assert.match(text("pack-title"), /^Decree Pack/);
   const take = document.querySelector("#pack-items button");
   assert.ok(take.disabled);
   gameModule._getState().packKind = "trick";
@@ -714,4 +714,26 @@ test("trick row is always shown, with an outlined slot per free trick slot", () 
   dealtState({ tricks: [{ ...gameModule.TRICK_POOL[0] }] });
   assert.equal(document.querySelectorAll("#trick-row .trick-slot").length, 2);
   assert.equal(document.querySelectorAll("#trick-row .trick-slot .trick").length, 1);
+});
+
+test("the HUD names the venue and audience, and the preview names the poker hand", () => {
+  dealtState();
+  gameModule.render();
+  assert.equal(text("venue-val"), "The Scullery");
+  assert.equal(text("audience-val"), "Small Audience");
+  document.querySelector("#hand-row .card").click();
+  assert.match(text("preview-name"), /^High Card/);
+});
+
+test("the King's mood follows score progress and shows in the amusement meter", () => {
+  const { courtMood } = gameModule;
+  assert.equal(courtMood(0, 300, 4), "bored");
+  assert.equal(courtMood(150, 300, 4), "amused");
+  assert.equal(courtMood(300, 300, 1), "delighted");
+  assert.equal(courtMood(50, 300, 1), "displeased");
+  dealtState({ roundScore: 160, target: 300 });
+  gameModule.render();
+  assert.equal(document.getElementById("amusement").dataset.mood, "amused");
+  assert.match(text("amusement-label"), /amused/);
+  assert.equal(document.getElementById("amusement-fill").style.width.slice(0, 2), "53");
 });

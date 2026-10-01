@@ -16,6 +16,7 @@ const {
   freshDeck,
   JESTER_POOL,
   BOSS_MODIFIERS,
+  KING_BOSS,
   newState,
   startRound,
   toggleCard,
@@ -861,26 +862,26 @@ test("Haggler's reroll discount never drops the base cost below $1", () => {
   assert.equal(state.rerollCost, 1);
 });
 
-// --- Tarot cards (deck editing) ----------------------------------------------
+// --- Decree cards (deck editing) ----------------------------------------------
 
-function tarotById(id) {
-  const { TAROT_POOL } = require("../game.js");
-  const t = TAROT_POOL.find(t => t.id === id);
-  assert.ok(t, `no such tarot: ${id}`);
+function decreeById(id) {
+  const { DECREE_POOL } = require("../game.js");
+  const t = DECREE_POOL.find(t => t.id === id);
+  assert.ok(t, `no such decree: ${id}`);
   return { ...t };
 }
 
-// Select the first n cards of the dealt hand and give the player a tarot.
-function holdTarot(id, n) {
+// Select the first n cards of the dealt hand and give the player a decree.
+function holdDecree(id, n) {
   const state = freshRoundState();
-  state.tricks.push(tarotById(id));
+  state.tricks.push(decreeById(id));
   state.selected = new Set(state.hand.slice(0, n).map(c => c.id));
   return state;
 }
 
-test("tarot enhancement edits the card in hand and in the master deck", () => {
+test("decree enhancement edits the card in hand and in the master deck", () => {
   const { useTrick } = require("../game.js");
-  const state = holdTarot("tarot_hierophant", 2);
+  const state = holdDecree("decree_archbishop", 2);
   const ids = [...state.selected];
   useTrick(0);
   const s = _getState();
@@ -896,9 +897,9 @@ test("tarot enhancement edits the card in hand and in the master deck", () => {
   assert.equal(all.filter(c => c.enh === "bonus").length, 2);
 });
 
-test("tarot refuses to act with too many or no cards selected", () => {
+test("decree refuses to act with too many or no cards selected", () => {
   const { useTrick } = require("../game.js");
-  const state = holdTarot("tarot_lovers", 2); // Lovers takes 1
+  const state = holdDecree("decree_marriage", 2); // Lovers takes 1
   useTrick(0);
   assert.equal(_getState().tricks.length, 1);
   state.selected = new Set();
@@ -907,9 +908,9 @@ test("tarot refuses to act with too many or no cards selected", () => {
   assert.ok(!_getState().masterDeck.some(c => c.enh));
 });
 
-test("suit-changing tarot permanently changes suits", () => {
+test("suit-changing decree permanently changes suits", () => {
   const { useTrick } = require("../game.js");
-  const state = holdTarot("tarot_sun", 3);
+  const state = holdDecree("decree_oath_hearts", 3);
   const ids = [...state.selected];
   useTrick(0);
   for (const id of ids) {
@@ -923,7 +924,7 @@ test("Strength raises rank by one and Ace wraps to 2", () => {
   const state = freshRoundState();
   state.hand = [{ suit: "♠", rank: "K", id: "K♠" }, { suit: "♠", rank: "A", id: "A♠" }];
   state.masterDeck = state.hand.map(c => ({ ...c }));
-  state.tricks.push(tarotById("tarot_strength"));
+  state.tricks.push(decreeById("decree_knighthood"));
   state.selected = new Set(["K♠", "A♠"]);
   useTrick(0);
   assert.equal(_getState().hand.find(c => c.id === "K♠").rank, "A");
@@ -932,7 +933,7 @@ test("Strength raises rank by one and Ace wraps to 2", () => {
 
 test("The Hanged Man destroys cards for the run and refills the hand", () => {
   const { useTrick } = require("../game.js");
-  const state = holdTarot("tarot_hanged_man", 2);
+  const state = holdDecree("decree_headsman", 2);
   const ids = [...state.selected];
   useTrick(0);
   const s = _getState();
@@ -992,33 +993,33 @@ test("a played Glass card survives when the roll misses", () => {
   assert.equal(_getState().masterDeck.length, 52);
 });
 
-test("buyTarot respects money and trick slots; tarots can be sold", () => {
-  const { buyTarot, sellTrick, TAROT_POOL } = require("../game.js");
+test("buyDecree respects money and trick slots; decrees can be sold", () => {
+  const { buyDecree, sellTrick, DECREE_POOL } = require("../game.js");
   const state = freshRoundState();
   state.phase = "shop";
   state.money = 10;
-  state.shopTarots = [TAROT_POOL[0], TAROT_POOL[1], TAROT_POOL[2]];
-  buyTarot(TAROT_POOL[0].id);
-  buyTarot(TAROT_POOL[1].id);
-  buyTarot(TAROT_POOL[2].id); // slots full
+  state.shopDecrees = [DECREE_POOL[0], DECREE_POOL[1], DECREE_POOL[2]];
+  buyDecree(DECREE_POOL[0].id);
+  buyDecree(DECREE_POOL[1].id);
+  buyDecree(DECREE_POOL[2].id); // slots full
   assert.equal(_getState().tricks.length, 2);
   assert.equal(_getState().money, 4);
   sellTrick(0);
   assert.equal(_getState().money, 5);
 });
 
-test("tarot pack: pick goes to a slot instead of being used, blocked when full", () => {
+test("decree pack: pick goes to a slot instead of being used, blocked when full", () => {
   const { buyPack, pickFromPack } = require("../game.js");
   const state = freshRoundState();
   state.phase = "shop";
   state.money = 10;
-  state.tarotPackAvailable = true;
-  buyPack("tarot");
+  state.decreePackAvailable = true;
+  buyPack("decree");
   assert.equal(_getState().money, 6);
-  assert.equal(_getState().tarotPackAvailable, false);
+  assert.equal(_getState().decreePackAvailable, false);
   assert.equal(_getState().pack.length, 3);
-  assert.ok(_getState().pack.every(t => t.tarot));
-  state.tricks.push(tarotById("tarot_star"), tarotById("tarot_moon")); // full
+  assert.ok(_getState().pack.every(t => t.decree));
+  state.tricks.push(decreeById("decree_oath_diamonds"), decreeById("decree_oath_clubs")); // full
   pickFromPack(_getState().pack[0].id);
   assert.ok(_getState().pack, "pack stays open when slots are full");
   state.tricks.pop();
@@ -1027,11 +1028,11 @@ test("tarot pack: pick goes to a slot instead of being used, blocked when full",
   assert.equal(_getState().pack, null);
 });
 
-test("finishRoundWin stocks the shop with tarot offers and a tarot pack", () => {
+test("finishRoundWin stocks the shop with decree offers and a decree pack", () => {
   const state = freshRoundState();
   finishRoundWin();
-  assert.equal(_getState().shopTarots.length, 2);
-  assert.equal(_getState().tarotPackAvailable, true);
+  assert.equal(_getState().shopDecrees.length, 2);
+  assert.equal(_getState().decreePackAvailable, true);
   assert.ok(state);
 });
 
@@ -1073,25 +1074,25 @@ test("sellJester ignores unknown ids and calls outside the shop", () => {
   assert.equal(state.money, 20);
 });
 
-test("buyTrick and buyTarot ignore unknown ids, unaffordable offers and calls outside the shop", () => {
-  const { buyTrick, buyTarot, TRICK_POOL, TAROT_POOL } = require("../game.js");
-  const state = shopState({ shopTricks: [TRICK_POOL[0]], shopTarots: [TAROT_POOL[0]] });
+test("buyTrick and buyDecree ignore unknown ids, unaffordable offers and calls outside the shop", () => {
+  const { buyTrick, buyDecree, TRICK_POOL, DECREE_POOL } = require("../game.js");
+  const state = shopState({ shopTricks: [TRICK_POOL[0]], shopDecrees: [DECREE_POOL[0]] });
   buyTrick("nope");
-  buyTarot("nope");
+  buyDecree("nope");
   state.money = 0;
   buyTrick(TRICK_POOL[0].id);
-  buyTarot(TAROT_POOL[0].id);
+  buyDecree(DECREE_POOL[0].id);
   state.money = 20;
   state.phase = "playing";
   buyTrick(TRICK_POOL[0].id);
-  buyTarot(TAROT_POOL[0].id);
+  buyDecree(DECREE_POOL[0].id);
   assert.equal(state.tricks.length, 0);
   assert.equal(state.money, 20);
 });
 
 test("sellTrick ignores calls outside the shop and bad indexes", () => {
   const { sellTrick } = require("../game.js");
-  const state = shopState({ tricks: [tarotById("tarot_star")] });
+  const state = shopState({ tricks: [decreeById("decree_oath_diamonds")] });
   sellTrick(5);
   state.phase = "playing";
   sellTrick(0);
@@ -1110,9 +1111,9 @@ test("useTrick ignores a bad index and does nothing while a pack is open", () =>
   assert.equal(state.handLevels[TRICK_POOL[0].hand], undefined);
 });
 
-test("a tarot can't be used from the shop, with a pack open, or in the debug shop", () => {
+test("a decree can't be used from the shop, with a pack open, or in the debug shop", () => {
   const { useTrick } = require("../game.js");
-  const state = holdTarot("tarot_sun", 1);
+  const state = holdDecree("decree_oath_hearts", 1);
   state.debugShop = true;
   useTrick(0);
   state.debugShop = false;
@@ -1124,8 +1125,8 @@ test("a tarot can't be used from the shop, with a pack open, or in the debug sho
 
 test("buyPack ignores calls outside the shop, a sold-out pack, an open pack and no money", () => {
   const { buyPack } = require("../game.js");
-  const state = shopState({ packAvailable: true, tarotPackAvailable: false });
-  buyPack("tarot"); // tarot pack already bought
+  const state = shopState({ packAvailable: true, decreePackAvailable: false });
+  buyPack("decree"); // decree pack already bought
   state.money = 1;
   buyPack(); // can't afford
   state.money = 20;
@@ -1185,4 +1186,66 @@ test("moveJester keeps each jester's per-run data (sellBonus) with it", () => {
   moveJester(a.id, 1);
   assert.equal(state.jesters[1].id, a.id);
   assert.equal(state.jesters[1].sellBonus, 3);
+});
+
+// --- Court bosses ---------------------------------------------------------------
+
+test("The Tax Collector takes $1 per hand played, but never from a broke player", () => {
+  const state = freshRoundState();
+  state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "tax");
+  state.target = Number.MAX_SAFE_INTEGER;
+  state.money = 5;
+  toggleCard(state.hand[0].id);
+  playHand();
+  assert.equal(_getState().money, 4);
+  state.money = 0;
+  toggleCard(state.hand[0].id);
+  playHand();
+  assert.equal(_getState().money, 0);
+});
+
+test("The Poet Laureate refuses a repeated hand type this round", () => {
+  const state = freshRoundState();
+  state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "laureate");
+  state.target = Number.MAX_SAFE_INTEGER;
+  state.hand = [{ suit: "♠", rank: "2", id: "a" }, { suit: "♥", rank: "9", id: "b" }];
+  toggleCard("a");
+  playHand();
+  assert.equal(_getState().handsLeft, 3);
+  toggleCard("b");
+  playHand(); // another High Card: blocked
+  assert.equal(_getState().handsLeft, 3);
+  assert.ok(_getState().hand.some(c => c.id === "b"), "the blocked card stays in hand");
+});
+
+test("The Bishop zeroes the chip value of played face cards", () => {
+  const state = freshRoundState();
+  state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "bishop");
+  const { scoreSelection } = require("../game.js");
+  const king = scoreSelection([{ suit: "♠", rank: "K", id: "k" }]);
+  const five = scoreSelection([{ suit: "♠", rank: "5", id: "f" }]);
+  assert.equal(king.chips, 5); // High Card base only
+  assert.equal(five.chips, 10);
+});
+
+test("The Spymaster silences the leftmost jester", () => {
+  const state = freshRoundState();
+  const { scoreSelection } = require("../game.js");
+  const jolly = JESTER_POOL.find(j => j.id === "greedy_jester" || j.id === "base_jester");
+  state.jesters = [{ ...jolly, sellBonus: 0 }];
+  const card = [{ suit: "♦", rank: "5", id: "d" }];
+  const before = scoreSelection(card).total;
+  state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "spymaster");
+  const after = scoreSelection(card).total;
+  assert.ok(before > after);
+});
+
+test("the last round of the last ante is always The King", () => {
+  _setState(newState());
+  _getState().ante = 8;
+  _getState().round = 3;
+  startRound();
+  assert.equal(_getState().bossModifier, KING_BOSS);
+  assert.equal(_getState().handsLeft, 3);
+  assert.ok(!BOSS_MODIFIERS.includes(KING_BOSS));
 });

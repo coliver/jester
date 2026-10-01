@@ -419,7 +419,7 @@ test("Blueprint does nothing in the rightmost slot or next to another copier", (
   assert.equal(scoreSelection(selected).mult, 1);
 });
 
-test("Ringmaster gives +4 Mult per different rarity among owned Jesters", () => {
+test("Master of Revels gives +4 Mult per different rarity among owned Jesters", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   _setState(baseState({ jesters: [jesterById("ringmaster")], hand: selected }));
   assert.equal(scoreSelection(selected).mult, 1 + 4); // Uncommon only

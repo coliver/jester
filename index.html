@@ -19,10 +19,12 @@
       <div class="hud-block">
         <span class="hud-label">Ante</span>
         <span id="ante-val" class="hud-val">1</span>
+        <span id="venue-val" class="hud-sub"></span>
       </div>
       <div class="hud-block">
         <span class="hud-label">Round</span>
         <span id="round-val" class="hud-val">1</span>
+        <span id="audience-val" class="hud-sub"></span>
       </div>
       <div class="hud-block wide">
         <span class="hud-label">Score / Target</span>
@@ -45,11 +47,22 @@
     <section id="preview" aria-label="Current hand preview">
       <span id="preview-name">&nbsp;</span>
     </section>
+    <section id="amusement" data-mood="bored" aria-label="The King's amusement">
+      <img id="amusement-art" alt="" hidden>
+      <div class="amusement-body">
+        <span id="amusement-label"></span>
+        <div id="amusement-bar"><div id="amusement-fill"></div></div>
+      </div>
+    </section>
     <div id="side-tools"></div>
     </div>
 
     <section id="boss-banner" class="hidden" aria-live="polite">
-      <span id="boss-name"></span> — <span id="boss-desc"></span>
+      <img id="boss-art" alt="" hidden>
+      <span class="boss-text">
+        <span><span id="boss-name"></span> — <span id="boss-desc"></span></span>
+        <span id="boss-quip"></span>
+      </span>
     </section>
 
     <div id="top-row">
@@ -58,7 +71,7 @@
         <div id="jester-count" class="slot-count"></div>
       </div>
       <div id="trick-group" class="slot-group">
-        <section id="trick-row" aria-label="Mask and tarot cards"></section>
+        <section id="trick-row" aria-label="Mask and decree cards"></section>
         <div id="trick-count" class="slot-count"></div>
       </div>
     </div>
@@ -130,7 +143,7 @@
               <div id="shop-prop" class="shelf-row"></div>
             </section>
             <section class="shelf" id="tricks-shelf">
-              <h3>Masks and tarots</h3>
+              <h3>Masks and decrees</h3>
               <div id="shop-tricks" class="shelf-row"></div>
             </section>
             <section class="shelf" id="packs-shelf">

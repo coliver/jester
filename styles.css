@@ -9,6 +9,14 @@
   --muted: #b8a8cc;
   --card-w: 74px;
   --card-h: 104px;
+  --ink-red: #8a2323;
+  --ink-black: #1f1b24;
+  --gilt: #9a7424;
+  --stock: radial-gradient(ellipse at 28% 18%, rgba(255, 250, 232, 0.6), transparent 62%),
+    radial-gradient(ellipse at 82% 92%, rgba(120, 78, 28, 0.25), transparent 58%),
+    repeating-linear-gradient(0deg, rgba(110, 80, 40, 0.04) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, #eadcb8, #d8c493);
+  --card-font: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
 }
 
 * { box-sizing: border-box; }
@@ -204,10 +212,13 @@ body {
 .deck-card {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #4a2f68, #2a1a38);
-  border: 1px solid var(--accent-2);
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+  background:
+    repeating-linear-gradient(45deg, rgba(212, 170, 70, 0.4) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(212, 170, 70, 0.4) 0 1px, transparent 1px 5px),
+    linear-gradient(135deg, #5a1a24, #2e0c14);
+  border: 1px solid #c9a24a;
+  border-radius: 3px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 0 0 3px #2e0c14, inset 0 0 0 4px rgba(201, 162, 74, 0.7);
 }
 
 .deck-card:nth-child(2) { transform: translate(2px, -2px); }
@@ -246,8 +257,8 @@ body {
 .card {
   width: var(--card-w);
   height: var(--card-h);
-  background: #fdfaf3;
-  border-radius: 8px;
+  background: var(--stock);
+  border-radius: 3px;
   padding: 6px;
   cursor: pointer;
   user-select: none;
@@ -255,6 +266,7 @@ body {
   transition: transform 0.12s ease, translate 0.15s ease, box-shadow 0.12s ease;
   box-shadow: 0 3px 6px rgba(0,0,0,0.4);
   font-weight: 700;
+  font-family: var(--card-font);
 }
 
 .card:hover, .card:focus-visible { transform: translateY(-4px); }
@@ -289,8 +301,8 @@ body {
 .card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
 .card .suit-mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--card-w) * 0.46); }
 
-.card.red { color: var(--red); }
-.card.black { color: var(--black); }
+.card.red { color: var(--ink-red); }
+.card.black { color: var(--ink-black); }
 
 #controls {
   display: flex;
@@ -394,7 +406,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   body { padding: 10px; }
   #app { gap: 10px; }
-  .card { padding: 3px; flex: 0 0 auto; border-radius: 6px; }
+  .card { padding: 3px; flex: 0 0 auto; border-radius: 3px; }
   #hud { padding: 8px 12px; gap: 6px 10px; }
   /* No overflow-x scroll: cards are touch-action:none (draggable), so a scrolling row couldn't be swiped. Slots shrink and cards overlap instead. */
   #jester-row { flex-wrap: nowrap; min-height: 0; padding: 6px; gap: 6px; }
@@ -468,16 +480,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 .mini-card {
-  background: #fdfaf3;
-  border-radius: 4px;
+  background: var(--stock);
+  border-radius: 2px;
   padding: 6px 0;
   font-size: 13px;
   font-weight: 700;
+  font-family: var(--card-font);
   border: 2px solid transparent;
 }
 
-.mini-card.red { color: var(--red); }
-.mini-card.black { color: var(--black); }
+.mini-card.red { color: var(--ink-red); }
+.mini-card.black { color: var(--ink-black); }
 .mini-card.hand { border-color: var(--accent-2); }
 .mini-card.played { opacity: 0.35; border-color: var(--accent); }
 .mini-card.discarded { opacity: 0.35; border-color: var(--red); }
@@ -666,9 +679,9 @@ body {
   60%, 100% { transform: rotate(-90deg); }
 }
 
-/* Tarot cards and card enhancements */
-.trick.tarot { background: linear-gradient(160deg, #2d4a5e, #3a2a66); border-color: var(--accent-2); }
-.trick.tarot .trick-glyph, .trick.tarot .trick-name { color: var(--accent-2); }
+/* Decree cards and card enhancements */
+.trick.decree { background: linear-gradient(160deg, #2d4a5e, #3a2a66); border-color: var(--accent-2); }
+.trick.decree .trick-glyph, .trick.decree .trick-name { color: var(--accent-2); }
 
 .card { position: relative; }
 .card .enh-badge {
@@ -683,17 +696,17 @@ body {
   color: var(--accent);
   pointer-events: none;
 }
-.card.enh-bonus { background: linear-gradient(160deg, #fdfaf3, #cfe3ff); }
-.card.enh-mult { background: linear-gradient(160deg, #fdfaf3, #ffd0d0); }
-.card.enh-wild { background: linear-gradient(135deg, #fdfaf3 30%, #ffe3b0 55%, #cdeccf 80%); }
-.card.enh-glass { background: linear-gradient(160deg, #f4fbff, #bfe9f5); opacity: 0.92; }
-.mini-card.enh-bonus { background: #cfe3ff; }
-.mini-card.enh-mult { background: #ffd0d0; }
-.mini-card.enh-wild { background: #ffe3b0; }
-.mini-card.enh-glass { background: #bfe9f5; }
-.tarot-art { display: block; width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 6px; object-fit: cover; }
-.tarot-art[hidden] { display: none; }
-#inspect .tarot-art { display: none; }
+.card.enh-bonus { background: linear-gradient(160deg, rgba(110, 150, 220, 0.38), rgba(110, 150, 220, 0.12)), var(--stock); }
+.card.enh-mult { background: linear-gradient(160deg, rgba(190, 70, 70, 0.34), rgba(190, 70, 70, 0.1)), var(--stock); }
+.card.enh-wild { background: linear-gradient(135deg, rgba(220, 170, 70, 0.3) 30%, rgba(120, 180, 130, 0.3) 80%), var(--stock); }
+.card.enh-glass { background: linear-gradient(160deg, rgba(150, 215, 230, 0.45), rgba(150, 215, 230, 0.15)), var(--stock); opacity: 0.92; }
+.mini-card.enh-bonus { background: linear-gradient(rgba(110, 150, 220, 0.38), rgba(110, 150, 220, 0.38)), var(--stock); }
+.mini-card.enh-mult { background: linear-gradient(rgba(190, 70, 70, 0.34), rgba(190, 70, 70, 0.34)), var(--stock); }
+.mini-card.enh-wild { background: linear-gradient(rgba(220, 170, 70, 0.3), rgba(120, 180, 130, 0.3)), var(--stock); }
+.mini-card.enh-glass { background: linear-gradient(rgba(150, 215, 230, 0.45), rgba(150, 215, 230, 0.45)), var(--stock); }
+.card-art { display: block; width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 6px; object-fit: cover; }
+.card-art[hidden] { display: none; }
+#inspect .card-art { display: none; }
 
 #jester-row .jester, #owned-jesters .jester { cursor: grab; touch-action: none; }
 .jester { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -852,7 +865,7 @@ body::before {
   text-align: center;
 }
 .shop-item .jester-art { aspect-ratio: 5 / 4; }
-.shop-item .tarot-art { width: 56px; height: 56px; }
+.shop-item .card-art { width: 56px; height: 56px; }
 .shop-item .jester-name { color: var(--accent-2); font-weight: 700; }
 .shop-item .price { color: var(--accent); font-weight: 700; font-size: 14px; margin: 6px 0; }
 .shop-item.unaffordable .price { color: var(--red); }
@@ -899,3 +912,87 @@ body::before {
 #overlay.end #overlay-title { font-size: 34px; }
 #overlay.end #overlay-sub { justify-content: center; font-size: 15px; }
 #overlay.end #overlay-body { display: none; }
+
+/* Antique card stock: aged ivory paper, a ruled inner frame, serif indices and
+   muted ink, with court cards drawn as a split panel like old woodblock decks.
+   The frame and foxing are pseudo-elements so they never fight the card's
+   shadows and transforms. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(70, 40, 15, 0.55);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 14px rgba(110, 70, 25, 0.38);
+  pointer-events: none;
+}
+.card .rank-top { top: calc(var(--card-w) * 0.08); left: calc(var(--card-w) * 0.09); }
+.card .rank-bottom { bottom: calc(var(--card-w) * 0.08); right: calc(var(--card-w) * 0.09); }
+.card .pip, .card .suit-mid { text-shadow: 0 0 0.6px currentColor; }
+.card .court-panel {
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  top: 18%;
+  bottom: 18%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(70, 40, 15, 0.6);
+  outline: 1px solid rgba(70, 40, 15, 0.3);
+  outline-offset: 2px;
+  background: linear-gradient(135deg, rgba(154, 116, 36, 0.2) 50%, rgba(138, 35, 35, 0.14) 50%);
+}
+.card .court-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: calc(var(--card-w) * 0.2);
+  line-height: 1;
+}
+.card .court-half:first-child { border-bottom: 1px solid rgba(70, 40, 15, 0.45); }
+.card .court-half:last-child { transform: rotate(180deg); }
+.card .court-crown { color: var(--gilt); }
+
+.hud-sub { display: block; font-size: 10px; color: var(--muted); font-style: italic; white-space: nowrap; }
+#boss-banner { display: flex; align-items: center; justify-content: center; gap: 10px; }
+#boss-banner.hidden { display: none; }
+#boss-art { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; flex: none; border: 1px solid #ff5d6c; }
+#boss-art[hidden] { display: none; }
+.boss-text { display: flex; flex-direction: column; text-align: left; }
+#boss-quip { font-size: 11px; font-weight: 400; font-style: italic; opacity: 0.85; }
+
+#amusement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+#amusement-art { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; flex: none; border: 1px solid var(--gilt); }
+#amusement-art[hidden] { display: none; }
+.amusement-body { flex: 1; display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-style: italic; color: var(--muted); }
+#amusement-bar { height: 8px; border-radius: 4px; background: rgba(0,0,0,0.4); overflow: hidden; }
+#amusement-fill { height: 100%; width: 0; background: #8a2323; transition: width 0.4s ease, background 0.4s ease; }
+#amusement[data-mood="amused"] #amusement-fill { background: #c99a2e; }
+#amusement[data-mood="delighted"] #amusement-fill { background: var(--accent); }
+#amusement[data-mood="displeased"] #amusement-fill { background: #5a1a24; }
+#amusement[data-mood="displeased"] #amusement-label { color: var(--red); }
+
+/* The landscape side column has height 0, so flex items there can shrink; keep
+   the hand name at its full height so it can't be painted over. */
+#preview { flex: none; height: 36px; min-height: 0; overflow: hidden; } /* fixed box: title + poker name + "already played" fit, and nothing below shifts when a hand is picked */
+#preview-name { font-size: 1.1em; }
+#amusement { flex: none; height: 74px; overflow: hidden; } /* fixed so a longer mood label can't push the panels below it */
+#amusement-label { line-height: 1.2; min-height: 2.4em; }
+.preview-note { display: block; font-family: inherit; font-style: normal; font-size: 0.6em; font-weight: 400; color: var(--muted); letter-spacing: 0.02em; }
