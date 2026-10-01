@@ -24,7 +24,7 @@ global.Sound = new Proxy(
   { get: (target, prop) => (prop in target ? target[prop] : () => {}) },
 );
 
-const { test, before } = require("node:test");
+const { test, before, afterEach } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -36,6 +36,11 @@ global.window = dom.window;
 global.document = dom.window.document;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// A drag release leaves a one-shot listener on the card to swallow the click that follows it,
+// removed on the next tick. Cards are reused between tests, so let that tick pass after each one;
+// otherwise a later test's first click on the same card is swallowed.
+afterEach(() => new Promise((resolve) => setTimeout(resolve, 2)));
+
 const DEAL_ANIMATION_MS = 450;
 const PLAY_WAIT_MS = 430; // Play Hand shows the cards in the play area for 380ms first // startRound()'s real deal delay is 420ms
 
@@ -265,6 +270,7 @@ test("running out of hands opens the Off With Your Head overlay; Restart resets 
   assert.equal(gameModule._getState().ante, 1);
   assert.equal(gameModule._getState().handsLeft, 4);
   assert.ok(document.getElementById("overlay").classList.contains("hidden"));
+  await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
 });
 
 // --- win overlay -------------------------------------------------------------
@@ -891,6 +897,112 @@ test("reordering the hand still works with cards parked in the play area", () =>
   dragTo(cards[0], 50, 250, last * 100 + 50, 250);
   assert.deepEqual([...document.querySelectorAll("#hand-row .card")].map(label), [...before.slice(1), before[0]]);
   assert.equal(document.querySelector("#play-area .card").dataset.cardId, parked);
+});
+
+// Parks three cards in the play area and gives them fake 100px-wide slots, left to right.
+function parkThree() {
+  dealtState();
+  fakePlayArea();
+  for (let i = 0; i < 3; i++) dragTo(document.querySelector("#hand-row .card"), 300, 300, 250, 50);
+  const slots = () => [...document.querySelectorAll("#play-area .card")];
+  // Re-run after a reorder: the rects belong to the elements, not to the slots.
+  slots.layout = () => slots().forEach((el, i) => {
+    el.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 100, top: 0, bottom: 50 });
+  });
+  slots.layout();
+  return slots;
+}
+
+test("dragging a card within the play area reorders it, and the hand scores in that order", () => {
+  const slots = parkThree();
+  const ids = () => slots().map((el) => el.dataset.cardId);
+  const before = ids();
+  assert.equal(before.length, 3);
+
+  dragTo(slots()[0], 50, 25, 250, 25); // first card dropped on the third slot
+  assert.deepEqual(ids(), [before[1], before[2], before[0]]);
+  assert.equal(gameModule._getState().sortMode, "custom");
+  assert.equal(gameModule._getState().staged.size, 3); // still parked, still selected
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 5);
+
+  // Play Hand takes the selected cards in hand order, so that order has to follow the play area.
+  const st = gameModule._getState();
+  assert.deepEqual(st.hand.filter((c) => st.staged.has(c.id)).map((c) => String(c.id)), ids());
+
+  slots.layout();
+  dragTo(slots()[2], 250, 25, 50, 25); // and back to the front
+  assert.deepEqual(ids(), before);
+});
+
+test("dropping a hand card into the play area puts it where it was released", () => {
+  const slots = parkThree();
+  const before = slots().map((el) => el.dataset.cardId);
+  const card = document.querySelector("#hand-row .card");
+  const id = card.dataset.cardId;
+  card.getBoundingClientRect = () => ({ left: 120, right: 220, top: 0, bottom: 50 }); // centre 170: between slots 1 and 2
+  dragTo(card, 300, 300, 250, 50);
+  assert.deepEqual([...document.querySelectorAll("#play-area .card")].map((el) => el.dataset.cardId),
+    [before[0], before[1], id, before[2]]);
+});
+
+// Two quick clicks on the same card. Dispatched with a click's usual detail counter, plus the
+// dblclick a browser sends, which the game ignores.
+function doubleClick(el) {
+  const fire = (type, detail) => el.dispatchEvent(new dom.window.MouseEvent(type, { bubbles: true, cancelable: true, detail }));
+  fire("click", 1);
+  fire("click", 2);
+  fire("dblclick", 2);
+}
+
+test("double clicking a hand card parks it at the right end of the play area", () => {
+  dealtState();
+  const [a, b] = document.querySelectorAll("#hand-row .card");
+  doubleClick(a);
+  doubleClick(b);
+  const st = gameModule._getState();
+  assert.deepEqual([...document.querySelectorAll("#play-area .card")].map((el) => el.dataset.cardId),
+    [a.dataset.cardId, b.dataset.cardId]);
+  assert.equal(st.selected.size, 2);
+  assert.equal(st.staged.size, 2);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 6);
+});
+
+test("double clicking a card that was already selected still parks it", () => {
+  dealtState();
+  const card = document.querySelector("#hand-row .card");
+  card.click(); // selected, still in the hand
+  doubleClick(card);
+  assert.equal(gameModule._getState().staged.size, 1);
+  assert.equal(gameModule._getState().selected.size, 1);
+});
+
+test("two quick clicks on neighbouring cards select both; double clicking one then parks only that one", () => {
+  dealtState();
+  const [a, b] = document.querySelectorAll("#hand-row .card");
+  const click = (el, detail) => el.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true, detail }));
+  click(a, 1);
+  click(b, 2); // a browser counts this as a double click, though it landed on another card
+  let st = gameModule._getState();
+  assert.deepEqual([...st.selected].sort(), [a.dataset.cardId, b.dataset.cardId].sort());
+  assert.equal(st.staged.size, 0);
+
+  doubleClick(a);
+  st = gameModule._getState();
+  assert.deepEqual([...st.staged], [a.dataset.cardId]);
+  assert.ok(st.selected.has(b.dataset.cardId)); // the neighbour stays selected, in the hand
+  assert.deepEqual([...document.querySelectorAll("#play-area .card")].map((el) => el.dataset.cardId), [a.dataset.cardId]);
+});
+
+test("double clicking a card in the play area sends it back instead of re-parking it", () => {
+  dealtState();
+  const card = document.querySelector("#hand-row .card");
+  doubleClick(card);
+  assert.equal(gameModule._getState().staged.size, 1);
+  doubleClick(document.querySelector("#play-area .card"));
+  const st = gameModule._getState();
+  assert.equal(st.staged.size, 0);
+  assert.equal(st.selected.size, 0);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
 });
 
 test("stageCard and unstageCard refuse outside the playing phase or for unknown cards", () => {

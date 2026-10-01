@@ -131,11 +131,12 @@ test("scoreSelection with no jesters matches base chips/mult", () => {
   const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   _setState(baseState({ hand: selected }));
   const result = scoreSelection(selected);
-  // Pair: base 10 chips, 2 mult. Card chips: 2+2+9+10+10 = 33. Total chips = 43.
-  assert.equal(result.chips, 43);
+  // Pair: base 10 chips, 2 mult. Only the pair scores: 2+2 = 4. The 9, J and K
+  // are kickers and add nothing. Total chips = 14.
+  assert.equal(result.chips, 14);
   assert.equal(result.mult, 2);
   assert.equal(result.multMul, 1);
-  assert.equal(result.total, 86);
+  assert.equal(result.total, 28);
 });
 
 test("scoreSelection stacks additive and multiplicative jesters", () => {
@@ -146,12 +147,13 @@ test("scoreSelection stacks additive and multiplicative jesters", () => {
     discardsLeft: 1,
   }));
   const result = scoreSelection(selected);
-  // Base: 10 chips + 33 card chips = 43, +30 (banner, 1 discard left) = 73 chips.
-  // Mult: 2 base +4 (base_jester) = 6, x2 (photograph, a face card was played) = 12.
-  assert.equal(result.chips, 73);
+  // Base: 10 chips + 4 pair chips = 14, +30 (banner, 1 discard left) = 44 chips.
+  // Mult: 2 base +4 (base_jester) = 6. Photograph needs a scoring face card, and
+  // the J and K are only kickers here, so it stays at x1.
+  assert.equal(result.chips, 44);
   assert.equal(result.mult, 6);
-  assert.equal(result.multMul, 2);
-  assert.equal(result.total, Math.floor(73 * 6 * 2));
+  assert.equal(result.multMul, 1);
+  assert.equal(result.total, 44 * 6);
 });
 
 test("conditional jesters only fire when their condition holds", () => {
@@ -161,7 +163,7 @@ test("conditional jesters only fire when their condition holds", () => {
   const highCardResult = scoreSelection(highCardSelected);
   // High card: neither jolly_jester (+8 Mult on a Pair) nor devious_jester
   // (+100 Chips on a Straight) should fire.
-  assert.equal(highCardResult.chips, 5 + 2 + 5 + 9 + 10 + 10);
+  assert.equal(highCardResult.chips, 5 + 10); // only the K scores
   assert.equal(highCardResult.mult, 1);
 
   const straightSelected = [card("10", "♠"), card("J", "♥"), card("Q", "♦"), card("K", "♣"), card("A", "♠")];
@@ -205,13 +207,13 @@ test("scholar rewards each played Ace with +20 chips and +4 mult", () => {
   const selected = [card("A", "♠"), card("A", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   _setState(baseState({ jesters: [jesterById("scholar")], hand: selected }));
   const result = scoreSelection(selected);
-  // Pair of Aces: base 10 chips/2 mult. Card chips: 11+11+9+10+10=51. +2 Aces*20=40 chips.
-  assert.equal(result.chips, 10 + 51 + 40);
+  // Pair of Aces: base 10 chips/2 mult. Card chips: 11+11=22 (kickers don't score). +2 Aces*20=40 chips.
+  assert.equal(result.chips, 10 + 22 + 40);
   assert.equal(result.mult, 2 + 2 * 4);
 });
 
-test("business_card pays $2 per played face card, only when its coin flip hits", () => {
-  const selected = [card("J", "♠"), card("Q", "♥"), card("9", "♦")]; // 2 face cards
+test("business_card pays $2 per scoring face card, only when its coin flip hits", () => {
+  const selected = [card("J", "♠"), card("J", "♥"), card("9", "♦")]; // pair of face cards, 9 is a kicker
   _setState(baseState({ jesters: [jesterById("business_card")], hand: selected }));
 
   assert.equal(withMockedRandom(0, () => scoreSelection(selected)).money, 4); // always hits
@@ -228,12 +230,13 @@ test("reserved_parking pays $1 per held face card, not played ones", () => {
 });
 
 test("walkie_talkie rewards each played 10 or 4 with +10 chips and +4 mult", () => {
-  const selected = [card("10", "♠"), card("4", "♥"), card("9", "♦")];
+  const selected = [card("10", "♠"), card("10", "♥"), card("4", "♦"), card("9", "♦")];
   _setState(baseState({ jesters: [jesterById("walkie_talkie")], hand: selected }));
   const result = scoreSelection(selected);
-  // High Card: base 5 chips/1 mult. Card chips: 10+4+9=23. +2 matches*10=20 chips.
-  assert.equal(result.chips, 5 + 23 + 20);
-  assert.equal(result.mult, 1 + 2 * 4);
+  // Pair of 10s: base 10 chips/2 mult. Card chips: 10+10=20. +2 matches*10=20 chips.
+  // The kicker 4 is not scored, so it doesn't trigger.
+  assert.equal(result.chips, 10 + 20 + 20);
+  assert.equal(result.mult, 2 + 2 * 4);
 });
 
 // --- ported Balatro jesters: new ctx fields (heldHand, money, rarity) ------
@@ -244,18 +247,18 @@ test("held-in-hand jesters see cards not in the played selection", () => {
   const jesters = [jesterById("raised_fist"), jesterById("baron")];
   _setState(baseState({ jesters, hand: [...selected, ...heldOnly] }));
   const result = scoreSelection(selected);
-  // High card: base 5 chips + (2+5+9+10+11) card chips = 42 chips, base mult 1.
+  // High card: base 5 chips + the Ace (11) = 16 chips, base mult 1.
   // raised_fist: lowest-ranked held card is the 3 -> +6 mult (double its rank).
   // baron: one held King -> X1.5 mult. Neither reads `selected`, so playing
   // different cards wouldn't change either effect.
-  assert.equal(result.chips, 42);
+  assert.equal(result.chips, 16);
   assert.equal(result.mult, 7);
   assert.equal(result.multMul, 1.5);
-  assert.equal(result.total, 441);
+  assert.equal(result.total, Math.floor(16 * 7 * 1.5));
 });
 
 test("money-granting jesters add to result.money, not chips/mult", () => {
-  const selected = [card("J", "♠"), card("Q", "♥"), card("2", "♦"), card("5", "♣"), card("7", "♠")];
+  const selected = [card("J", "♠"), card("J", "♥"), card("2", "♦"), card("5", "♣"), card("7", "♠")];
   const heldOnly = [card("K", "♦"), card("K", "♠")];
   const jesters = [jesterById("business_card"), jesterById("reserved_parking")];
   _setState(baseState({ jesters, hand: [...selected, ...heldOnly] }));
@@ -263,10 +266,10 @@ test("money-granting jesters add to result.money, not chips/mult", () => {
   Math.random = () => 0; // force every "1 in 2 chance" to succeed
   try {
     const result = scoreSelection(selected);
-    // business_card: $2 per played face card (J, Q) = $4.
+    // business_card: $2 per scoring face card (J, J) = $4.
     // reserved_parking: $1 per held face card (K, K) = $2.
     assert.equal(result.money, 6);
-    assert.equal(result.mult, 1); // High Card — neither jester touches mult
+    assert.equal(result.mult, 2); // Pair — neither jester touches mult
   } finally {
     Math.random = origRandom;
   }
@@ -307,11 +310,11 @@ test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
 // --- plumbing (see game.js) beyond the plain per-hand apply(ctx) hook ------
 
 test("Hack doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {
-  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("K", "♣")];
+  const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("9", "♣"), card("K", "♣")];
   _setState(baseState({ jesters: [jesterById("hack")], hand: selected }));
   const result = scoreSelection(selected);
-  // High Card: base 5 chips + card chips (2+5+9+10=26) = 31, +2nd copy of the 2 and 5 (2+5=7).
-  assert.equal(result.chips, 31 + 7);
+  // Two Pair: base 20 chips + scoring cards (2+2+9+9=22) = 42, +2nd copy of the two 2s (4).
+  assert.equal(result.chips, 42 + 4);
 });
 
 test("Cavendish gives a flat X3 Mult", () => {
@@ -324,15 +327,16 @@ test("Pareidolia makes every card count as a face card for other jesters", () =>
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦")]; // no real face cards
   _setState(baseState({ jesters: [jesterById("pareidolia"), jesterById("scary_face")], hand: selected }));
   const result = scoreSelection(selected);
-  // Scary Face: +30 Chips per face card; Pareidolia makes all 3 played cards count.
-  assert.equal(result.chips, 5 + (2 + 5 + 9) + 30 * 3);
+  // Scary Face: +30 Chips per scoring face card; Pareidolia makes every card a face card,
+  // but only the 9 scores in a High Card.
+  assert.equal(result.chips, 5 + 9 + 30);
 });
 
 test("without Pareidolia, Scary Face only counts real face cards", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦")];
   _setState(baseState({ jesters: [jesterById("scary_face")], hand: selected }));
   const result = scoreSelection(selected);
-  assert.equal(result.chips, 5 + (2 + 5 + 9));
+  assert.equal(result.chips, 5 + 9); // High Card: only the 9 scores
 });
 
 test("evaluateHand: a 4-card flush only counts with Four Fingers owned", () => {
@@ -474,16 +478,15 @@ test("scoreSelection lists each played card, then each jester that fires, left t
     hand: selected,
   }));
   const r = scoreSelection(selected);
-  // Zany Jester needs three of a kind, so it stays out of the list.
+  // The 9 is a kicker, so it isn't listed. Zany Jester needs three of a kind, so it stays out too.
   assert.deepEqual(r.steps.map(s => `${s.type}:${s.id}`), [
-    "card:A♠", "card:A♥", "card:9♦", "jester:jolly_jester", "jester:sly_jester",
+    "card:A♠", "card:A♥", "jester:jolly_jester", "jester:sly_jester",
   ]);
   assert.equal(r.steps[0].chips, 11);
-  assert.equal(r.steps[2].chips, 9);
-  assert.equal(r.steps[3].multAdd, 8);
-  assert.equal(r.steps[4].chips, 50);
-  assert.equal(r.steps[3].index, 0);
-  assert.equal(r.steps[4].index, 2);
+  assert.equal(r.steps[2].multAdd, 8);
+  assert.equal(r.steps[3].chips, 50);
+  assert.equal(r.steps[2].index, 0);
+  assert.equal(r.steps[3].index, 2);
 });
 
 test("the steps add up to the totals", () => {
@@ -516,4 +519,56 @@ test("a silenced jester and a debuffed card show up as steps that add nothing", 
   assert.equal(r.steps[1].debuffed, false);
   assert.equal(r.steps[2].silenced, true);
   assert.equal(r.mult, r.hand.baseMult); // Silenced: the +4 never lands
+});
+
+test("kickers add no chips and don't trigger per-card jesters", () => {
+  const selected = [card("5", "♦"), card("5", "♣"), card("A", "♦"), card("K", "♦")];
+  _setState(baseState({
+    jesters: [jesterById("greedy_jester"), jesterById("scary_face"), jesterById("scholar")],
+    hand: selected,
+  }));
+  const r = scoreSelection(selected);
+  // Pair of 5s: only the two 5s score. The A and K are kickers, even though the
+  // A♦ and K♦ would otherwise feed Greedy, Scary Face and Scholar.
+  assert.equal(r.chips, 10 + 5 + 5);
+  assert.equal(r.mult, 2 + 3); // Greedy: just the one scoring diamond, the 5
+});
+
+test("every per-card jester ignores kickers", () => {
+  // Pair of 8s plus kickers chosen to match each jester's condition. Fibonacci
+  // (A, 2, 3, 5, 8), Even Steven (2, 4, 6, 8, 10), Odd Todd, Smiley Face, and the
+  // suit jesters all see the kickers; none of them may fire for them.
+  const played = [card("8", "♠"), card("8", "♣"), card("A", "♥"), card("3", "♦"), card("K", "♥")];
+  const expectKickersIgnored = (id, fires) => {
+    _setState(baseState({ jesters: [jesterById(id)], hand: played }));
+    const r = scoreSelection(played);
+    const jesterStep = r.steps.find(s => s.type === "jester");
+    assert.equal(jesterStep?.index === 0, fires, id);
+    return jesterStep;
+  };
+  // 8♠ 8♣ score: Fibonacci +8 each, Even Steven +4 each; nothing for A, 3 or K.
+  assert.equal(expectKickersIgnored("fibonacci", true).multAdd, 16);
+  assert.equal(expectKickersIgnored("even_steven", true).multAdd, 8);
+  // No odd rank, face card, heart, or diamond scores.
+  for (const id of ["odd_todd", "smiley_face", "lusty_jester", "greedy_jester"]) {
+    expectKickersIgnored(id, false);
+  }
+  // The 8♠ and 8♣ do score for the spade and club jesters, one suit card each.
+  assert.equal(expectKickersIgnored("wrathful_jester", true).multAdd, 3);
+  assert.equal(expectKickersIgnored("gluttonous_jester", true).multAdd, 3);
+});
+
+test("scoring cards come out left to right as laid out, whatever order that is", () => {
+  // The cards are passed in the order they sit on the field (the player can rearrange
+  // them). The pair of 5s is found before the lower pair, but they fire as laid out.
+  const selected = [card("3", "♠"), card("5", "♦"), card("K", "♣"), card("3", "♥"), card("5", "♠")];
+  _setState(baseState({ jesters: [], hand: selected }));
+  const r = scoreSelection(selected);
+  assert.equal(r.hand.name, "Two Pair");
+  assert.deepEqual(r.steps.map(s => s.id), ["3♠", "5♦", "3♥", "5♠"]);
+  assert.deepEqual(r.hand.scoringCards.map(c => c.id), ["3♠", "5♦", "3♥", "5♠"]);
+
+  const flush = [card("9", "♥"), card("2", "♥"), card("K", "♥"), card("4", "♥"), card("7", "♥")];
+  _setState(baseState({ jesters: [], hand: flush }));
+  assert.deepEqual(scoreSelection(flush).steps.map(s => s.id), flush.map(c => c.id));
 });

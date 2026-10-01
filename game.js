@@ -2,7 +2,7 @@
 
 const SUITS = ["♠", "♥", "♦", "♣"];
 const RED_SUITS = new Set(["♥", "♦"]);
-const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 const RANK_VALUE = { J: 11, Q: 12, K: 13, A: 14 };
 const FACE_RANKS = new Set(["J", "Q", "K"]);
 // Must match the hand-bob animation duration in styles.css.
@@ -120,8 +120,10 @@ const DECREE_POOL = [
   suitChanger("decree_oath_clubs", "Oath of Clubs", "♣", "Clubs"),
   suitChanger("decree_oath_hearts", "Oath of Hearts", "♥", "Hearts"),
   suitChanger("decree_oath_spades", "Oath of Spades", "♠", "Spades"),
-  { id: "decree_knighthood", name: "Knighthood", max: 2, desc: "Raise the rank of up to 2 selected cards by 1 (Ace wraps to 2).",
-    apply: card => { card.rank = RANKS[(RANKS.indexOf(card.rank) + 1) % RANKS.length]; } },
+  {
+    id: "decree_knighthood", name: "Knighthood", max: 2, desc: "Raise the rank of up to 2 selected cards by 1 (Ace wraps to 2).",
+    apply: card => { card.rank = RANKS[(RANKS.indexOf(card.rank) + 1) % RANKS.length]; }
+  },
   { id: "decree_headsman", name: "The Headsman", max: 2, desc: "Destroy up to 2 selected cards, thinning your deck.", destroy: true },
 ].map(t => ({ ...t, decree: true, price: DECREE_PRICE }));
 
@@ -131,7 +133,7 @@ function cardIsSuit(card, suit) {
 }
 
 const JESTER_POOL = [
-  // --- Ported from Balatro (jesters "Available from start" whose effects --
+  // --- jesters "Available from start" whose effects --
   // --- fit this engine's scoring hook without adding new state tracking) -
   {
     id: "base_jester", name: "Jester", price: 2, rarity: "Common",
@@ -141,22 +143,22 @@ const JESTER_POOL = [
   {
     id: "greedy_jester", name: "Greedy Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Diamond played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♦")).length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♦")).length }),
   },
   {
     id: "lusty_jester", name: "Lusty Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Heart played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♥")).length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♥")).length }),
   },
   {
     id: "wrathful_jester", name: "Wrathful Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Spade played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♠")).length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♠")).length }),
   },
   {
     id: "gluttonous_jester", name: "Gluttonous Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Club played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.selected.filter(c => cardIsSuit(c, "♣")).length }),
+    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♣")).length }),
   },
   {
     id: "jolly_jester", name: "Jolly Jester", price: 3, rarity: "Common",
@@ -245,12 +247,12 @@ const JESTER_POOL = [
   {
     id: "fibonacci", name: "Fibonacci", price: 8, rarity: "Uncommon",
     desc: "+8 Mult per played Ace, 2, 3, 5, or 8",
-    apply: (ctx) => ({ multAdd: 8 * ctx.selected.filter(c => FIBONACCI_RANKS.has(c.rank)).length }),
+    apply: (ctx) => ({ multAdd: 8 * ctx.scored.filter(c => FIBONACCI_RANKS.has(c.rank)).length }),
   },
   {
     id: "scary_face", name: "Scary Face", price: 4, rarity: "Common",
     desc: "+30 Chips per played face card",
-    apply: (ctx) => ({ chips: 30 * ctx.selected.filter(c => isFaceCard(c, ctx)).length }),
+    apply: (ctx) => ({ chips: 30 * ctx.scored.filter(c => isFaceCard(c, ctx)).length }),
   },
   {
     id: "abstract_jester", name: "Abstract Jester", price: 4, rarity: "Common",
@@ -260,18 +262,18 @@ const JESTER_POOL = [
   {
     id: "even_steven", name: "Even Steven", price: 4, rarity: "Common",
     desc: "+4 Mult per played even-rank card (10,8,6,4,2)",
-    apply: (ctx) => ({ multAdd: 4 * ctx.selected.filter(c => EVEN_RANKS.has(c.rank)).length }),
+    apply: (ctx) => ({ multAdd: 4 * ctx.scored.filter(c => EVEN_RANKS.has(c.rank)).length }),
   },
   {
     id: "odd_todd", name: "Odd Todd", price: 4, rarity: "Common",
     desc: "+31 Chips per played odd-rank card (A,9,7,5,3)",
-    apply: (ctx) => ({ chips: 31 * ctx.selected.filter(c => ODD_RANKS.has(c.rank)).length }),
+    apply: (ctx) => ({ chips: 31 * ctx.scored.filter(c => ODD_RANKS.has(c.rank)).length }),
   },
   {
     id: "scholar", name: "Scholar", price: 4, rarity: "Common",
     desc: "Played Aces give +20 Chips and +4 Mult",
     apply: (ctx) => {
-      const aces = ctx.selected.filter(c => c.rank === "A").length;
+      const aces = ctx.scored.filter(c => c.rank === "A").length;
       return { chips: 20 * aces, multAdd: 4 * aces };
     },
   },
@@ -280,7 +282,7 @@ const JESTER_POOL = [
     desc: "Played face cards have a 1 in 2 chance to give $2 when scored",
     apply: (ctx) => {
       let money = 0;
-      for (const c of ctx.selected) if (isFaceCard(c, ctx) && Math.random() < 0.5) money += 2;
+      for (const c of ctx.scored) if (isFaceCard(c, ctx) && Math.random() < 0.5) money += 2;
       return { money };
     },
   },
@@ -302,7 +304,7 @@ const JESTER_POOL = [
   {
     id: "photograph", name: "Royal Portrait", price: 5, rarity: "Common",
     desc: "First played face card gives X2 Mult when scored",
-    apply: (ctx) => ({ multMul: ctx.selected.some(c => isFaceCard(c, ctx)) ? 2 : 1 }),
+    apply: (ctx) => ({ multMul: ctx.scored.some(c => isFaceCard(c, ctx)) ? 2 : 1 }),
   },
   {
     id: "reserved_parking", name: "Seat at the High Table", price: 6, rarity: "Common",
@@ -327,17 +329,17 @@ const JESTER_POOL = [
     id: "walkie_talkie", name: "Carrier Pigeon", price: 4, rarity: "Common",
     desc: "Each played 10 or 4 gives +10 Chips and +4 Mult",
     apply: (ctx) => {
-      const n = ctx.selected.filter(c => c.rank === "10" || c.rank === "4").length;
+      const n = ctx.scored.filter(c => c.rank === "10" || c.rank === "4").length;
       return { chips: 10 * n, multAdd: 4 * n };
     },
   },
   {
     id: "smiley_face", name: "Smiley Face", price: 4, rarity: "Common",
     desc: "Played face cards give +5 Mult",
-    apply: (ctx) => ({ multAdd: 5 * ctx.selected.filter(c => isFaceCard(c, ctx)).length }),
+    apply: (ctx) => ({ multAdd: 5 * ctx.scored.filter(c => isFaceCard(c, ctx)).length }),
   },
 
-  // --- Ported from Balatro, round 2: jesters that needed a small amount of --
+  // --- jesters that needed a small amount of --
   // --- new engine plumbing (round-start deltas, a discard hook, a round-end -
   // --- hook, a shop-debt floor, a free reroll flag, and a 4-card flush/ -----
   // --- straight rule) rather than just the existing per-hand scoring hook. -
@@ -345,7 +347,7 @@ const JESTER_POOL = [
     id: "hack", name: "Hack", price: 6, rarity: "Uncommon",
     desc: "Played 2s, 3s, 4s, and 5s are scored again",
     apply: (ctx) => ({
-      chips: ctx.selected.filter(c => RETRIGGER_RANKS.has(c.rank)).reduce((sum, c) => sum + cardChipValue(c), 0),
+      chips: ctx.scored.filter(c => RETRIGGER_RANKS.has(c.rank)).reduce((sum, c) => sum + cardChipValue(c), 0),
     }),
   },
   {
@@ -435,7 +437,7 @@ const JESTER_POOL = [
     desc: "Flushes and Straights can be made with 4 cards",
   },
 
-  // --- Phase 2: jester-to-jester synergy/anti-synergy — effects that read --
+  // --- jester-to-jester synergy/anti-synergy — effects that read --
   // --- (Brainstorm, Blueprint, Swashbuckler, Ringmaster) or accumulate from (Campfire) the rest of -
   // --- the owned roster, rather than just the played hand or game state. ---
   // --- Campfire's sell-for-scaling payoff directly tugs against Brainstorm/-
@@ -765,9 +767,77 @@ function evaluateHand(cards) {
 
   const h = { counts, isFlush, isStraight };
   const type = HAND_TYPES.find(t => t.test(h));
+  if (!type) throw new Error("No hand type matched");
   const base = handBase(type);
-  return { name: type.name, baseChips: base.chips, baseMult: base.mult, isStraight, isFlush, counts };
+  if (!Number.isFinite(base?.chips) || !Number.isFinite(base?.mult)) {
+    throw new Error(`Invalid hand base for ${type.name}: ${JSON.stringify(base)}`);
+  }
+  // Scoring cards trigger left to right as they sit in the played hand, not in the
+  // order the hand type happened to find them (highest group first).
+  const scoringIds = new Set(getScoringCards(type.name, cards, runSize).map(c => c.id));
+  const scoringCards = cards.filter(c => scoringIds.has(c.id));
+
+  return { name: type.name, baseChips: base.chips, baseMult: base.mult, isStraight, isFlush, counts, scoringCards };
 }
+
+function getScoringCards(typeName, cards, runSize) {
+  const groups = Object.values(
+    Object.groupBy(cards, c => c.rank)
+  ).sort((a, b) => rankNum(b[0].rank) - rankNum(a[0].rank));
+
+  const straightCards = pool => {
+    const nums = [...new Set(pool.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
+    const withWheel = nums.includes(14) ? [1, ...nums] : nums;
+
+    // Keep the highest straight found.
+    let targets = null;
+    for (let i = 0; i + runSize <= withWheel.length; i++) {
+      const window = withWheel.slice(i, i + runSize);
+      if (window.at(-1) - window[0] === runSize - 1) targets = window;
+    }
+
+    if (!targets) return [];
+    return targets.map(n =>
+      pool.find(c => rankNum(c.rank) === (n === 1 ? 14 : n))
+    ).filter(Boolean);
+  };
+
+  if (typeName.includes("Straight Flush")) {
+    for (const suit of SUITS) {
+      const result = straightCards(cards.filter(c => cardIsSuit(c, suit)));
+      if (result.length) return result;
+    }
+    return [];
+  }
+
+  if (typeName.includes("Straight")) return straightCards(cards);
+
+  if (typeName.includes("Flush")) {
+    const suit = SUITS.find(s => cards.filter(c => cardIsSuit(c, s)).length >= runSize);
+    return suit ? cards.filter(c => cardIsSuit(c, suit)) : [];
+  }
+
+  if (typeName.includes("Five of a Kind")) return groups.find(g => g.length >= 5) ?? [];
+  if (typeName.includes("Four of a Kind")) return groups.find(g => g.length >= 4) ?? [];
+
+  if (typeName.includes("Full House")) {
+    const three = groups.find(g => g.length >= 3);
+    const pair = groups.find(g => g !== three && g.length >= 2);
+    return three && pair ? [...three.slice(0, 3), ...pair.slice(0, 2)] : [];
+  }
+
+  if (typeName.includes("Three of a Kind")) return groups.find(g => g.length >= 3) ?? [];
+
+  if (typeName.includes("Two Pair")) {
+    return groups.filter(g => g.length >= 2).slice(0, 2).flatMap(g => g.slice(0, 2));
+  }
+
+  if (typeName.includes("Pair")) return groups.find(g => g.length >= 2)?.slice(0, 2) ?? [];
+
+  // High Card: only the highest-ranked card scores.
+  return [...cards].sort((a, b) => rankNum(b.rank) - rankNum(a.rank)).slice(0, 1);
+}
+
 
 function cardChipValue(card) {
   if (state?.bossModifier?.suitDebuff && cardIsSuit(card, state.bossModifier.suitDebuff)) return 0;
@@ -791,49 +861,89 @@ function isFaceCard(card, ctx) {
 function scoreSelection(selected) {
   const hand = evaluateHand(selected);
   const steps = [];
-  for (const c of selected) {
-    const step = { type: "card", id: c.id, chips: cardChipValue(c), multAdd: 0, multMul: 1, money: 0 };
-    step.debuffed = step.chips === 0;
+
+  for (const c of hand.scoringCards) {
+    const chips = cardChipValue(c);
+
+    if (!Number.isFinite(chips)) {
+      throw new Error(
+        `Invalid chip value for card ${c.id}, rank ${c.rank}: ${chips}`
+      );
+    }
+
+    const step = {
+      type: "card",
+      id: c.id,
+      chips,
+      multAdd: 0,
+      multMul: 1,
+      money: 0
+    };
+
     if (c.enh === "bonus") step.chips += BONUS_CHIPS;
     else if (c.enh === "mult") step.multAdd = MULT_BONUS;
     else if (c.enh === "glass") step.multMul = GLASS_MULT;
+
+    step.debuffed = step.chips === 0;
     steps.push(step);
   }
 
-  // Cards still in hand after this selection is played/discarded — used by
-  // jesters that key off what's "held in hand" rather than what's played.
   const selectedIds = new Set(selected.map(c => c.id));
   const heldHand = state.hand.filter(c => !selectedIds.has(c.id));
 
   const ctx = {
-    selected, hand, heldHand,
+    selected,
+    scored: hand.scoringCards,
+    hand,
+    heldHand,
     discardsLeft: state.discardsLeft,
     money: state.money,
     deckSize: state.deck.length,
     jesters: state.jesters,
     jesterSlots: jesterSlots(),
     pareidolia: state.jesters.some(j => j.id === "pareidolia"),
-    jestersSold: state.jestersSold,
+    jestersSold: state.jestersSold
   };
 
   for (const [i, j] of state.jesters.entries()) {
-    const step = { type: "jester", index: i, id: j.id, name: j.name, chips: 0, multAdd: 0, multMul: 1, money: 0 };
+    const step = {
+      type: "jester",
+      index: i,
+      id: j.id,
+      name: j.name,
+      chips: 0,
+      multAdd: 0,
+      multMul: 1,
+      money: 0
+    };
+
     if (i === 0 && state.bossModifier?.silenceLeftmost) {
       steps.push({ ...step, silenced: true });
       continue;
     }
+
     const effect = j.apply ? j.apply(ctx, j) : {};
+
     step.chips = effect.chips || 0;
     step.multAdd = effect.multAdd || 0;
     step.multMul = effect.multMul || 1;
     step.money = effect.money || 0;
-    if (step.chips || step.multAdd || step.multMul !== 1 || step.money) steps.push(step);
+
+    if (
+      step.chips ||
+      step.multAdd ||
+      step.multMul !== 1 ||
+      step.money
+    ) {
+      steps.push(step);
+    }
   }
 
   let chips = hand.baseChips;
   let mult = hand.baseMult;
   let multMul = 1;
   let money = 0;
+
   for (const step of steps) {
     chips += step.chips;
     mult += step.multAdd;
@@ -842,8 +952,19 @@ function scoreSelection(selected) {
   }
 
   const total = Math.floor(chips * mult * multMul);
-  return { hand, chips, mult, multMul, total, money, steps };
+
+  return {
+    hand,
+    chips,
+    mult,
+    multMul,
+    total,
+    money,
+    steps
+  };
 }
+
+
 
 // --- Actions ---------------------------------------------------------------
 
@@ -988,7 +1109,7 @@ function scorePop(el, text, kind, slot) {
   pop.style.left = `${r.left + r.width / 2}px`;
   pop.style.top = `${r.top + 6 - slot * 26}px`;
   document.body.appendChild(pop);
-  setTimeout(() => pop.remove(), 1000);
+  setTimeout(() => pop.remove(), 1250);
 }
 
 function shakeScreen() {
@@ -1006,16 +1127,38 @@ function scoringPause(s, ms) {
 
 function rollScore(s) {
   return new Promise(resolve => {
-    const frame = typeof window.requestAnimationFrame === "function"
-      ? (fn) => window.requestAnimationFrame(fn)
-      : (fn) => setTimeout(() => fn(performance.now()), 16);
+    const useRaf =
+      typeof window !== "undefined" &&
+      typeof window.requestAnimationFrame === "function";
+
+    const frame = useRaf
+      ? fn => window.requestAnimationFrame(fn)
+      : fn => setTimeout(() => fn(performance.now()), 16);
+
+    const duration = SCORE_ROLL_MS * (s.fast ? SCORE_FAST : 1);
     const t0 = performance.now();
-    const step = (now) => {
-      const k = Math.min(1, (now - t0) / (SCORE_ROLL_MS * (s.fast ? SCORE_FAST : 1)));
-      s.shownScore = Math.round(s.scoreBefore + (s.scoreAfter - s.scoreBefore) * (1 - Math.pow(1 - k, 3)));
+
+
+    const step = now => {
+      const elapsed = now - t0;
+      const k = Math.min(1, elapsed / duration);
+      const easing = 1 - Math.pow(1 - k, 3);
+      const rawScore =
+        s.scoreBefore + (s.scoreAfter - s.scoreBefore) * easing;
+      const shownScore = Math.round(rawScore);
+      s.shownScore = shownScore;
       renderScoreHud(s.shownScore);
-      if (k < 1) frame(step); else resolve();
+
+      if (k < 1) {
+        frame(step);
+      } else {
+        // Force the exact final value in case of rounding or timing issues.
+        s.shownScore = s.scoreAfter;
+        renderScoreHud(s.shownScore);
+        resolve();
+      }
     };
+
     frame(step);
   });
 }
@@ -1328,23 +1471,37 @@ function moveJester(id, toIndex) {
   render();
 }
 
-// Dragging a hand card switches to a custom order (neither sort button active)
-// until a sort button is clicked again. Selected cards score left to right.
-function moveHandCard(id, toIndex) {
-  if (scoring) return;
+// Dragging a card to a new place in the hand row or the play area switches to a custom order
+// (neither sort button active) until a sort button is clicked again. Played cards score left
+// to right as they sit in the play area.
+// Moves a card to `toIndex` among the cards `inRow` accepts (the ones shown in that row) and
+// returns whether anything changed; the caller renders.
+function moveCardInRow(id, toIndex, inRow) {
+  if (scoring) return false;
   const cards = sortedHand();
-  // The hand row only shows cards that aren't parked in the play area, so indices count those.
-  const visible = cards.filter(c => !state.staged.has(c.id));
+  const visible = cards.filter(inRow);
   const from = visible.findIndex(c => c.id === id);
-  if (from === -1) return;
+  if (from === -1) return false;
   const to = Math.max(0, Math.min(visible.length - 1, toIndex));
-  if (to === from) return;
+  if (to === from) return false;
   const anchor = visible[to];
   const [card] = cards.splice(cards.indexOf(visible[from]), 1);
   const at = cards.indexOf(anchor);
   cards.splice(to > from ? at + 1 : at, 0, card);
   state.hand = cards;
   state.sortMode = "custom";
+  return true;
+}
+
+// The hand row only shows cards that aren't parked in the play area, so indices count those.
+function moveHandCard(id, toIndex) {
+  if (!moveCardInRow(id, toIndex, c => !state.staged.has(c.id))) return;
+  Sound.click();
+  render();
+}
+
+function moveStagedCard(id, toIndex) {
+  if (!moveCardInRow(id, toIndex, c => state.staged.has(c.id))) return;
   Sound.click();
   render();
 }
@@ -1915,14 +2072,31 @@ function buildCardEl(card, i) {
   div.setAttribute("role", "button");
   div.setAttribute("aria-label", `${card.rank} of ${card.suit}${enh ? `, ${enh.name} Card` : ""}`);
   // Handlers read the current state (staged or in hand) when they fire, as the element outlives renders.
-  div.addEventListener("click", () => {
-    const staged = state.staged?.has(id);
+  // A second click on the same hand card in quick succession (the browser reports it as a click
+  // with detail 2) parks it at the right end of the play area. Which card each click landed on
+  // decides it, not the browser's dblclick event: two quick clicks on neighbouring cards must stay
+  // two separate selections.
+  div.addEventListener("click", (e) => {
+    const staged = Boolean(state.staged?.has(id));
+    const last = lastHandClick;
+    const again = e.detail >= 2 && last.state === state && last.id === id && e.timeStamp - last.time < DOUBLE_CLICK_MS;
     const from = cardRects([id]);
-    toggleCard(id);
-    if (staged) flipCards(from);
+    if (staged) { // back to the hand; a quick second click on it must not select it again
+      lastHandClick = { state, id, time: e.timeStamp, returned: true };
+      toggleCard(id);
+      flipCards(from);
+    } else if (again && last.returned) {
+      lastHandClick = { state: null };
+    } else if (again) {
+      lastHandClick = { state: null };
+      parkCard(id, from);
+    } else {
+      lastHandClick = { state, id, time: e.timeStamp };
+      toggleCard(id);
+    }
   });
-  makeDraggable(div, () => (isStaged({ id }) ? [] : document.getElementById("hand-row").children),
-    (slot) => { if (!isStaged({ id })) moveHandCard(id, slot); },
+  makeDraggable(div, () => document.getElementById(isStaged({ id }) ? "play-area" : "hand-row").children,
+    (slot) => (isStaged({ id }) ? moveStagedCard(id, slot) : moveHandCard(id, slot)),
     {
       target: () => document.getElementById(isStaged({ id }) ? "hand-area" : "play-area"),
       onDrop: (rect) => (isStaged({ id }) ? returnToHand(id, rect) : dropIntoPlayArea(id, rect)),
@@ -2115,8 +2289,26 @@ function render() {
   if (!scoring) renderOverlay(); // the shop or game over screen waits for the scoring to finish
 }
 
-function dropIntoPlayArea(id, rect) {
+const DOUBLE_CLICK_MS = 350;
+let lastHandClick = { state: null };
+
+// Parks a hand card at the right end of the play area, flying it there from `from`.
+function parkCard(id, from) {
   if (!stageCard(id)) return;
+  moveCardInRow(id, state.staged.size - 1, c => state.staged.has(c.id));
+  render();
+  flipCards(from);
+}
+
+// The card lands where it was dropped: among the cards already parked, by horizontal position.
+function dropIntoPlayArea(id, rect) {
+  const centre = (rect.left + rect.right) / 2;
+  const slot = [...document.getElementById("play-area").children].filter(el => {
+    const r = el.getBoundingClientRect();
+    return (r.left + r.right) / 2 < centre;
+  }).length;
+  if (!stageCard(id)) return;
+  moveCardInRow(id, slot, c => state.staged.has(c.id));
   render();
   flipCards(new Map([[String(id), rect]]));
 }

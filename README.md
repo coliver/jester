@@ -66,7 +66,9 @@ static (it's also set up for GitHub Pages).
 - In-game hand-ranking reference (collapsible panel below the controls).
 - Sort the hand by rank or suit, or drag cards into your own order (the
   sort buttons go inactive until you click one again). Selected cards score
-  left to right, and the cards in between slide aside as you drag.
+  left to right, and the cards in between slide aside as you drag. Cards parked
+  in the play area reorder the same way, and a card dropped there lands where you
+  release it; the played cards score in the order they sit.
 - Jesters reorder the same way (drag them), and order
   matters: they score left to right, so a Blueprint copies whatever is on its
   right. You can own 5 jesters (more with the Wide Stage prop).
