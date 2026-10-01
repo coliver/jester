@@ -248,9 +248,6 @@ body {
   height: var(--card-h);
   background: #fdfaf3;
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   padding: 6px;
   cursor: pointer;
   user-select: none;
@@ -269,9 +266,28 @@ body {
   outline: 2px solid var(--accent);
 }
 
-.card .rank-top { font-size: 16px; }
-.card .suit-mid { font-size: 26px; text-align: center; }
-.card .rank-bottom { font-size: 16px; align-self: flex-end; transform: rotate(180deg); }
+/* Standard playing-card layout: rank over suit in the top-left corner, the same
+   index upside-down in the bottom-right, one big suit pip in the middle. */
+.card .rank-top, .card .rank-bottom {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: calc(var(--card-w) * 0.18);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.card .rank-top { top: calc(var(--card-w) * 0.05); left: calc(var(--card-w) * 0.05); }
+.card .rank-bottom { bottom: calc(var(--card-w) * 0.05); right: calc(var(--card-w) * 0.05); transform: rotate(180deg); }
+.card .pips { position: absolute; inset: 0; }
+.card .pip {
+  position: absolute;
+  font-size: calc(var(--card-w) * 0.2);
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+.card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
+.card .suit-mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--card-w) * 0.46); }
 
 .card.red { color: var(--red); }
 .card.black { color: var(--black); }
@@ -339,93 +355,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   cursor: pointer;
 }
 
-#overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 5, 15, 0.75);
-  display: flex;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  z-index: 10;
-}
-
-#overlay-card { margin: auto; }
-
-#overlay.hidden { display: none; }
-
-#overlay-card {
-  background: var(--panel);
-  padding: 28px 32px;
-  border-radius: 16px;
-  max-width: 480px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-#overlay-title { margin: 0 0 6px; color: var(--accent); }
-#overlay-sub { color: var(--muted); margin-bottom: 16px; }
-
-#reroll-btn {
-  display: block;
-  margin: 0 auto 12px;
-  background: transparent;
-  color: var(--muted);
-  border: 2px solid var(--muted);
-}
-
-#reroll-btn.hidden { display: none; }
-
-#money-btn {
-  display: block;
-  margin: 0 auto 12px;
-  background: transparent;
-  color: var(--accent);
-  border: 2px solid var(--accent);
-}
-#money-btn.hidden { display: none; }
-
-#shop-items {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.shop-item {
-  width: 130px;
-  padding: 10px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--accent-2);
-  border-radius: 10px;
-  font-size: 12px;
-}
-
-.shop-item .jester-name { color: var(--accent-2); font-weight: 700; }
-.shop-item .price { color: var(--accent); font-weight: 700; margin: 6px 0; }
-.shop-item button { width: 100%; padding: 6px; font-size: 13px; }
-.shop-item.owned, .shop-item.unaffordable button { opacity: 0.5; cursor: not-allowed; }
-
-#owned-jesters-section { margin-bottom: 16px; }
-#owned-jesters-section.hidden { display: none; }
-#owned-jesters-section h3 {
-  margin: 0 0 8px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  font-weight: 700;
-}
-#owned-jesters {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-#owned-jesters .jester { width: 100px; }
-
-#trick-row, #shop-tricks, #pack-items, #owned-tricks {
+#trick-row {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -441,24 +371,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 #trick-row .trick { width: 100%; box-sizing: border-box; }
 #trick-row.hidden { display: none; }
-#shop-tricks { margin-bottom: 16px; }
-#shop-voucher { display: flex; justify-content: center; margin-bottom: 8px; }
-#shop-voucher:empty { display: none; }
-#owned-vouchers { margin: 0 0 12px; font-size: 0.85rem; opacity: 0.8; }
-#owned-vouchers:empty { display: none; }
-#pack-section { margin-bottom: 16px; }
-#owned-tricks-section { margin-bottom: 16px; }
-#pack-section.hidden, #owned-tricks-section.hidden { display: none; }
-#pack-section h3, #owned-tricks-section h3 {
-  margin: 0 0 8px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  font-weight: 700;
-}
-#pack-items { margin-bottom: 8px; }
-
 .trick {
   width: 110px;
   padding: 8px 6px;
@@ -480,16 +392,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .hud-block { min-width: 56px; }
   .hud-val { font-size: 16px; }
 
-  #overlay-card { padding: 16px 10px; width: 100%; max-width: none; border-radius: 0; }
-  #shop-items { gap: 6px; margin-bottom: 12px; }
-  .shop-item { width: calc(33.333% - 4px); padding: 6px; font-size: 11px; }
-  .shop-item button { padding: 5px; font-size: 12px; }
-  #owned-jesters { gap: 6px; }
-  #owned-jesters .jester { width: calc(25% - 5px); min-width: 72px; padding: 4px; font-size: 10px; }
   body { padding: 10px; }
   #app { gap: 10px; }
-  .card .rank-top, .card .rank-bottom { font-size: 12px; }
-  .card .suit-mid { font-size: 18px; }
   .card { padding: 3px; flex: 0 0 auto; border-radius: 6px; }
   #hud { padding: 8px 12px; gap: 6px 10px; }
   /* No overflow-x scroll: cards are touch-action:none (draggable), so a scrolling row couldn't be swiped. Slots shrink and cards overlap instead. */
@@ -691,12 +595,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     .card:hover { transform: translateY(calc(var(--dip) - 12px)) scale(1.08); box-shadow: 0 12px 22px rgba(0, 0, 0, 0.55); }
     .card.selected:hover { transform: translateY(calc(var(--dip) - 22px)) scale(1.08); box-shadow: 0 14px 24px rgba(255, 207, 86, 0.55); }
   }
-  .card .rank-bottom { align-self: flex-start; }
   .card:hover, .card.selected { z-index: 1; }
-  .card .rank-top, .card .rank-bottom { font-size: 26px; line-height: 1; }
-  .card .suit-mid { font-size: 40px; }
-  #overlay-card { padding: 14px 16px; max-width: 720px; }
-  .shop-item { width: 150px; }
 }
 
 /* Play-screen polish: felt table, scoreboard rail, jester stage, one clear primary action. */
@@ -796,8 +695,6 @@ body {
 .tarot-art[hidden] { display: none; }
 #inspect .tarot-art { display: none; }
 
-.move-btns { display: flex; gap: 4px; justify-content: center; margin-top: 4px; }
-.move-btns button { padding: 0 8px; line-height: 1.4; }
 #jester-row .jester, #owned-jesters .jester { cursor: grab; touch-action: none; }
 .jester { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .jester img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
@@ -850,3 +747,155 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   #hand-row .card, #hand-row .card.dealt { animation: none; }
 }
+
+/* --- Shop screen -------------------------------------------------------------
+   Built for a landscape phone: a bar that never scrolls (money, payout, reroll,
+   next round) over two panes that scroll on their own, the stock on the left and
+   what you own on the right. */
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  background: radial-gradient(ellipse at 50% 0%, rgba(58, 35, 80, 0.94), rgba(14, 7, 20, 0.97) 80%);
+}
+#overlay.hidden { display: none; }
+
+#overlay-card {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#overlay-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  background: rgba(42, 26, 56, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+#overlay-head { flex: 1 1 auto; min-width: 0; text-align: left; }
+#overlay-title { margin: 0; font-size: 18px; line-height: 1.15; color: var(--accent); }
+#overlay-sub { display: flex; flex-wrap: wrap; gap: 3px 6px; margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+#overlay-sub .chip { padding: 1px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); white-space: nowrap; }
+#overlay-sub .chip.where { background: none; padding-left: 0; }
+#shop-money {
+  flex: none;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: #7be38a;
+  font-variant-numeric: tabular-nums;
+}
+#shop-money.hidden { display: none; }
+#overlay-actions { flex: none; display: flex; align-items: center; gap: 8px; }
+#overlay-actions button { padding: 8px 16px; font-size: 14px; white-space: nowrap; }
+#reroll-btn, #money-btn { background: transparent; border: 2px solid var(--muted); color: var(--muted); }
+#money-btn { border-color: var(--accent); color: var(--accent); }
+#reroll-btn.hidden, #money-btn.hidden { display: none; }
+
+#overlay-body { flex: 1 1 auto; min-height: 0; display: flex; }
+
+#shop-stock {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 10px 20px;
+  padding: 8px 12px 16px;
+}
+#shop-yours {
+  flex: 0 0 clamp(150px, 26vw, 220px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px 16px;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shelf { min-width: 0; }
+.shelf:has(> .shelf-row:empty) { display: none; }
+.shelf h3, #shop-yours h3, #pack-section h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+#shop-yours h3 span { font-weight: 400; margin-left: 4px; }
+.shelf-row { display: flex; gap: 8px; align-items: flex-start; }
+
+#pack-section {
+  flex: 1 0 100%;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(255, 207, 86, 0.07);
+}
+#pack-section.hidden { display: none; }
+#pack-section h3 { color: var(--accent); }
+#pack-items { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+#pack-skip-btn { padding: 6px 16px; font-size: 13px; background: transparent; border: 2px solid var(--muted); color: var(--muted); }
+
+.shop-item {
+  width: 112px;
+  box-sizing: border-box;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--accent-2);
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+}
+.shop-item .jester-art { aspect-ratio: 5 / 4; }
+.shop-item .tarot-art { width: 56px; height: 56px; }
+.shop-item .jester-name { color: var(--accent-2); font-weight: 700; }
+.shop-item .price { color: var(--accent); font-weight: 700; font-size: 14px; margin: 6px 0; }
+.shop-item.unaffordable .price { color: var(--red); }
+.shop-item button { width: 100%; padding: 7px; font-size: 13px; }
+.shop-item.unaffordable button { opacity: 0.5; cursor: not-allowed; }
+.shop-item.prop { border-color: var(--accent); background: rgba(255, 207, 86, 0.08); }
+.shop-item.prop > span { display: block; }
+.shop-item.pack { border-style: dashed; }
+#pack-items .shop-item { width: 118px; }
+
+#shop-yours-empty { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+#shop-yours-empty.hidden { display: none; }
+#owned-jesters-section, #owned-tricks-section { margin-bottom: 14px; }
+#owned-jesters-section.hidden, #owned-tricks-section.hidden { display: none; }
+#owned-jesters, #owned-tricks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+}
+#owned-jesters .jester, #owned-tricks .trick { width: auto; padding: 4px; font-size: 10px; }
+#owned-props { margin: 0; font-size: 12px; color: var(--muted); }
+#owned-props:empty { display: none; }
+
+/* Payout, then stock: the chips land one by one while the money counts up, and the
+   shelves deal in after them. Rerolled offers and bought jesters get the same drop. */
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+#overlay-sub.tally .chip { animation: chip-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) backwards; animation-delay: calc(var(--i) * 0.12s); }
+.shop-item.dealt {
+  animation: card-deal 0.32s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards;
+  animation-delay: calc(var(--d, 0s) + var(--i, 0) * 0.07s);
+}
+#owned-jesters .jester.dealt { animation: card-deal 0.32s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  #overlay-sub.tally .chip, .shop-item.dealt, #owned-jesters .jester.dealt { animation: none; }
+}
+
+/* Game over and win: just the result and one button, centered. */
+#overlay.end #overlay-card { justify-content: center; align-items: center; text-align: center; }
+#overlay.end #overlay-bar { flex-direction: column; gap: 16px; background: none; border: 0; }
+#overlay.end #overlay-head { text-align: center; }
+#overlay.end #overlay-title { font-size: 34px; }
+#overlay.end #overlay-sub { justify-content: center; font-size: 15px; }
+#overlay.end #overlay-body { display: none; }

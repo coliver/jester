@@ -35,7 +35,7 @@ force different play ✓ (six modifiers — higher target, 1-hand-only,
 no-discard, smaller hand, and two suit debuffs — one picked at random for
 round 3 of every ante). The round-end hook group (Egg, Gros Michel, Cloud 9, Rocket, Gift Card — the
 last two grow per-jester sell value/payout) has landed too. Jester order now matters and is
-player-controlled (drag or shop arrows; Blueprint copies its right-hand
+player-controlled (drag to reorder; Blueprint copies its right-hand
 neighbor), and hand cards can be dragged into a custom order. Remaining: more of this synergy/anti-synergy work
 if it keeps paying off — the five landed so far are a first pass, not a
 ceiling. This is where the game gets *replayable* rather than just
@@ -43,7 +43,7 @@ ceiling. This is where the game gets *replayable* rather than just
 
 **Phase 3 — Content breadth**
 Add the systems the README explicitly deferred: simplified
-tarot/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing tarots and Tarot Packs; mask cards are reskinned as commedia masks), vouchers (landed: six, one offered per ante), alternate decks (not started), a
+tarot/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing tarots and Tarot Packs; mask cards are reskinned as commedia masks), props (landed: six, one offered per ante), alternate decks (not started), a
 stake/difficulty modifier (not started). Each is additive and toggleable in scope — pick
 the smallest version of each that fits the no-build-step constraint.
 
@@ -135,7 +135,7 @@ itself:
 
 ### Explicitly not in Phase 1
 
-New jesters, tarot/planet cards, vouchers, alternate decks, card art,
+New jesters, tarot/planet cards, props, alternate decks, card art,
 animation, sound, localStorage persistence — all later phases.
 
 ### Suggested order

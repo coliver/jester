@@ -35,7 +35,7 @@ static (it's also set up for GitHub Pages).
   a 25% chance to shatter after being played), set a suit, raise a rank, or
   destroy cards. The shop sells two tarots plus a Tarot Pack (pick 1 of 3, kept
   in a slot); enhanced cards show a badge in hand and tint in the Deck view.
-- Vouchers: one permanent upgrade ($8) is offered in the shop after the first
+- Props: one permanent upgrade ($8) is offered in the shop after the first
   round of each ante and can be bought once per run — +1 hand, +1 discard,
   +1 hand size, cheaper rerolls, +1 jester slot, or +1 mask slot.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
@@ -47,14 +47,14 @@ static (it's also set up for GitHub Pages).
 - Sort the hand by rank or suit, or drag cards into your own order (the
   sort buttons go inactive until you click one again). Selected cards score
   left to right, and the cards in between slide aside as you drag.
-- Jesters reorder the same way (drag, or the shop's arrow buttons), and order
+- Jesters reorder the same way (drag them), and order
   matters: they score left to right, so a Blueprint copies whatever is on its
-  right. You can own 5 jesters (more with the Wide Stage voucher).
+  right. You can own 5 jesters (more with the Wide Stage prop).
 - Tap or click a jester, mask, or tarot to inspect it. Sound effects (recorded
   card clips plus synthesized stings) with a mute button that remembers its
   setting. Layout is landscape-first: a wide desktop layout with a fanned
   hand, a compact landscape phone layout, and a rotate prompt in portrait.
-- Add `?debug` to the URL for a debug shop and a starting hand of jesters.
+- Add `?debug` to the URL for a debug shop, a Win button that instantly clears the current round into the real shop, and a starting hand of jesters.
 - A Deck button that opens a grid of all
   52 cards showing which are still in the draw pile, in hand, played, or
   discarded this round.

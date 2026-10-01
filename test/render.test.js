@@ -412,22 +412,22 @@ test("if missing_no itself fails, the handler detaches instead of looping", () =
   assert.equal(img.onerror, null); // a browser fires no further error events once cleared
 });
 
-test("shop: voucher offer renders, buys via its button, and is listed as owned", () => {
-  const voucher = gameModule.VOUCHER_POOL[0];
-  dealtState({ phase: "shop", shopVoucher: voucher, money: 20, vouchers: [] });
+test("shop: prop offer renders, buys via its button, and is listed as owned", () => {
+  const prop = gameModule.PROP_POOL[0];
+  dealtState({ phase: "shop", shopProp: prop, money: 20, props: [] });
   gameModule.render();
-  const item = document.querySelector("#shop-voucher .shop-item");
-  assert.match(item.textContent, new RegExp(voucher.name));
+  const item = document.querySelector("#shop-prop .shop-item");
+  assert.match(item.textContent, new RegExp(prop.name));
   item.querySelector("button").click();
-  assert.equal(gameModule._getState().vouchers.length, 1);
-  assert.equal(document.querySelectorAll("#shop-voucher .shop-item").length, 0);
-  assert.match(document.getElementById("owned-vouchers").textContent, new RegExp(voucher.name));
+  assert.equal(gameModule._getState().props.length, 1);
+  assert.equal(document.querySelectorAll("#shop-prop .shop-item").length, 0);
+  assert.match(document.getElementById("owned-props").textContent, new RegExp(prop.name));
 });
 
-test("shop: an unaffordable voucher is marked unaffordable", () => {
-  dealtState({ phase: "shop", shopVoucher: gameModule.VOUCHER_POOL[0], money: 0, vouchers: [] });
+test("shop: an unaffordable prop is marked unaffordable", () => {
+  dealtState({ phase: "shop", shopProp: gameModule.PROP_POOL[0], money: 0, props: [] });
   gameModule.render();
-  const item = document.querySelector("#shop-voucher .shop-item");
+  const item = document.querySelector("#shop-prop .shop-item");
   assert.ok(item.classList.contains("unaffordable"));
   assert.ok(item.querySelector("button").disabled);
 });
@@ -437,9 +437,11 @@ test("shop: tarot offers and both packs render, and a tarot buys into a slot", (
   dealtState({ phase: "shop", money: 20, shopTarots: [tarot], shopTricks: [], packAvailable: true, tarotPackAvailable: true });
   gameModule.render();
   const items = [...document.querySelectorAll("#shop-tricks .shop-item")];
-  assert.equal(items.length, 3);
+  assert.equal(items.length, 1);
   assert.match(items[0].textContent, new RegExp(tarot.name));
-  assert.match(items[2].textContent, /Tarot Pack/);
+  const packs = [...document.querySelectorAll("#shop-packs .shop-item")];
+  assert.equal(packs.length, 2);
+  assert.match(packs[1].textContent, /Tarot Pack/);
   items[0].querySelector("button").click();
   assert.equal(gameModule._getState().tricks[0].id, tarot.id);
 });
@@ -535,6 +537,23 @@ test("skipping a pack closes it, and Escape closes the deck view", () => {
   assert.ok(document.getElementById("deck-modal").classList.contains("hidden"));
 });
 
+// --- card faces ----------------------------------------------------------------
+
+test("number cards show as many pips as their rank; aces and faces show one big suit", () => {
+  const cards = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "A", "K"].map((rank, i) => ({ id: 900 + i, rank, suit: "♠" }));
+  dealtState({ hand: cards });
+  const els = [...document.querySelectorAll("#hand-row .card")];
+  const pipCount = (rank) => {
+    const el = els.find((e) => e.querySelector(".rank-top").textContent === `${rank}♠`);
+    return el.querySelectorAll(".pip").length;
+  };
+  for (const rank of ["2", "3", "4", "5", "6", "7", "8", "9", "10"]) assert.equal(pipCount(rank), Number(rank), `${rank} pips`);
+  assert.equal(pipCount("A"), 0);
+  assert.equal(pipCount("K"), 0);
+  const four = els.find((e) => e.querySelector(".rank-top").textContent === "4♠");
+  assert.equal(four.querySelectorAll(".pip.flip").length, 2, "bottom half of the 4 is upside-down");
+});
+
 // --- reordering hand cards ---------------------------------------------------
 
 test("dragging a hand card reorders the hand and switches to custom order", () => {
@@ -564,11 +583,24 @@ test("dragging a hand card reorders the hand and switches to custom order", () =
   assert.equal(gameModule._getState().sortMode, "rank");
 });
 
-// --- reordering jesters ---------------------------------------------------
+// --- shop screen -------------------------------------------------------------
 
-function ownedIds() {
-  return [...document.querySelectorAll("#owned-jesters .jester")].map((el) => el.querySelector(".jester-name").textContent);
-}
+test("shop bar shows money and one payout chip per earnings line; owned panes show slot counts", () => {
+  dealtState({ phase: "shop", money: 12, lastEarnings: { reward: 4, interest: 0, bonus: 2 }, jesters: [] });
+  gameModule.render();
+  assert.equal(text("shop-money-val"), "12");
+  const chips = [...document.querySelectorAll("#overlay-sub .chip")].map((c) => c.textContent);
+  assert.deepEqual(chips.slice(1), ["+$4 round", "+$2 jesters"]);
+  assert.ok(!document.getElementById("shop-yours-empty").classList.contains("hidden"));
+  const [a] = gameModule.JESTER_POOL;
+  gameModule._getState().jesters = [{ ...a, sellBonus: 0 }];
+  gameModule.render();
+  assert.ok(document.getElementById("shop-yours-empty").classList.contains("hidden"));
+  assert.match(text("owned-jesters-count"), /^1\/\d+$/);
+  assert.equal(document.querySelectorAll("#owned-jesters .move-btns").length, 0);
+});
+
+// --- reordering jesters ---------------------------------------------------
 
 function ptr(type, x, y, pointerType = "mouse") {
   const e = new dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
@@ -592,22 +624,6 @@ function dragOnto(from, over, pointerType = "mouse", dropX = null) {
   document.dispatchEvent(ptr("pointermove", x1, 25, pointerType));
   document.dispatchEvent(ptr("pointerup", x1, 25, pointerType));
 }
-
-test("shop arrow buttons reorder owned jesters and disable at the ends", () => {
-  const [a, b, c] = gameModule.JESTER_POOL;
-  dealtState({ phase: "shop", jesters: [a, b, c].map((j) => ({ ...j, sellBonus: 0 })) });
-  assert.deepEqual(ownedIds(), [a.name, b.name, c.name]);
-  const btns = () => [...document.querySelectorAll("#owned-jesters .jester")].map((el) => el.querySelectorAll(".move-btns button"));
-  assert.equal(btns()[0][0].disabled, true);
-  assert.equal(btns()[2][1].disabled, true);
-  assert.equal(btns()[1][0].disabled, false);
-
-  btns()[0][1].click(); // move first jester right
-  assert.deepEqual(ownedIds(), [b.name, a.name, c.name]);
-  btns()[2][0].click(); // move last jester left
-  assert.deepEqual(ownedIds(), [b.name, c.name, a.name]);
-  assert.deepEqual(gameModule._getState().jesters.map((j) => j.id), [b.id, c.id, a.id]);
-});
 
 test("dragging a jester onto another moves it into that slot (shop and play rows)", () => {
   const [a, b, c] = gameModule.JESTER_POOL;
@@ -685,7 +701,7 @@ test("play row outlines every jester slot, filled or empty, and tracks the slot 
   assert.equal(slots.length, 5);
   assert.equal(slots[0].querySelectorAll(".jester").length, 1);
   assert.equal(slots[1].children.length, 0);
-  s.vouchers = gameModule.VOUCHER_POOL.filter((v) => v.id === "wide_stage");
+  s.props = gameModule.PROP_POOL.filter((v) => v.id === "wide_stage");
   gameModule.render();
   assert.equal(document.querySelectorAll("#jester-row .jester-slot").length, 6);
 });
