@@ -24,12 +24,12 @@ static (it's also set up for GitHub Pages).
   shop after each round win; sell owned jesters or reroll the shop's offers
   (for an escalating cost) between rounds. Saved money earns interest ($1
   per $5 held, capped at $5) on every round win.
-- Trick cards: each poker hand has a level, and a trick card (one per hand,
-  e.g. Double Take for Pair) raises it, adding chips and mult to that hand's
-  base. The shop sells two tricks plus a Trick Pack (pick 1 of 3, used
+- Mask cards: each poker hand has a level, and a mask card (one per hand, a
+  commedia stock character, e.g. Innamorati for Pair) raises it, adding chips
+  and mult to that hand's base. The shop sells two masks plus a Mask Pack (pick 1 of 3, used
   immediately); you can hold 2 and use or sell them. The Hand Rankings panel
   shows current levels. Constellation and Space Jester build on them.
-- Tarot cards: ten deck-editing cards that share the trick slots. Used mid-round
+- Tarot cards: ten deck-editing cards that share the mask slots. Used mid-round
   on 1-3 selected cards, they permanently change the run's deck: enhancements
   (Bonus +30 chips, Mult +4 mult, Wild counts as every suit, Glass X2 mult with
   a 25% chance to shatter after being played), set a suit, raise a rank, or
@@ -37,7 +37,7 @@ static (it's also set up for GitHub Pages).
   in a slot); enhanced cards show a badge in hand and tint in the Deck view.
 - Vouchers: one permanent upgrade ($8) is offered in the shop after the first
   round of each ante and can be bought once per run — +1 hand, +1 discard,
-  +1 hand size, cheaper rerolls, +1 jester slot, or +1 trick slot.
+  +1 hand size, cheaper rerolls, +1 jester slot, or +1 mask slot.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
   The last round of each ante is a boss round: one of six modifiers (higher
   target, 1 hand only, no discards, a smaller hand, or a debuffed suit)

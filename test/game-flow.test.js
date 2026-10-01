@@ -722,7 +722,7 @@ test("Gros Michel gives +15 Mult and can be destroyed by its 1-in-6 round-end ro
   assert.equal(_getState().jesters.length, 0);
 });
 
-// --- Trick cards (hand levels) ---------------------------------------------
+// --- Mask cards (hand levels) ---------------------------------------------
 
 test("using a trick card levels its hand and raises base chips/mult", () => {
   const { TRICK_POOL, evaluateHand, useTrick } = require("../game.js");

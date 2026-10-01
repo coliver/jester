@@ -491,7 +491,7 @@ test("an open tarot pack is titled as one and blocks Take when slots are full", 
   gameModule._getState().packKind = "trick";
   gameModule._getState().pack = [gameModule.TRICK_POOL[0]];
   gameModule.render();
-  assert.match(text("pack-title"), /^Trick Pack/);
+  assert.match(text("pack-title"), /^Mask Pack/);
   assert.ok(!document.querySelector("#pack-items button").disabled);
 });
 

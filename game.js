@@ -40,7 +40,7 @@ const VOUCHER_POOL = [
   { id: "big_hand", name: "Big Hand", desc: "+1 hand size.", handSizeDelta: 1 },
   { id: "haggler", name: "Haggler", desc: "Shop rerolls start $1 cheaper.", rerollDelta: -1 },
   { id: "wide_stage", name: "Wide Stage", desc: "+1 jester slot.", jesterSlotsDelta: 1 },
-  { id: "trick_tray", name: "Trick Tray", desc: "+1 trick slot.", trickSlotsDelta: 1 },
+  { id: "trick_tray", name: "Mask Rack", desc: "+1 mask slot.", trickSlotsDelta: 1 },
 ];
 
 function voucherSum(key) {
@@ -57,23 +57,24 @@ function sellValue(jester) {
 }
 
 // Each hand has a level (1 by default). Every level above 1 adds levelChips
-// and levelMult to the hand's base; trick cards are how a hand levels up.
+// and levelMult to the hand's base; mask cards are how a hand levels up.
 const HAND_TYPES = [
-  { name: "Straight Flush", chips: 100, mult: 8, levelChips: 40, levelMult: 4, trick: "Grand Finale", test: h => h.isFlush && h.isStraight },
-  { name: "Four of a Kind", chips: 60, mult: 7, levelChips: 30, levelMult: 3, trick: "Four-Ring Circus", test: h => h.counts[0] === 4 },
-  { name: "Full House", chips: 40, mult: 4, levelChips: 25, levelMult: 2, trick: "Big Top", test: h => h.counts[0] === 3 && h.counts[1] === 2 },
-  { name: "Flush", chips: 35, mult: 4, levelChips: 15, levelMult: 2, trick: "Sleight of Hand", test: h => h.isFlush },
-  { name: "Straight", chips: 30, mult: 4, levelChips: 30, levelMult: 3, trick: "Tightrope", test: h => h.isStraight },
-  { name: "Three of a Kind", chips: 30, mult: 3, levelChips: 20, levelMult: 2, trick: "Triple Threat", test: h => h.counts[0] === 3 },
-  { name: "Two Pair", chips: 20, mult: 2, levelChips: 20, levelMult: 1, trick: "Tag Team", test: h => h.counts[0] === 2 && h.counts[1] === 2 },
-  { name: "Pair", chips: 10, mult: 2, levelChips: 15, levelMult: 1, trick: "Double Take", test: h => h.counts[0] === 2 },
-  { name: "High Card", chips: 5, mult: 1, levelChips: 10, levelMult: 1, trick: "Pratfall", test: () => true },
+  { name: "Straight Flush", chips: 100, mult: 8, levelChips: 40, levelMult: 4, mask: "Harlequin", test: h => h.isFlush && h.isStraight },
+  { name: "Four of a Kind", chips: 60, mult: 7, levelChips: 30, levelMult: 3, mask: "Il Capitano", test: h => h.counts[0] === 4 },
+  { name: "Full House", chips: 40, mult: 4, levelChips: 25, levelMult: 2, mask: "Pantalone", test: h => h.counts[0] === 3 && h.counts[1] === 2 },
+  { name: "Flush", chips: 35, mult: 4, levelChips: 15, levelMult: 2, mask: "Pierrot", test: h => h.isFlush },
+  { name: "Straight", chips: 30, mult: 4, levelChips: 30, levelMult: 3, mask: "Scaramouche", test: h => h.isStraight },
+  { name: "Three of a Kind", chips: 30, mult: 3, levelChips: 20, levelMult: 2, mask: "Brighella", test: h => h.counts[0] === 3 },
+  { name: "Two Pair", chips: 20, mult: 2, levelChips: 20, levelMult: 1, mask: "Zanni", test: h => h.counts[0] === 2 && h.counts[1] === 2 },
+  { name: "Pair", chips: 10, mult: 2, levelChips: 15, levelMult: 1, mask: "Innamorati", test: h => h.counts[0] === 2 },
+  { name: "High Card", chips: 5, mult: 1, levelChips: 10, levelMult: 1, mask: "Pulcinella", test: () => true },
 ];
 
-// One trick card per hand type; using it raises that hand's level by one.
+// One mask card per hand type (a commedia stock character); using it raises
+// that hand's level by one.
 const TRICK_POOL = HAND_TYPES.map(t => ({
-  id: "trick_" + t.name.toLowerCase().replace(/ /g, "_"),
-  name: t.trick,
+  id: "mask_" + t.mask.toLowerCase().replace(/ /g, "_"),
+  name: t.mask,
   hand: t.name,
   price: TRICK_PRICE,
   desc: `Level up ${t.name}: +${t.levelChips} chips, +${t.levelMult} mult.`,
@@ -83,7 +84,7 @@ function handLevel(name) {
   return state?.handLevels?.[name] || 1;
 }
 
-// A hand's current base values, including any trick-card levels.
+// A hand's current base values, including any mask-card levels.
 function handBase(type) {
   const extra = handLevel(type.name) - 1;
   return { chips: type.chips + extra * type.levelChips, mult: type.mult + extra * type.levelMult };
@@ -475,7 +476,7 @@ const JESTER_POOL = [
   },
   {
     id: "constellation", name: "Constellation", price: 6, rarity: "Uncommon",
-    desc: "Gains X0.1 Mult every time a Trick card is used",
+    desc: "Gains X0.1 Mult every time a Mask card is used",
     apply: (ctx, self) => ({ multMul: 1 + 0.1 * (self.tricksUsed || 0) }),
     onTrickUsed: (self) => { self.tricksUsed = (self.tricksUsed || 0) + 1; },
   },
@@ -1240,14 +1241,15 @@ function toggleInspect(anchor, html) {
   tip.style.top = `${rect.bottom + 6}px`;
 }
 
-// Tarot art is optional (see assets/tarot/PROMPTS.md): the glyph shows until
-// <id>.png loads, and a missing file just leaves the glyph in place.
-function tarotArtHTML(id) {
-  return `<img class="tarot-art" src="assets/tarot/${id}.png" alt="" hidden onload="this.hidden=false; this.previousElementSibling.hidden=true;" onerror="this.remove()">`;
+// Tarot and mask art is optional (see assets/tarot/PROMPTS.md and
+// assets/masks/PROMPTS.md): the glyph shows until <id>.png loads, and a
+// missing file just leaves the glyph in place.
+function cardArtHTML(dir, id) {
+  return `<img class="tarot-art" src="assets/${dir}/${id}.png" alt="" hidden onload="this.hidden=false; this.previousElementSibling.hidden=true;" onerror="this.remove()">`;
 }
 
 function trickCardHTML(t) {
-  return `<span class="trick-glyph">${t.tarot ? "☾" : "✦"}</span>${t.tarot ? tarotArtHTML(t.id) : ""}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.tarot ? "Tarot" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
+  return `<span class="trick-glyph">${t.tarot ? "☾" : "🎭"}</span>${cardArtHTML(t.tarot ? "tarot" : "masks", t.id)}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.tarot ? "Tarot" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
 
 // Held trick cards, with a Use button (and Sell in the shop) on each.
@@ -1485,7 +1487,7 @@ function renderOverlay() {
       const div = document.createElement("div");
       div.className = "shop-item trick" + (pack === "tarot" || t?.tarot ? " tarot" : "") + (canBuy ? "" : " unaffordable");
       div.innerHTML = `${pack
-        ? `<span class="trick-glyph">${pack === "tarot" ? "☾☾☾" : "✦✦✦"}</span><span class="trick-name">${pack === "tarot" ? "Tarot" : "Trick"} Pack</span><span class="trick-desc">${pack === "tarot" ? `Pick 1 of ${PACK_SIZE} tarots, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} tricks, used right away.`}</span>`
+        ? `<span class="trick-glyph">${pack === "tarot" ? "☾☾☾" : "🎭🎭🎭"}</span><span class="trick-name">${pack === "tarot" ? "Tarot" : "Mask"} Pack</span><span class="trick-desc">${pack === "tarot" ? `Pick 1 of ${PACK_SIZE} tarots, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} masks, used right away.`}</span>`
         : trickCardHTML(t)}<div class="price">$${price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`;
       div.querySelector("button").addEventListener("click", pack ? () => buyPack(pack) : buy);
       shopTricks.appendChild(div);
@@ -1493,7 +1495,7 @@ function renderOverlay() {
 
     const packSection = document.getElementById("pack-section");
     packSection.classList.toggle("hidden", !state.pack);
-    document.getElementById("pack-title").textContent = `${state.packKind === "tarot" ? "Tarot" : "Trick"} Pack: pick one`;
+    document.getElementById("pack-title").textContent = `${state.packKind === "tarot" ? "Tarot" : "Mask"} Pack: pick one`;
     const packItems = document.getElementById("pack-items");
     packItems.innerHTML = "";
     for (const t of state.pack || []) {
