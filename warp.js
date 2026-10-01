@@ -10,7 +10,7 @@
   const H = 200;
   const TAU = Math.PI * 2;
   const FRAME_MS = 1000 / 24;
-  const CYCLE_PER_SEC = 14; // palette steps per second
+  const CYCLE_PER_SEC = 3; // palette steps per second (slow drift; was 14)
 
   // Each pattern maps a pixel to a palette index in 0..255 (wrapping is fine).
   const PATTERNS = [
