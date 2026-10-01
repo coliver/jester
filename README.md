@@ -4,8 +4,8 @@ A very small, single-page poker-scoring roguelike: play poker hands for
 chips × mult, clear an escalating chip target each round, and spend money on
 a handful of simple jesters between rounds.
 
-No build step, no dependencies — just `index.html`, `styles.css`, and
-`game.js`. Open `index.html` directly, or serve the folder with anything
+No build step, no dependencies — just `index.html`, `styles.css`,
+`game.js`, and `sounds.js`. Open `index.html` directly, or serve the folder with anything
 static (it's also set up for GitHub Pages).
 
 ## What's in scope
@@ -44,7 +44,18 @@ static (it's also set up for GitHub Pages).
   applies for that round. Clearing round 3 of ante 8 wins the run; running
   out of hands first ends it.
 - In-game hand-ranking reference (collapsible panel below the controls).
-- Sort the hand by rank or suit, and a Deck button that opens a grid of all
+- Sort the hand by rank or suit, or drag cards into your own order (the
+  sort buttons go inactive until you click one again). Selected cards score
+  left to right, and the cards in between slide aside as you drag.
+- Jesters reorder the same way (drag, or the shop's arrow buttons), and order
+  matters: they score left to right, so a Blueprint copies whatever is on its
+  right. You can own 5 jesters (more with the Wide Stage voucher).
+- Tap or click a jester, mask, or tarot to inspect it. Sound effects (recorded
+  card clips plus synthesized stings) with a mute button that remembers its
+  setting. Layout is landscape-first: a wide desktop layout with a fanned
+  hand, a compact landscape phone layout, and a rotate prompt in portrait.
+- Add `?debug` to the URL for a debug shop and a starting hand of jesters.
+- A Deck button that opens a grid of all
   52 cards showing which are still in the draw pile, in hand, played, or
   discarded this round.
 - Jester card art is optional per jester; any jester without its own image
@@ -52,12 +63,14 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Animations/juice, a Balatro-sized jester roster, spectral-style cards, decks,
-and stakes. This is the "real basic" version — small and
+Run persistence, a Balatro-sized jester roster, spectral-style cards, decks,
+stakes, and scoring animations (there is a deal animation and sound, but
+scoring itself is instant). This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
-exception: a lightweight, optional `<img>` hook and generated art for most
+exception: a lightweight, optional `<img>` hook and generated art for the
 jesters landed early since it's additive and non-breaking — see
-`assets/jesters/PROMPTS.md`.)
+`assets/jesters/PROMPTS.md`; mask and tarot art prompts live in
+`assets/masks/` and `assets/tarot/`.)
 
 ## Development
 

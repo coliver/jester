@@ -1,10 +1,10 @@
 # Deferred Balatro jesters
 
-51 of the 105 "available from start" Balatro jesters (source, under
+About 50 of the 105 "available from start" Balatro jesters (source, under
 Balatro's own name for them:
 [balatrogame.fandom.com/wiki/Jokers](https://balatrogame.fandom.com/wiki/Jokers),
 pulled 2026-09-29) aren't in `JESTER_POOL` yet — see [PROMPTS.md](PROMPTS.md)
-for the 54 that are. Each of these needs something the engine doesn't
+for the 61 that are (jesters from this list are removed as they land). Each of these needs something the engine doesn't
 track today. Grouped by what's missing, so a future phase can knock out a
 whole group at once rather than one jester at a time.
 
@@ -34,23 +34,25 @@ Loyalty Card ($5) · Supernova ($5) · Ride the Bus ($6) · Runner ($5) ·
 Ice Cream ($5) · Green Jester ($4) · Square Jester ($4) · Flash Card ($5) ·
 Spare Trousers ($6) · Ramen ($6) · Popcorn ($5) · Obelisk ($8) ·
 Card Sharp ($6, needs "hand types played this round" too) ·
-Red Card ($5, needs Booster Packs) · Hologram ($7, needs deck-add events) ·
+Red Card ($5, needs a skippable pack hook; Mask and Tarot Packs exist) · Hologram ($7, needs deck-add events) ·
 Vampire ($7, needs card Enhancements) · Lucky Cat ($6, needs Lucky cards) ·
 Seltzer ($6, needs a retrigger
-system) · Ancient Jester ($8, suit rotates each round) ·
-Campfire ($9, needs a sell-event hook)
+system) · Ancient Jester ($8, suit rotates each round)
 
 ## Needs consumables that don't exist (Tarot / Spectral cards)
 
-Only trick cards (this game's take on Planet cards) exist as consumables;
-there is no Tarot or Spectral equivalent yet.
+Mask cards (this game's take on Planet cards) and ten deck-editing tarots
+now exist as consumables; there is still no Spectral equivalent, and no
+jester yet creates consumables, so these still need a "create a consumable"
+hook.
 
 8 Ball ($5) · Superposition ($4) · Sixth Sense ($6) · Séance ($6) ·
 Vagabond ($8) · Hallucination ($4) · Fortune Teller ($6)
 
 ## Needs card enhancements that don't exist (Stone / Steel / Gold / Lucky)
 
-No per-card enhancement system exists — cards are just `{suit, rank}`.
+Cards now carry an optional enhancement (Bonus, Mult, Wild, Glass), but
+Stone, Steel, Gold and Lucky don't exist.
 
 Marble Jester ($6, listed above too) · Steel Jester ($7) ·
 Stone Jester ($6) · Midas Mask ($7) · Hiker ($5, permanent per-card chip
@@ -68,19 +70,17 @@ so this one is arguably a no-op here rather than a true port)
 
 ## Needs an economy mechanic that doesn't exist
 
-Luchador ($5, Boss Blinds don't exist) · Diet Cola ($6, Tags don't exist) ·
+Luchador ($5, boss rounds exist but have no blind to disable) · Diet Cola ($6, Tags don't exist) ·
 Turtle Bean ($6, mutable hand size) · DNA ($8, permanent deck mutation
 mid-round)
 
 ## Needs `state.deck` to mean "full deck" not "draw pile"
 
-`state.deck` is currently the shrinking draw pile for the round, reset
-fresh each round to all 52 cards. "Full deck" jesters (Erosion, Steel
-Jester, Stone Jester, Cloud 9 above) need a concept of deck composition
-that's independent of what's been drawn — meaningful once Phase 3 adds
-anything that permanently changes deck composition (card removal,
-vouchers, added cards). Until then they'd all read as constant/inert, so
-they're grouped with their other blockers above rather than ported early.
+`state.deck` is the shrinking draw pile for the round; the run's full deck
+lives in `state.masterDeck`, which tarots now edit permanently (enhance,
+change suit or rank, destroy). Full-deck jesters (Erosion, Steel Jester,
+Stone Jester) can read `masterDeck`, so this blocker is effectively gone;
+they're listed under their other blockers above.
 
 ---
 

@@ -2,9 +2,10 @@
 
 Jester is a small, single-page poker-scoring roguelike (deck → hand →
 score chips × mult → clear a target → shop for jesters → escalate). The
-current build (see [README](README.md)) is a single-commit scaffold: the
-whole loop works, but it hasn't been hardened, tested, or extended past its
-initial shape. This document lays out where it goes from here.
+current build (see [README](README.md)) is well past the initial scaffold:
+the loop is hardened and tested, and Phases 1-3 are largely landed, with
+parts of Phases 4 and 5 (art, sound, mobile layout) already in. This
+document keeps the original phase plan and marks what has shipped.
 
 Guiding constraint carried through every phase: **no build step, no
 dependencies**, plain `index.html` / `styles.css` / `game.js`. Anything that
@@ -16,7 +17,7 @@ otherwise explicitly.
 **Phase 0 — Current state (done)**
 Deck, hand, poker evaluation, 4 hands / 3 discards, 8 jesters, 3-item shop,
 ante/round escalation. Playable start-to-finish, no persistence, no tests,
-a few known rules gaps (see Phase 1).
+a few known rules gaps (see Phase 1). The roster is now 61 jesters.
 
 **Phase 1 — Harden the core loop**
 Make the existing scope *correct and complete* before adding anything new:
@@ -33,25 +34,31 @@ sell value held, jesters sold, rarity variety — see below), an economy layer (
 force different play ✓ (six modifiers — higher target, 1-hand-only,
 no-discard, smaller hand, and two suit debuffs — one picked at random for
 round 3 of every ante). The round-end hook group (Egg, Gros Michel, Cloud 9, Rocket, Gift Card — the
-last two grow per-jester sell value/payout) has landed too. Remaining: more of this synergy/anti-synergy work
+last two grow per-jester sell value/payout) has landed too. Jester order now matters and is
+player-controlled (drag or shop arrows; Blueprint copies its right-hand
+neighbor), and hand cards can be dragged into a custom order. Remaining: more of this synergy/anti-synergy work
 if it keeps paying off — the five landed so far are a first pass, not a
 ceiling. This is where the game gets *replayable* rather than just
 *playable*.
 
 **Phase 3 — Content breadth**
-Add the systems the README explicitly deferred: a simplified
-tarot/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing tarots and Tarot Packs), vouchers (landed: six, one offered per ante), alternate decks, a
-stake/difficulty modifier. Each is additive and toggleable in scope — pick
+Add the systems the README explicitly deferred: simplified
+tarot/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing tarots and Tarot Packs; mask cards are reskinned as commedia masks), vouchers (landed: six, one offered per ante), alternate decks (not started), a
+stake/difficulty modifier (not started). Each is additive and toggleable in scope — pick
 the smallest version of each that fits the no-build-step constraint.
 
 **Phase 4 — Feel & presentation**
-Card art (or better procedural card faces), scoring animation/juice, sound.
-Explicitly deferred until the systems are stable, since presentation work
+Card art (landed for jesters; mask and tarot art in progress), scoring
+animation/juice (deal animation, fanned hand and hover/drag feedback landed;
+scoring animation not started), sound (landed: card clips, stings, mute
+toggle). Explicitly deferred until the systems are stable, since presentation work
 churns hard if the underlying model is still moving.
 
 **Phase 5 — Meta & reach**
-Run persistence (resume via localStorage), run stats/seed display, mobile
-layout pass, anything GitHub Pages deployment needs. Lower priority than
+Run persistence (resume via localStorage; only the mute setting is saved
+today), run stats/seed display, anything GitHub Pages deployment needs.
+The mobile layout pass has landed (landscape phone layout, rotate prompt in
+portrait, touch drag). Lower priority than
 it sounds — the game is already playable end-to-end without it.
 
 Phases are roughly sequential but not strictly gated — Phase 3 content can
