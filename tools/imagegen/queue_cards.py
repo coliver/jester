@@ -1,7 +1,7 @@
 """Queue one ComfyUI job per CSV row.
 
 Usage: python3 queue_cards.py [kind] [--limit N] [--only ID[,ID...]] [--repeat N] [--prefix DIR]
-  kind     jesters (default), tarot, masks or faces: reads assets/<kind>/prompts.csv
+  kind     jesters (default), decrees, masks, faces, bosses or court: reads assets/<kind>/prompts.csv
            (columns: id,prompt), the single source of art prompts. Card ids,
            names and rarities live in game.js; test/art-prompts.test.js keeps
            the two in step.
@@ -31,7 +31,7 @@ COMFY_URL = os.environ.get("COMFY_URL", "http://127.0.0.1:8600")
 WORKFLOW_FILE = HERE / "workflow_api.json"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("kind", nargs="?", default="jesters", choices=["jesters", "tarot", "masks", "faces"])
+parser.add_argument("kind", nargs="?", default="jesters", choices=["jesters", "decrees", "masks", "faces", "bosses", "court"])
 parser.add_argument("--limit", type=int, default=None, help="queue only the first N rows")
 parser.add_argument("--only", default=None, help="comma-separated card ids to queue (default: all)")
 parser.add_argument("--repeat", type=int, default=1, help="queue each card N times with different seeds")
