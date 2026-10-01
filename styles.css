@@ -116,6 +116,15 @@ body {
   border-radius: 10px;
 }
 
+#jester-row .jester-slot {
+  flex: 0 0 96px;
+  border: 1px dashed rgba(255,255,255,0.22);
+  border-radius: 9px;
+  min-height: 64px;
+  position: relative;
+}
+#jester-row .jester { width: 100%; box-sizing: border-box; }
+
 .jester {
   width: 90px;
   padding: 6px;
@@ -420,7 +429,14 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   justify-content: center;
   flex-wrap: wrap;
 }
-#trick-row { padding: 6px; }
+#trick-row { padding: 6px; min-height: 64px; }
+#trick-row .trick-slot {
+  flex: 0 0 116px;
+  min-height: 64px;
+  border: 1px dashed rgba(255,255,255,0.22);
+  border-radius: 9px;
+}
+#trick-row .trick { width: 100%; box-sizing: border-box; }
 #trick-row.hidden { display: none; }
 #shop-tricks { margin-bottom: 16px; }
 #shop-voucher { display: flex; justify-content: center; margin-bottom: 8px; }
@@ -474,7 +490,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .card { padding: 3px; flex: 0 0 auto; border-radius: 6px; }
   #hud { padding: 8px 12px; gap: 6px 10px; }
   #jester-row { flex-wrap: nowrap; overflow-x: auto; min-height: 0; padding: 6px; gap: 6px; }
-  #jester-row .jester { flex: 0 0 84px; width: 84px; padding: 4px; font-size: 10px; }
+  #jester-row .jester-slot { flex: 0 0 90px; }
+  #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
   #hand-row { flex-wrap: nowrap; gap: 4px; min-height: 0; padding: 6px 0 12px; }
 }
 
@@ -638,13 +655,16 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #trick-group { flex: 0 0 auto; }
   .slot-count { display: block; font-size: 10px; line-height: 1.2; color: var(--muted); text-align: right; padding: 2px 4px 0; }
   #jester-row, #trick-row { flex-wrap: nowrap; min-height: 84px; padding: 4px 4px 4px 8px; gap: 0; }
-  #jester-row .jester { flex: 0 0 84px; width: 84px; padding: 4px; font-size: 10px; }
-  #jester-row .jester + .jester { margin-left: -14px; }
-  #jester-row .jester:hover, #jester-row .jester:focus-visible { z-index: 1; }
+  #jester-row { gap: 6px; }
+  /* Slots shrink (and the cards overflow into overlap) only when the row runs out of room. */
+  #jester-row .jester-slot { flex: 0 1 90px; min-width: 36px; }
+  #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
+  #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #jester-row .jester-art { width: 34px; margin: 0 auto 2px; }
   #top-row .jester-desc, #top-row .trick-desc { display: none; }
   #trick-row { gap: 6px; }
-  #trick-row .trick { width: 74px; padding: 4px; }
+  #trick-row .trick-slot { flex-basis: 78px; }
+  #trick-row .trick { padding: 4px; }
   #trick-row .trick-glyph { font-size: 16px; }
   #preview { min-height: 18px; font-size: 12px; line-height: 1.1; text-align: left; padding: 0 4px; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
@@ -754,3 +774,10 @@ body {
 .tarot-art { display: block; width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 6px; object-fit: cover; }
 .tarot-art[hidden] { display: none; }
 #inspect .tarot-art { display: none; }
+
+.move-btns { display: flex; gap: 4px; justify-content: center; margin-top: 4px; }
+.move-btns button { padding: 0 8px; line-height: 1.4; }
+#jester-row .jester, #owned-jesters .jester { cursor: grab; touch-action: none; }
+.jester { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.jester img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+.jester.dragging { opacity: 0.85; cursor: grabbing; box-shadow: 0 6px 16px rgba(0,0,0,0.5); }

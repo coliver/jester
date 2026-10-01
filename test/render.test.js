@@ -534,3 +534,139 @@ test("skipping a pack closes it, and Escape closes the deck view", () => {
   document.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape" }));
   assert.ok(document.getElementById("deck-modal").classList.contains("hidden"));
 });
+
+// --- reordering jesters ---------------------------------------------------
+
+function ownedIds() {
+  return [...document.querySelectorAll("#owned-jesters .jester")].map((el) => el.querySelector(".jester-name").textContent);
+}
+
+function ptr(type, x, y, pointerType = "mouse") {
+  const e = new dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+  Object.defineProperty(e, "pointerType", { value: pointerType });
+  return e;
+}
+
+// Drags `from` and releases at `over`'s center, or at `dropX` if given.
+// jsdom has no layout, so fake one: slots (the card's wrapper in the play
+// row, the card itself in the shop list) are 100px wide, laid out in a row.
+function dragOnto(from, over, pointerType = "mouse", dropX = null) {
+  const slotOf = (el) => el.closest(".jester-slot") || el;
+  const slots = [...slotOf(from).parentElement.children];
+  for (const [i, slot] of slots.entries()) {
+    slot.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 100, top: 0, bottom: 50 });
+  }
+  const x0 = slots.indexOf(slotOf(from)) * 100 + 50;
+  const x1 = dropX ?? (over ? slots.indexOf(slotOf(over)) * 100 + 50 : x0);
+  from.dispatchEvent(ptr("pointerdown", x0, 25, pointerType));
+  document.dispatchEvent(ptr("pointermove", (x0 + x1) / 2 + 10, 25, pointerType));
+  document.dispatchEvent(ptr("pointermove", x1, 25, pointerType));
+  document.dispatchEvent(ptr("pointerup", x1, 25, pointerType));
+}
+
+test("shop arrow buttons reorder owned jesters and disable at the ends", () => {
+  const [a, b, c] = gameModule.JESTER_POOL;
+  dealtState({ phase: "shop", jesters: [a, b, c].map((j) => ({ ...j, sellBonus: 0 })) });
+  assert.deepEqual(ownedIds(), [a.name, b.name, c.name]);
+  const btns = () => [...document.querySelectorAll("#owned-jesters .jester")].map((el) => el.querySelectorAll(".move-btns button"));
+  assert.equal(btns()[0][0].disabled, true);
+  assert.equal(btns()[2][1].disabled, true);
+  assert.equal(btns()[1][0].disabled, false);
+
+  btns()[0][1].click(); // move first jester right
+  assert.deepEqual(ownedIds(), [b.name, a.name, c.name]);
+  btns()[2][0].click(); // move last jester left
+  assert.deepEqual(ownedIds(), [b.name, c.name, a.name]);
+  assert.deepEqual(gameModule._getState().jesters.map((j) => j.id), [b.id, c.id, a.id]);
+});
+
+test("dragging a jester onto another moves it into that slot (shop and play rows)", () => {
+  const [a, b, c] = gameModule.JESTER_POOL;
+  const ids = () => gameModule._getState().jesters.map((j) => j.id);
+  dealtState({ phase: "shop", jesters: [a, b, c].map((j) => ({ ...j, sellBonus: 0 })) });
+  let cards = document.querySelectorAll("#owned-jesters .jester");
+  dragOnto(cards[2], cards[0]); // drop c onto slot 0
+  assert.deepEqual(ids(), [c.id, a.id, b.id]);
+  // dropping on itself, or outside any jester, does nothing
+  cards = document.querySelectorAll("#owned-jesters .jester");
+  dragOnto(cards[0], cards[0]);
+  dragOnto(cards[0], null); // released at its own spot
+  assert.deepEqual(ids(), [c.id, a.id, b.id]);
+  assert.equal(cards[0].style.transform, "");
+
+  // main jester row, during play
+  dealtState({ jesters: [a, b, c].map((j) => ({ ...j, sellBonus: 0 })) });
+  const row = document.querySelectorAll("#jester-row .jester");
+  dragOnto(row[0], row[2]);
+  assert.deepEqual(ids(), [b.id, c.id, a.id]);
+  const names = [...document.querySelectorAll("#jester-row .jester-name")].map((el) => el.textContent);
+  assert.deepEqual(names, [b.name, c.name, a.name]);
+});
+
+test("drops are forgiving: nearest slot wins, even in gaps and far off-target", () => {
+  const [a, b, c] = gameModule.JESTER_POOL;
+  const ids = () => gameModule._getState().jesters.map((j) => j.id);
+  const setup = () => {
+    dealtState({ jesters: [a, b, c].map((j) => ({ ...j, sellBonus: 0 })) });
+    return document.querySelectorAll("#jester-row .jester");
+  };
+  let row = setup();
+  dragOnto(row[0], null, "mouse", 215); // just left of slot 2's center, below the row
+  assert.deepEqual(ids(), [b.id, c.id, a.id]);
+  row = setup();
+  dragOnto(row[2], null, "mouse", -300); // way past the left edge
+  assert.deepEqual(ids(), [c.id, a.id, b.id]);
+  row = setup();
+  dragOnto(row[1], null, "mouse", 120); // wiggle within its own slot
+  assert.deepEqual(ids(), [a.id, b.id, c.id]);
+});
+
+test("a tiny mouse movement is a click, not a drag", () => {
+  const [a, b] = gameModule.JESTER_POOL;
+  dealtState({ jesters: [a, b].map((j) => ({ ...j, sellBonus: 0 })) });
+  const row = document.querySelectorAll("#jester-row .jester");
+  document.elementFromPoint = () => row[1];
+  row[0].dispatchEvent(ptr("pointerdown", 0, 0));
+  document.dispatchEvent(ptr("pointermove", 2, 0));
+  document.dispatchEvent(ptr("pointerup", 2, 0));
+  assert.deepEqual(gameModule._getState().jesters.map((j) => j.id), [a.id, b.id]);
+});
+
+test("touch drags like a mouse, and pointercancel puts the card back", () => {
+  const [a, b] = gameModule.JESTER_POOL;
+  const ids = () => gameModule._getState().jesters.map((j) => j.id);
+  dealtState({ jesters: [a, b].map((j) => ({ ...j, sellBonus: 0 })) });
+  let row = document.querySelectorAll("#jester-row .jester");
+  row[0].dispatchEvent(ptr("pointerdown", 0, 0, "touch"));
+  document.dispatchEvent(ptr("pointermove", 20, 0, "touch"));
+  assert.ok(row[0].classList.contains("dragging"));
+  document.dispatchEvent(ptr("pointercancel", 20, 0, "touch"));
+  assert.ok(!row[0].classList.contains("dragging"));
+  assert.deepEqual(ids(), [a.id, b.id]);
+
+  row = document.querySelectorAll("#jester-row .jester");
+  dragOnto(row[0], row[1], "touch");
+  assert.deepEqual(ids(), [b.id, a.id]);
+});
+
+test("play row outlines every jester slot, filled or empty, and tracks the slot count", () => {
+  const [a] = gameModule.JESTER_POOL;
+  const s = dealtState({ jesters: [{ ...a, sellBonus: 0 }] });
+  let slots = document.querySelectorAll("#jester-row .jester-slot");
+  assert.equal(slots.length, 5);
+  assert.equal(slots[0].querySelectorAll(".jester").length, 1);
+  assert.equal(slots[1].children.length, 0);
+  s.vouchers = gameModule.VOUCHER_POOL.filter((v) => v.id === "wide_stage");
+  gameModule.render();
+  assert.equal(document.querySelectorAll("#jester-row .jester-slot").length, 6);
+});
+
+test("trick row is always shown, with an outlined slot per free trick slot", () => {
+  dealtState();
+  assert.ok(!document.getElementById("trick-group").classList.contains("hidden"));
+  assert.equal(document.querySelectorAll("#trick-row .trick-slot").length, 2);
+  assert.equal(document.querySelectorAll("#trick-row .trick").length, 0);
+  dealtState({ tricks: [{ ...gameModule.TRICK_POOL[0] }] });
+  assert.equal(document.querySelectorAll("#trick-row .trick-slot").length, 2);
+  assert.equal(document.querySelectorAll("#trick-row .trick-slot .trick").length, 1);
+});

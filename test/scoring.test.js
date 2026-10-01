@@ -453,3 +453,14 @@ test("targetForRound is always rounded to the nearest 10", () => {
     }
   }
 });
+
+test("jester order changes scoring: Blueprint copies whichever Jester is on its right", () => {
+  const { moveJester } = require("../game.js");
+  const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
+  const s = baseState({ jesters: [jesterById("base_jester"), jesterById("blueprint")], hand: selected });
+  _setState(s);
+  assert.equal(scoreSelection(selected).mult, 5);
+  moveJester("blueprint", 0);
+  assert.deepEqual(s.jesters.map(j => j.id), ["blueprint", "base_jester"]);
+  assert.equal(scoreSelection(selected).mult, 9);
+});

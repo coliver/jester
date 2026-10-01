@@ -1158,3 +1158,31 @@ test("the free reroll from Chaos the Clown costs nothing once per shop visit", (
   assert.equal(state.money, 0);
   assert.equal(state.rerollCost, 2);
 });
+
+test("moveJester reorders in place, clamps out-of-range targets and ignores unknown ids", () => {
+  const { moveJester } = require("../game.js");
+  const [a, b, c] = JESTER_POOL;
+  const state = shopState({ jesters: [a, b, c].map(j => ({ ...j, sellBonus: 0 })) });
+  const ids = () => state.jesters.map(j => j.id);
+  moveJester(c.id, 0);
+  assert.deepEqual(ids(), [c.id, a.id, b.id]);
+  moveJester(c.id, 2);
+  assert.deepEqual(ids(), [a.id, b.id, c.id]);
+  moveJester(a.id, 99);
+  assert.deepEqual(ids(), [b.id, c.id, a.id]);
+  moveJester(a.id, -5);
+  assert.deepEqual(ids(), [a.id, b.id, c.id]);
+  moveJester(b.id, 1); // same slot: no-op
+  moveJester("nope", 0);
+  assert.deepEqual(ids(), [a.id, b.id, c.id]);
+  assert.equal(state.money, 20);
+});
+
+test("moveJester keeps each jester's per-run data (sellBonus) with it", () => {
+  const { moveJester } = require("../game.js");
+  const [a, b] = JESTER_POOL;
+  const state = shopState({ jesters: [{ ...a, sellBonus: 3 }, { ...b, sellBonus: 0 }] });
+  moveJester(a.id, 1);
+  assert.equal(state.jesters[1].id, a.id);
+  assert.equal(state.jesters[1].sellBonus, 3);
+});

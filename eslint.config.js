@@ -15,6 +15,7 @@ const browserGlobals = {
   localStorage: "readonly",
   Audio: "readonly",
   setTimeout: "readonly",
+  clearTimeout: "readonly",
   // game.js also has a Node-only tail (module.exports guarded by
   // `typeof module !== "undefined"`) so its test suite can import the pure
   // functions; these stay `undefined` in the browser.

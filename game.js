@@ -961,6 +961,83 @@ function sellJester(id) {
   render();
 }
 
+// Jesters score left to right, so array order is play order.
+function moveJester(id, toIndex) {
+  const from = state.jesters.findIndex(j => j.id === id);
+  if (from === -1) return;
+  const to = Math.max(0, Math.min(state.jesters.length - 1, toIndex));
+  if (to === from) return;
+  const [jester] = state.jesters.splice(from, 1);
+  state.jesters.splice(to, 0, jester);
+  lastJesterSig = null;
+  render();
+}
+
+// Pointer-based drag (HTML5 drag-and-drop doesn't fire on touch screens).
+// Cards set `touch-action: none` in CSS so the browser doesn't claim the
+// gesture for scrolling (which would cancel the drag). Dropping over another
+// jester in the same row puts the dragged one in that slot; the target is
+// the nearest slot center to the pointer.
+const DRAG_THRESHOLD_PX = 6;
+
+function makeJesterDraggable(el, id) {
+  el.dataset.jesterId = id;
+  el.addEventListener("dragstart", (e) => e.preventDefault());
+  el.addEventListener("pointerdown", (e) => {
+    if (e.button > 0 || e.target.closest("button")) return;
+    const startX = e.clientX, startY = e.clientY;
+    let dragging = false;
+
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!dragging) {
+        if (Math.hypot(dx, dy) <= DRAG_THRESHOLD_PX) return;
+        dragging = true;
+        hideInspect();
+        el.classList.add("dragging");
+        el.style.zIndex = "5";
+      }
+      if (ev.cancelable) ev.preventDefault();
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+    };
+    const cleanup = () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onCancel);
+    };
+    const reset = () => {
+      el.classList.remove("dragging");
+      el.style.transform = el.style.zIndex = "";
+    };
+    const onCancel = () => { cleanup(); reset(); };
+    const onUp = (ev) => {
+      cleanup();
+      if (!dragging) return;
+      reset();
+      // The click that follows a drag would open the inspect tooltip.
+      const swallow = (c) => { c.stopImmediatePropagation(); c.preventDefault(); };
+      el.addEventListener("click", swallow, { capture: true, once: true });
+      setTimeout(() => el.removeEventListener("click", swallow, true), 0);
+      // Forgiving drop: the slot whose center is nearest the pointer wins, so
+      // gaps, overlaps and sloppy aim all still land somewhere sensible.
+      // Slots are the card's wrapper in the play row, or the cards themselves
+      // in the shop list; either way sibling order is jester order.
+      const home = el.closest(".jester-slot") || el;
+      let best = -1, bestDist = Infinity;
+      [...home.parentElement.children].forEach((slot, i) => {
+        const r = slot.getBoundingClientRect();
+        const d = Math.hypot(ev.clientX - (r.left + r.right) / 2, ev.clientY - (r.top + r.bottom) / 2);
+        if (d < bestDist) { best = i; bestDist = d; }
+      });
+      if (best !== -1) moveJester(id, best);
+    };
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onCancel);
+  });
+}
+
 function rerollShop() {
   if (!inShop()) return;
   const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
@@ -1148,12 +1225,12 @@ function nextRound() {
   render();
 }
 
-// Debug only (?debug): begin each run with one random Common jester.
+// Debug only (?debug): begin each run with 3 distinct random Common jesters.
+const STARTING_JESTERS = 3;
 function grantStartingJester() {
   if (!DEBUG_ENABLED) return;
-  const commons = JESTER_POOL.filter(j => j.rarity === "Common");
-  const pick = commons[Math.floor(Math.random() * commons.length)];
-  state.jesters.push({ ...pick, sellBonus: 0 });
+  const commons = shuffled(JESTER_POOL.filter(j => j.rarity === "Common"));
+  for (const pick of commons.slice(0, STARTING_JESTERS)) state.jesters.push({ ...pick, sellBonus: 0 });
 }
 
 function restart() {
@@ -1255,6 +1332,13 @@ function trickCardHTML(t) {
 // Held trick cards, with a Use button (and Sell in the shop) on each.
 function fillTrickList(container, withSell) {
   container.innerHTML = "";
+  const target = () => {
+    if (withSell) return container; // shop list: bare cards
+    const slot = document.createElement("div");
+    slot.className = "trick-slot";
+    container.appendChild(slot);
+    return slot;
+  };
   state.tricks.forEach((t, i) => {
     const div = document.createElement("div");
     div.className = "trick" + (t.tarot ? " tarot" : "");
@@ -1274,8 +1358,11 @@ function fillTrickList(container, withSell) {
       sellBtn.addEventListener("click", () => sellTrick(i));
       div.appendChild(sellBtn);
     }
-    container.appendChild(div);
+    target().appendChild(div);
   });
+  if (withSell) return;
+  // Play row: outline the free slots too, so the row is visible when empty.
+  for (let i = state.tricks.length; i < trickSlots(); i++) target();
 }
 
 function renderHandReference() {
@@ -1306,22 +1393,27 @@ function render() {
   }
 
   const jesterRow = document.getElementById("jester-row");
-  const jesterSig = state.jesters.map(j => j.id).join(",");
+  const jesterSig = state.jesters.map(j => j.id).join(",") + "/" + jesterSlots();
   if (jesterSig !== lastJesterSig) {
     lastJesterSig = jesterSig;
     jesterRow.innerHTML = "";
-    for (const j of state.jesters) {
+    const slotCount = Math.max(jesterSlots(), state.jesters.length);
+    for (let i = 0; i < slotCount; i++) {
+      const slot = document.createElement("div");
+      slot.className = "jester-slot";
+      jesterRow.appendChild(slot);
+      const j = state.jesters[i];
+      if (!j) continue;
       const div = document.createElement("div");
       div.className = "jester";
       div.innerHTML = `${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span>`;
       makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span></div>`);
-      jesterRow.appendChild(div);
+      makeJesterDraggable(div, j.id);
+      slot.appendChild(div);
     }
   }
 
   const trickRow = document.getElementById("trick-row");
-  trickRow.classList.toggle("hidden", state.tricks.length === 0);
-  document.getElementById("trick-group").classList.toggle("hidden", state.tricks.length === 0);
   fillTrickList(trickRow, false);
   document.getElementById("jester-count").textContent = `${state.jesters.length}/${jesterSlots()}`;
   document.getElementById("trick-count").textContent = `${state.tricks.length}/${trickSlots()}`;
@@ -1515,17 +1607,29 @@ function renderOverlay() {
     ownedList.innerHTML = "";
     if (state.jesters.length > 0) {
       ownedSection.classList.remove("hidden");
-      for (const j of state.jesters) {
+      state.jesters.forEach((j, i) => {
         const div = document.createElement("div");
         div.className = "jester";
         div.innerHTML = `${jesterHeaderHTML(j)}${j.desc}`;
+        makeJesterDraggable(div, j.id);
+        const moves = document.createElement("div");
+        moves.className = "move-btns";
+        for (const [label, delta, name] of [["◀", -1, "left"], ["▶", 1, "right"]]) {
+          const b = document.createElement("button");
+          b.textContent = label;
+          b.setAttribute("aria-label", `Move ${j.name} ${name}`);
+          b.disabled = i + delta < 0 || i + delta >= state.jesters.length;
+          b.addEventListener("click", () => moveJester(j.id, i + delta));
+          moves.appendChild(b);
+        }
+        div.appendChild(moves);
         const sellBtn = document.createElement("button");
         sellBtn.className = "sell-btn";
         sellBtn.textContent = `Sell $${sellValue(j)}`;
         sellBtn.addEventListener("click", () => sellJester(j.id));
         div.appendChild(sellBtn);
         ownedList.appendChild(div);
-      }
+      });
     } else {
       ownedSection.classList.add("hidden");
     }
@@ -1673,6 +1777,7 @@ const testHooks = {
   discardSelected,
   buyJester,
   sellJester,
+  moveJester,
   rerollShop,
   buyVoucher,
   finishRoundWin,
