@@ -1,0 +1,191 @@
+{
+  "1": {
+    "inputs": {
+      "tile_size": 512,
+      "fast": false,
+      "samples": [
+        "9",
+        0
+      ],
+      "vae": [
+        "13",
+        2
+      ]
+    },
+    "class_type": "VAEDecodeTiled_TiledDiffusion",
+    "_meta": {
+      "title": "Tiled VAE Decode"
+    }
+  },
+  "4": {
+    "inputs": {
+      "text": "worst quality, low quality, nsfw",
+      "clip": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Neg Prompt)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "resolution": "1024x1024 (1.0)",
+      "batch_size": 1,
+      "width_override": 1024,
+      "height_override": 1024
+    },
+    "class_type": "SDXLEmptyLatentSizePicker+",
+    "_meta": {
+      "title": "🔧 SDXL Empty Latent Size Picker"
+    }
+  },
+  "6": {
+    "inputs": {
+      "stop_at_clip_layer": -2,
+      "clip": [
+        "16",
+        1
+      ]
+    },
+    "class_type": "CLIPSetLastLayer",
+    "_meta": {
+      "title": "CLIP Set Last Layer"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "masterpiece, best quality, ((simple painted style)), \n\nDRKDL, drkdl, low key, dramatic lighting, dark theme,\n\nAn adult female jester as a ringleader in a circus holding a whip in one hand in a spotlight,\n\ncentered, fully visible, generous white space, plain seamless dark midnight-purple painted style background, \n",
+      "clip": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "filename_prefix": "joker_cards/ringleader",
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "9": {
+    "inputs": {
+      "seed": 104536393642688,
+      "steps": 20,
+      "cfg": 6.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "14",
+        0
+      ],
+      "positive": [
+        "7",
+        0
+      ],
+      "negative": [
+        "4",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "13": {
+    "inputs": {
+      "ckpt_name": "illustrious\\perfectdeliberate_v8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "14": {
+    "inputs": {
+      "preset": "PLUS (high strength)",
+      "weight_style": 0.8,
+      "weight_composition": 0,
+      "expand_style": false,
+      "combine_embeds": "average",
+      "start_at": 0,
+      "end_at": 1,
+      "embeds_scaling": "V only",
+      "cache_mode": "all",
+      "model": [
+        "16",
+        0
+      ],
+      "image_style": [
+        "15",
+        0
+      ],
+      "image_composition": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "easy ipadapterStyleComposition",
+    "_meta": {
+      "title": "Easy Apply IPAdapter (StyleComposition)"
+    }
+  },
+  "15": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "16": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "lora_1": {
+        "on": true,
+        "lora": "illustrious\\vector_game_icons_Illustrious.safetensors",
+        "strength": 0.8
+      },
+      "lora_2": {
+        "on": true,
+        "lora": "pony\\DRKDL-R.safetensors",
+        "strength": 0.4
+      },
+      "➕ Add Lora": "",
+      "model": [
+        "13",
+        0
+      ],
+      "clip": [
+        "13",
+        1
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  }
+}
