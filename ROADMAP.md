@@ -43,12 +43,12 @@ ceiling. This is where the game gets *replayable* rather than just
 
 **Phase 3 — Content breadth**
 Add the systems the README explicitly deferred: simplified
-tarot/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing tarots and Tarot Packs; mask cards are reskinned as commedia masks), props (landed: six, one offered per ante), alternate decks (not started), a
+decree/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing decrees and Decree Packs; mask cards are reskinned as commedia masks), props (landed: six, one offered per ante), alternate decks (not started), a
 stake/difficulty modifier (not started). Each is additive and toggleable in scope — pick
 the smallest version of each that fits the no-build-step constraint.
 
 **Phase 4 — Feel & presentation**
-Card art (landed for jesters; mask and tarot art in progress), scoring
+Card art (landed for jesters; mask and decree art in progress), scoring
 animation/juice (deal animation, fanned hand and hover/drag feedback landed;
 scoring animation not started), sound (landed: card clips, stings, mute
 toggle). Explicitly deferred until the systems are stable, since presentation work
@@ -135,7 +135,7 @@ itself:
 
 ### Explicitly not in Phase 1
 
-New jesters, tarot/planet cards, props, alternate decks, card art,
+New jesters, decree/planet cards, props, alternate decks, card art,
 animation, sound, localStorage persistence — all later phases.
 
 ### Suggested order

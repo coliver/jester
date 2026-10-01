@@ -34,14 +34,14 @@ Loyalty Card ($5) · Supernova ($5) · Ride the Bus ($6) · Runner ($5) ·
 Ice Cream ($5) · Green Jester ($4) · Square Jester ($4) · Flash Card ($5) ·
 Spare Trousers ($6) · Ramen ($6) · Popcorn ($5) · Obelisk ($8) ·
 Card Sharp ($6, needs "hand types played this round" too) ·
-Red Card ($5, needs a skippable pack hook; Mask and Tarot Packs exist) · Hologram ($7, needs deck-add events) ·
+Red Card ($5, needs a skippable pack hook; Mask and Decree Packs exist) · Hologram ($7, needs deck-add events) ·
 Vampire ($7, needs card Enhancements) · Lucky Cat ($6, needs Lucky cards) ·
 Seltzer ($6, needs a retrigger
 system) · Ancient Jester ($8, suit rotates each round)
 
-## Needs consumables that don't exist (Tarot / Spectral cards)
+## Needs consumables that don't exist (Decree / Spectral cards)
 
-Mask cards (this game's take on Planet cards) and ten deck-editing tarots
+Mask cards (this game's take on Planet cards) and ten deck-editing decrees
 now exist as consumables; there is still no Spectral equivalent, and no
 jester yet creates consumables, so these still need a "create a consumable"
 hook.
@@ -77,7 +77,7 @@ mid-round)
 ## Needs `state.deck` to mean "full deck" not "draw pile"
 
 `state.deck` is the shrinking draw pile for the round; the run's full deck
-lives in `state.masterDeck`, which tarots now edit permanently (enhance,
+lives in `state.masterDeck`, which decrees now edit permanently (enhance,
 change suit or rank, destroy). Full-deck jesters (Erosion, Steel Jester,
 Stone Jester) can read `masterDeck`, so this blocker is effectively gone;
 they're listed under their other blockers above.

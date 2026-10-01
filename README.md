@@ -4,6 +4,16 @@ A very small, single-page poker-scoring roguelike: play poker hands for
 chips × mult, clear an escalating chip target each round, and spend money on
 a handful of simple jesters between rounds.
 
+## Theme
+
+A dark baroque masquerade court: you are the fool, and your head is the ante.
+Each ante is a venue (the Scullery up to the Throne Room), each round an
+audience (Small, Grand, Royal Command), and poker hands keep their plain
+poker names. The mask cards are the Masquerade
+Ball, tarot-style cards are Decrees, and a portrait of the King reacts to how
+the round is going. Playing cards are drawn as aged ivory stock with serif
+indices and split court-card panels.
+
 No build step, no dependencies — just `index.html`, `styles.css`,
 `game.js`, and `sounds.js`. Open `index.html` directly, or serve the folder with anything
 static (it's also set up for GitHub Pages).
@@ -29,20 +39,24 @@ static (it's also set up for GitHub Pages).
   and mult to that hand's base. The shop sells two masks plus a Mask Pack (pick 1 of 3, used
   immediately); you can hold 2 and use or sell them. The Hand Rankings panel
   shows current levels. Constellation and Space Jester build on them.
-- Tarot cards: ten deck-editing cards that share the mask slots. Used mid-round
+- Decree cards (court edicts): ten deck-editing cards that share the mask slots. Used mid-round
   on 1-3 selected cards, they permanently change the run's deck: enhancements
   (Bonus +30 chips, Mult +4 mult, Wild counts as every suit, Glass X2 mult with
   a 25% chance to shatter after being played), set a suit, raise a rank, or
-  destroy cards. The shop sells two tarots plus a Tarot Pack (pick 1 of 3, kept
+  destroy cards. The shop sells two decrees plus a Decree Pack (pick 1 of 3, kept
   in a slot); enhanced cards show a badge in hand and tint in the Deck view.
 - Props: one permanent upgrade ($8) is offered in the shop after the first
   round of each ante and can be bought once per run — +1 hand, +1 discard,
   +1 hand size, cheaper rerolls, +1 jester slot, or +1 mask slot.
 - Ante escalates every 3 rounds; target chips scale with ante and round.
-  The last round of each ante is a boss round: one of six modifiers (higher
-  target, 1 hand only, no discards, a smaller hand, or a debuffed suit)
-  applies for that round. Clearing round 3 of ante 8 wins the run; running
-  out of hands first ends it.
+  The last round of each ante is a boss round: one of ten courtier modifiers
+  (the Seneschal's higher target, the Executioner's single hand, the Censor's
+  no discards, the Gaoler's smaller hand, the Marshal's and Queen of Hearts'
+  debuffed suits, the Tax Collector's $1 per hand, the Poet Laureate's no
+  repeated hand type, the Bishop's chipless face cards, or the Spymaster's
+  silenced leftmost jester) applies for that round; ante 8's boss is always
+  the King. Clearing round 3 of ante 8 wins the run; running out of hands
+  first ends it.
 - In-game hand-ranking reference (collapsible panel below the controls).
 - Sort the hand by rank or suit, or drag cards into your own order (the
   sort buttons go inactive until you click one again). Selected cards score
@@ -50,7 +64,7 @@ static (it's also set up for GitHub Pages).
 - Jesters reorder the same way (drag them), and order
   matters: they score left to right, so a Blueprint copies whatever is on its
   right. You can own 5 jesters (more with the Wide Stage prop).
-- Tap or click a jester, mask, or tarot to inspect it. Sound effects (recorded
+- Tap or click a jester, mask, or decree to inspect it. Sound effects (recorded
   card clips plus synthesized stings) with a mute button that remembers its
   setting. Layout is landscape-first: a wide desktop layout with a fanned
   hand, a compact landscape phone layout, and a rotate prompt in portrait.
@@ -69,8 +83,10 @@ scoring itself is instant). This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for the
 jesters landed early since it's additive and non-breaking — see
-`assets/jesters/PROMPTS.md`; mask and tarot art prompts live in
-`assets/masks/` and `assets/tarot/`.)
+`assets/jesters/PROMPTS.md`; mask, decree, boss and King portrait prompts live in
+`assets/masks/`, `assets/decrees/`, `assets/bosses/` and `assets/court/`;
+`tools/imagegen/queue_cards.py` queues them into ComfyUI and
+`tools/imagegen/export_cards.py` copies finished renders into place at 150px.)
 
 ## Development
 

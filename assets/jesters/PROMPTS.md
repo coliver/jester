@@ -24,7 +24,7 @@ so art can be dropped in incrementally without further code changes.
 
 The style prefix put in front of every prompt is
 [tools/imagegen/style.txt](../../tools/imagegen/style.txt), read by
-`queue_cards.py`. Edit it there and every kind (jesters, tarots, masks) picks
+`queue_cards.py`. Edit it there and every kind (jesters, decrees, masks) picks
 it up. If you generate by hand, paste that text before the subject prompt.
 
 ## Per-jester prompts

@@ -2,7 +2,7 @@
 
 Optional art for the nine mask cards (`TRICK_POOL` in game.js, one per hand
 type). Same pipeline as the jesters (see [../jesters/PROMPTS.md](../jesters/PROMPTS.md))
-and the tarots (see [../tarot/PROMPTS.md](../tarot/PROMPTS.md)).
+and the decrees (see [../decrees/PROMPTS.md](../decrees/PROMPTS.md)).
 
 ## Convention
 
