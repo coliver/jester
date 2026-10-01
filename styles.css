@@ -129,7 +129,7 @@ body {
   flex: 0 0 auto;
   border: 1px dashed rgba(255,255,255,0.22);
   border-radius: 9px;
-  min-height: 64px;
+  aspect-ratio: 5 / 7; /* an empty slot is card-shaped too */
   position: relative;
 }
 #jester-row .jester { width: 100%; box-sizing: border-box; }
@@ -375,9 +375,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 #trick-row { padding: 6px; min-height: 64px; }
 #trick-row .trick-slot {
-  width: 116px;
+  width: var(--card-w); /* the same size as a playing card */
   flex: 0 0 auto;
-  min-height: 64px;
+  aspect-ratio: 5 / 7;
   border: 1px dashed rgba(255,255,255,0.22);
   border-radius: 9px;
 }
@@ -392,6 +392,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-size: 11px;
   text-align: center;
   line-height: 1.3;
+  aspect-ratio: 5 / 7; /* card-shaped like the jesters; a long description grows it rather than overflowing */
 }
 .trick > span { display: block; }
 .trick-glyph { font-size: 22px; color: var(--accent); }
@@ -410,7 +411,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #hud { padding: 8px 12px; gap: 6px 10px; }
   /* No overflow-x scroll: cards are touch-action:none (draggable), so a scrolling row couldn't be swiped. Slots shrink and cards overlap instead. */
   #jester-row { flex-wrap: nowrap; min-height: 0; padding: 6px; gap: 6px; }
-  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; }
+  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; aspect-ratio: auto; min-height: 126px; } /* slots shrink in width, so hold the card height instead */
   #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
   #hand-row { flex-wrap: nowrap; gap: 4px; min-height: 0; padding: 6px 0 12px; }
@@ -442,7 +443,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
 #inspect.hidden { display: none; }
-#inspect .jester, #inspect .trick { width: 100%; padding: 0; border: 0; background: none; font-size: inherit; }
+#inspect .jester, #inspect .trick { width: 100%; padding: 0; border: 0; background: none; font-size: inherit; aspect-ratio: auto; }
 #inspect .jester-art, #inspect .trick-glyph { display: none; }
 
 #deck-card {
@@ -580,15 +581,19 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #jester-row, #trick-row { flex-wrap: nowrap; min-height: 84px; padding: 4px 4px 4px 8px; gap: 0; }
   #jester-row { gap: 6px; }
   /* Slots shrink (and the cards overflow into overlap) only when the row runs out of room. */
-  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; }
+  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; aspect-ratio: auto; min-height: 126px; } /* slots shrink in width, so hold the card height instead */
   #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
   #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #jester-row .jester-art { width: 34px; margin: 0 auto 2px; }
   #top-row .jester-desc, #top-row .trick-desc { display: none; }
   #trick-row { gap: 6px; }
-  #trick-row .trick-slot { width: 78px; }
+  #trick-row .trick-slot { width: var(--card-w); }
   #trick-row .trick { padding: 4px; }
-  #trick-row .trick-glyph { font-size: 16px; }
+  /* Held cards are playing-card sized: drop the glyph and shrink the art and Use button so the card holds its 5:7 shape. */
+  #trick-row .trick-glyph { display: none; }
+  #trick-row .card-art { width: calc(var(--card-w) * 0.62); height: calc(var(--card-w) * 0.62); margin-bottom: 2px; }
+  #trick-row .trick-hand { margin-bottom: 0; }
+  #trick-row .trick button { margin-top: 3px; padding: 2px; font-size: 11px; }
   #preview { min-height: 18px; font-size: 12px; line-height: 1.1; text-align: left; padding: 0 4px; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
   .card { flex: 0 0 auto; padding: 5px; }
@@ -959,6 +964,8 @@ body::before {
 .card .court-half:first-child { border-bottom: 1px solid rgba(70, 40, 15, 0.45); }
 .card .court-half:last-child { transform: rotate(180deg); }
 .card .court-crown { color: var(--gilt); }
+.card .court-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.card .court-panel:has(.court-art:not([hidden])) { left: 14%; right: 14%; }
 
 .hud-sub { display: block; font-size: 10px; color: var(--muted); font-style: italic; white-space: nowrap; }
 #boss-banner { display: flex; align-items: center; justify-content: center; gap: 10px; }

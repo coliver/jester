@@ -1362,12 +1362,14 @@ function nextRound() {
   render();
 }
 
-// Debug only (?debug): begin each run with 3 distinct random Common jesters.
+// Debug only (?debug): begin each run with 3 distinct random Common jesters,
+// plus one random trick card and one random decree.
 const STARTING_JESTERS = 3;
 function grantStartingJester() {
   if (!DEBUG_ENABLED) return;
   const commons = shuffled(JESTER_POOL.filter(j => j.rarity === "Common"));
   for (const pick of commons.slice(0, STARTING_JESTERS)) state.jesters.push({ ...pick, sellBonus: 0 });
+  state.tricks.push({ ...shuffled(TRICK_POOL)[0] }, { ...shuffled(DECREE_POOL)[0] });
 }
 
 function restart() {
@@ -1540,11 +1542,17 @@ const PIP_LAYOUT = (() => {
 // glyph, like the old woodblock decks; U+FE0E keeps the glyph in text style.
 const COURT_CROWN = { J: "♞\uFE0E", Q: "♛\uFE0E", K: "♚\uFE0E" };
 
+// Generated portraits (assets/faces/face_<rank>_<suit>.png) cover the panel once
+// they load; a missing file just leaves the split panel in place.
+const COURT_NAME = { J: "jack", Q: "queen", K: "king" };
+const SUIT_NAME = { "♠": "spades", "♥": "hearts", "♣": "clubs", "♦": "diamonds" };
+
 function cardFaceHtml(card) {
   const layout = PIP_LAYOUT[card.rank];
   if (COURT_CROWN[card.rank]) {
+    const art = `<img class="court-art" src="assets/faces/face_${COURT_NAME[card.rank]}_${SUIT_NAME[card.suit]}.png" alt="" hidden onload="this.hidden=false" onerror="this.remove()">`;
     const half = `<span class="court-half"><span class="court-crown">${COURT_CROWN[card.rank]}</span><span>${card.suit}</span></span>`;
-    return `<span class="court-panel">${half}${half}</span>`;
+    return `<span class="court-panel">${half}${half}${art}</span>`;
   }
   if (!layout) return `<span class="suit-mid">${card.suit}</span>`;
   const pips = layout.map(([x, y]) =>
