@@ -599,6 +599,8 @@ function courtMood(roundScore, target, handsLeft) {
 
 let state = null;
 let lastJesterSig = null;
+let lastTricks = null; // the tricks the play row was last built from
+let lastTrickSlots = 0;
 
 function newState() {
   return {
@@ -610,6 +612,7 @@ function newState() {
     handsLeft: START_HANDS,
     discardsLeft: START_DISCARDS,
     masterDeck: baseDeck(),
+    removed: [], // cards destroyed this run, kept so the deck screen can show them as removed
     deck: [],
     hand: [],
     played: [],
@@ -1360,6 +1363,12 @@ function editCard(id, fn) {
 // Permanently remove cards from the run, wherever they currently are.
 function destroyCards(ids) {
   const gone = new Set(ids);
+  const everywhere = ["masterDeck", "hand", "deck", "played", "discarded"].flatMap(key => state[key] || []);
+  state.removed ||= [];
+  for (const id of gone) {
+    const card = (state.masterDeck || []).find(c => c.id === id) || everywhere.find(c => c.id === id);
+    if (card && !state.removed.some(c => c.id === id)) state.removed.push({ ...card });
+  }
   for (const key of ["hand", "deck", "played", "discarded", "masterDeck"]) {
     if (state[key]) state[key] = state[key].filter(c => !gone.has(c.id));
   }
@@ -1557,6 +1566,10 @@ function trickCardHTML(t) {
   return `<span class="trick-glyph">${t.decree ? "📜" : "🎭"}</span>${cardArtHTML(t.decree ? "decrees" : "masks", t.id)}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.decree ? "Decree" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
 
+function useButtonDisabled(t) {
+  return Boolean(state.pack) || Boolean(t.decree && !canUseDecree(t));
+}
+
 // A card-sized face for a shop offer or an owned card. Its text lives in the tap-to-read tooltip,
 // so the face only carries the art, name and rarity, and every card stays the same size.
 function cardFace(className, html) {
@@ -1583,7 +1596,7 @@ function fillTrickList(container, withSell) {
     const useBtn = document.createElement("button");
     useBtn.className = "use-btn";
     useBtn.textContent = "Use";
-    useBtn.disabled = Boolean(state.pack) || (t.decree && !canUseDecree(t));
+    useBtn.disabled = useButtonDisabled(t);
     if (t.decree) useBtn.title = `Select 1-${t.max} card${t.max > 1 ? "s" : ""} in hand during a round`;
     useBtn.addEventListener("click", () => useTrick(i));
     if (withSell) {
@@ -1659,6 +1672,69 @@ function cardFaceHtml(card) {
   return `<span class="pips">${pips}</span>`;
 }
 
+// Hand cards are built once and kept between renders (only moved or restyled), so a
+// selection never redraws them: rebuilt face cards flashed as their portrait reloaded.
+const handEls = new Map(); // card id -> its element
+
+const isStaged = (card) => state.selected.has(card.id) && Boolean(state.staged?.has(card.id));
+const cardSig = (card) => `${card.rank}${card.suit}${card.enh || ""}`;
+
+function buildCardEl(card, i) {
+  const id = card.id;
+  const div = document.createElement("div");
+  div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
+  const enh = ENHANCEMENTS[card.enh];
+  if (enh) div.classList.add("enh-" + card.enh);
+  div.dataset.sig = cardSig(card);
+  div.dataset.cardId = id;
+  // Staggered per card; the element persists, so the bob stays continuous.
+  div.style.setProperty("--bob-delay", `-${(performance.now() + i * 620) % BOB_PERIOD_MS}ms`);
+  const index = `<span>${card.rank}</span><span>${card.suit}</span>`;
+  div.innerHTML = `
+    <span class="rank-top">${index}</span>
+    ${cardFaceHtml(card)}
+    <span class="rank-bottom">${index}</span>
+    ${enh ? `<span class="enh-badge" title="${enh.name} Card">${enh.label}</span>` : ""}
+  `;
+  div.tabIndex = 0;
+  div.setAttribute("role", "button");
+  div.setAttribute("aria-label", `${card.rank} of ${card.suit}${enh ? `, ${enh.name} Card` : ""}`);
+  // Handlers read the current state (staged or in hand) when they fire, as the element outlives renders.
+  div.addEventListener("click", () => {
+    const staged = state.staged?.has(id);
+    const from = cardRects([id]);
+    toggleCard(id);
+    if (staged) flipCards(from);
+  });
+  makeDraggable(div, () => (isStaged({ id }) ? [] : document.getElementById("hand-row").children),
+    (slot) => { if (!isStaged({ id })) moveHandCard(id, slot); },
+    {
+      target: () => document.getElementById(isStaged({ id }) ? "hand-area" : "play-area"),
+      onDrop: (rect) => (isStaged({ id }) ? returnToHand(id, rect) : dropIntoPlayArea(id, rect)),
+    });
+  div.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleCard(id);
+    }
+  });
+  div.addEventListener("animationend", (e) => {
+    if (e.animationName !== "card-deal") return;
+    div.classList.remove("dealt");
+    div.style.animationDelay = "";
+  });
+  return div;
+}
+
+// Make `container`'s children exactly `els`, in order, touching only what has to move
+// (re-inserting an element restarts its animations and can flash its images).
+function syncChildren(container, els) {
+  els.forEach((el, idx) => {
+    if (container.children[idx] !== el) container.insertBefore(el, container.children[idx] || null);
+  });
+  while (container.children.length > els.length) container.lastElementChild.remove();
+}
+
 function renderHandReference() {
   const items = document.querySelectorAll("#hand-reference-list li");
   HAND_TYPES.forEach((t, i) => {
@@ -1698,10 +1774,13 @@ function render() {
     document.getElementById("boss-desc").textContent = state.bossModifier.desc;
     document.getElementById("boss-quip").textContent = state.bossModifier.quip || "";
     const bossArt = document.getElementById("boss-art");
-    bossArt.hidden = true;
-    bossArt.onload = () => { bossArt.hidden = false; };
-    bossArt.onerror = () => { bossArt.hidden = true; };
-    bossArt.src = `assets/bosses/${state.bossModifier.id}.png`;
+    const bossSrc = `assets/bosses/${state.bossModifier.id}.png`;
+    if (bossArt.getAttribute("src") !== bossSrc) { // only on a new boss: reloading it every render makes the banner flicker
+      bossArt.hidden = true;
+      bossArt.onload = () => { bossArt.hidden = false; };
+      bossArt.onerror = () => { bossArt.hidden = true; };
+      bossArt.src = bossSrc;
+    }
   } else {
     bossBanner.classList.add("hidden");
   }
@@ -1728,8 +1807,19 @@ function render() {
     }
   }
 
+  // Rebuilding the row on every render would reload each card's art (the glyph flashes back and
+  // the card visibly hops), so it is only rebuilt when the cards or slots change; otherwise just
+  // the Use buttons, which depend on the selection, are refreshed.
   const trickRow = document.getElementById("trick-row");
-  fillTrickList(trickRow, false);
+  const sameTricks = lastTricks && lastTricks.length === state.tricks.length &&
+    lastTricks.every((t, i) => t === state.tricks[i]) && lastTrickSlots === trickSlots();
+  if (sameTricks) {
+    trickRow.querySelectorAll(".use-btn").forEach((btn, i) => { btn.disabled = useButtonDisabled(state.tricks[i]); });
+  } else {
+    lastTricks = [...state.tricks];
+    lastTrickSlots = trickSlots();
+    fillTrickList(trickRow, false);
+  }
   document.getElementById("jester-count").textContent = `${state.jesters.length}/${jesterSlots()}`;
   document.getElementById("trick-count").textContent = `${state.tricks.length}/${trickSlots()}`;
   renderHandReference();
@@ -1742,60 +1832,42 @@ function render() {
 
   const handRow = document.getElementById("hand-row");
   const playArea = document.getElementById("play-area");
-  handRow.innerHTML = "";
-  playArea.innerHTML = "";
   const allCards = sortedHand();
-  const isStaged = (card) => state.selected.has(card.id) && state.staged?.has(card.id);
   const handCards = allCards.filter(c => !isStaged(c));
+  const wantHand = [], wantPlay = [];
+  const present = new Set();
   for (const card of allCards) {
     const staged = isStaged(card);
-    const i = handCards.indexOf(card);
-    const div = document.createElement("div");
-    div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
-    const enh = ENHANCEMENTS[card.enh];
-    if (enh) div.classList.add("enh-" + card.enh);
+    let el = handEls.get(card.id);
+    if (el && el.dataset.sig !== cardSig(card)) { // a decree changed this card: draw it afresh
+      el.remove();
+      el = null;
+    }
+    if (!el) {
+      el = buildCardEl(card, handCards.indexOf(card));
+      handEls.set(card.id, el);
+    }
+    present.add(card.id);
     const isSelected = state.selected.has(card.id);
-    if (isSelected) div.classList.add("selected");
+    el.classList.toggle("selected", isSelected);
+    el.setAttribute("aria-pressed", String(isSelected));
     // Fan position, -1 (leftmost) .. 1 (rightmost); CSS decides whether to use it.
-    div.style.setProperty("--fan", !staged && handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
-    // The hand is rebuilt on every render; deriving the bob's phase from the
-    // clock (staggered per card) keeps it continuous instead of restarting.
-    div.style.setProperty("--bob-delay", `-${(performance.now() + i * 620) % BOB_PERIOD_MS}ms`);
+    const i = handCards.indexOf(card);
+    el.style.setProperty("--fan", !staged && handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
     if (dealt.has(card.id)) {
-      div.classList.add("dealt");
-      div.style.animationDelay = `${dealt.get(card.id) * 70}ms`;
+      el.classList.add("dealt");
+      el.style.animationDelay = `${dealt.get(card.id) * 70}ms`;
     }
-    const index = `<span>${card.rank}</span><span>${card.suit}</span>`;
-    div.innerHTML = `
-      <span class="rank-top">${index}</span>
-      ${cardFaceHtml(card)}
-      <span class="rank-bottom">${index}</span>
-      ${enh ? `<span class="enh-badge" title="${enh.name} Card">${enh.label}</span>` : ""}
-    `;
-    div.tabIndex = 0;
-    div.setAttribute("role", "button");
-    div.setAttribute("aria-pressed", String(isSelected));
-    div.setAttribute("aria-label", `${card.rank} of ${card.suit}${enh ? `, ${enh.name} Card` : ""}`);
-    div.dataset.cardId = card.id;
-    div.addEventListener("click", () => {
-      const from = cardRects([card.id]);
-      toggleCard(card.id);
-      if (staged) flipCards(from);
-    });
-    if (staged) {
-      makeDraggable(div, () => [], () => {}, { target: () => document.getElementById("hand-area"), onDrop: (rect) => returnToHand(card.id, rect) });
-    } else {
-      makeDraggable(div, () => handRow.children, (index) => moveHandCard(card.id, index),
-        { target: () => playArea, onDrop: (rect) => dropIntoPlayArea(card.id, rect) });
-    }
-    div.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        toggleCard(card.id);
-      }
-    });
-    (staged ? playArea : handRow).appendChild(div);
+    (staged ? wantPlay : wantHand).push(el);
   }
+  for (const [id, el] of handEls) {
+    if (!present.has(id)) {
+      el.remove();
+      handEls.delete(id);
+    }
+  }
+  syncChildren(handRow, wantHand);
+  syncChildren(playArea, wantPlay);
 
   const selected = getSelectedCards();
   const previewName = document.getElementById("preview-name");
@@ -1846,15 +1918,17 @@ function renderDeckView() {
   if (!open) return;
 
   const status = cardStatuses();
-  const counts = { deck: 0, hand: 0, played: 0, discarded: 0 };
+  const removed = state.removed || [];
+  const counts = { deck: 0, hand: 0, played: 0, discarded: 0, removed: removed.length };
   for (const v of status.values()) counts[v] += 1;
-  document.getElementById("deck-legend").innerHTML = ["deck", "hand", "played", "discarded"]
+  for (const c of removed) status.set(c.id, "removed");
+  document.getElementById("deck-legend").innerHTML = ["deck", "hand", "played", "discarded", ...(removed.length ? ["removed"] : [])]
     .map(k => `<span class="legend-item ${k}">${k === "deck" ? "In deck" : k[0].toUpperCase() + k.slice(1)}: ${counts[k]}</span>`)
     .join("");
 
   const grid = document.getElementById("deck-grid");
   grid.innerHTML = "";
-  const cards = [...(state.masterDeck || [])].sort((a, b) =>
+  const cards = [...(state.masterDeck || []), ...removed].sort((a, b) =>
     SUIT_ORDER.get(a.suit) - SUIT_ORDER.get(b.suit) || rankNum(b.rank) - rankNum(a.rank));
   for (const card of cards) {
     const st = status.get(card.id) || "deck";
@@ -1862,7 +1936,7 @@ function renderDeckView() {
     const div = document.createElement("div");
     div.className = `mini-card ${RED_SUITS.has(card.suit) ? "red" : "black"} ${st}${enh ? " enh-" + card.enh : ""}`;
     div.textContent = `${card.rank}${card.suit}`;
-    div.title = `${card.rank} of ${card.suit}${enh ? ` (${enh.name})` : ""}: ${st === "deck" ? "still in deck" : st}`;
+    div.title = `${card.rank} of ${card.suit}${enh ? ` (${enh.name})` : ""}: ${st === "deck" ? "still in deck" : st === "removed" ? "destroyed, gone from your deck for good" : st}`;
     grid.appendChild(div);
   }
 }
@@ -2253,6 +2327,7 @@ const testHooks = {
   render,
   // test-only state access
   _getState: () => state,
+  destroyCards,
   _setState: (s) => { state = s; },
 };
 

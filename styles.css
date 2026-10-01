@@ -472,6 +472,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .legend-item.hand { color: var(--accent-2); }
 .legend-item.played { color: var(--accent); }
 .legend-item.discarded { color: var(--red); }
+.legend-item.removed { color: var(--red); text-decoration: line-through; }
 
 #deck-grid {
   display: grid;
@@ -495,6 +496,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .mini-card.hand { border-color: var(--accent-2); }
 .mini-card.played { opacity: 0.35; border-color: var(--accent); }
 .mini-card.discarded { opacity: 0.35; border-color: var(--red); }
+/* Destroyed cards keep their place in the grid, struck through and dashed, so you can see what you've lost. */
+.mini-card.removed { opacity: 0.55; border: 2px dashed var(--red); background: rgba(255, 93, 108, 0.14); text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--red); }
 
 @media (max-width: 560px) {
   #deck-grid { grid-template-columns: repeat(7, 1fr); }
@@ -506,7 +509,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   :root {
     /* Three card rows (jesters, play area, hand) plus the controls, banner and padding must fit the
        viewport height, so the card height is (viewport - --chrome) / 3. */
-    --chrome: 175px;
+    --chrome: 164px;
     --card-w: min(130px, calc((100vw - 150px) / 8), calc((100vh - var(--chrome)) / 4.2));
     --card-h: calc(var(--card-w) * 1.4);
   }
@@ -623,7 +626,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Short landscape screens (phones): trim the chrome around the three card rows so the cards stay readable. */
 @media (orientation: landscape) and (max-height: 500px) {
-  :root { --chrome: 160px; }
+  :root { --chrome: 126px; }
   body { padding: 4px; }
   #app { height: calc(100vh - 8px); height: calc(100dvh - 8px); }
   #controls { margin-top: 4px; }
@@ -1163,3 +1166,11 @@ body::before {
 #overlay .trick > .trick-glyph { flex: none; }
 #overlay .trick.prop > .trick-glyph, #overlay .trick.pack > .trick-glyph { flex: 1 1 0; }
 #trick-row .card-art, #overlay .trick .card-art { flex: 1 1 0; min-height: 0; width: 100%; height: auto; margin: 0 0 2px; }
+
+/* Landscape: the boss banner is one slim line (the quip is dropped), so the three card rows can
+   claim nearly all of the height and the banner still fits when a boss round shows it. */
+@media (orientation: landscape) {
+  #boss-banner { padding: 2px 8px; font-size: 12px; line-height: 1.2; }
+  #boss-art { width: 20px; height: 20px; }
+  #boss-quip { display: none; }
+}

@@ -507,7 +507,7 @@ test("decree cards load optional art, and a missing file leaves the glyph", () =
   assert.equal(card.querySelector(".card-art"), null);
   assert.ok(!card.querySelector(".trick-glyph").hidden);
   // ...and when the file loads, the art replaces the glyph.
-  gameModule.render();
+  dealtState({ tricks: [{ ...decree }] });
   const loaded = document.querySelector("#trick-row .card-art");
   new Function(loaded.getAttribute("onload")).call(loaded);
   assert.ok(!loaded.hidden);
@@ -857,10 +857,11 @@ test("the play area highlights while a card is dragged over it", () => {
   assert.equal(gameModule._getState().selected.size, 0);
 });
 
-test("clicking a card in the play area sends it back to the hand", () => {
+test("clicking a card in the play area sends it back to the hand", async () => {
   dealtState();
   fakePlayArea();
   dragTo(document.querySelector("#hand-row .card"), 300, 300, 250, 50);
+  await sleep(5); // the click a real drag release triggers is swallowed until the next tick
   document.querySelector("#play-area .card").click();
   assert.equal(gameModule._getState().selected.size, 0);
   assert.equal(gameModule._getState().staged.size, 0);
@@ -898,4 +899,51 @@ test("stageCard and unstageCard refuse outside the playing phase or for unknown 
   dealtState();
   assert.equal(gameModule.stageCard("nope"), false);
   assert.equal(gameModule.unstageCard("nope"), false);
+});
+
+test("selecting cards does not rebuild the mask/decree row, so its art never reloads", () => {
+  const decree = gameModule.DECREE_POOL.find((t) => t.id === "decree_marriage");
+  dealtState({ tricks: [{ ...decree }] });
+  const card = document.querySelector("#trick-row .trick");
+  const use = card.querySelector(".use-btn");
+  assert.ok(use.disabled);
+  document.querySelector("#hand-row .card").click();
+  assert.equal(document.querySelector("#trick-row .trick"), card); // same element, not a rebuilt one
+  assert.ok(!use.disabled);
+  document.querySelector("#hand-row .card").click();
+  assert.ok(use.disabled);
+  // a changed set of cards does rebuild
+  gameModule._getState().tricks.push({ ...gameModule.DECREE_POOL[0] });
+  gameModule.render();
+  assert.equal(document.querySelectorAll("#trick-row .trick").length, 2);
+});
+
+test("hand cards persist across renders, so face-card portraits never reload", () => {
+  const king = { id: "K-test", rank: "K", suit: "\u2660" };
+  const others = gameModule.freshDeck().slice(0, 7);
+  dealtState({ hand: [king, ...others] });
+  const art = () => document.querySelector("#hand-row .court-art");
+  const first = art();
+  const kingEl = document.querySelector("#hand-row .card");
+  assert.ok(first);
+  document.querySelectorAll("#hand-row .card")[1].click(); // any render
+  assert.equal(art(), first); // the very same element, not a fresh <img>
+  assert.equal(document.querySelector("#hand-row .card"), kingEl);
+  gameModule.render();
+  assert.equal(art(), first);
+});
+
+test("destroyed cards stay in the deck screen, marked as removed", () => {
+  const state = dealtState();
+  const victim = state.hand[0];
+  gameModule.destroyCards([victim.id]);
+  document.getElementById("deck-btn").click();
+  const cells = [...document.querySelectorAll("#deck-grid .mini-card")];
+  assert.equal(cells.length, 52); // still all 52, in place
+  const removed = cells.filter((c) => c.classList.contains("removed"));
+  assert.equal(removed.length, 1);
+  assert.equal(removed[0].textContent, `${victim.rank}${victim.suit}`);
+  assert.match(document.getElementById("deck-legend").textContent, /Removed: 1/);
+  assert.match(document.getElementById("deck-btn").textContent, /\/51\)/); // the live deck total drops by one
+  document.getElementById("deck-close-btn").click();
 });
