@@ -854,9 +854,10 @@ body::before {
 #shop-money.hidden { display: none; }
 #overlay-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 #overlay-actions button { padding: 8px 16px; font-size: 14px; white-space: nowrap; }
-#reroll-btn, #money-btn { background: transparent; border: 2px solid var(--muted); color: var(--muted); }
+#reroll-btn, #money-btn, #new-run-btn { background: transparent; border: 2px solid var(--muted); color: var(--muted); }
 #money-btn { border-color: var(--accent); color: var(--accent); }
-#reroll-btn.hidden, #money-btn.hidden { display: none; }
+#new-run-btn.confirm { border-color: var(--red); color: var(--red); }
+#reroll-btn.hidden, #money-btn.hidden, #new-run-btn.hidden { display: none; }
 
 #overlay-body { flex: 1 1 auto; min-height: 0; display: flex; }
 

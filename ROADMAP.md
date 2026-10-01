@@ -56,8 +56,8 @@ toggle). Explicitly deferred until the systems are stable, since presentation wo
 churns hard if the underlying model is still moving.
 
 **Phase 5 — Meta & reach**
-Run persistence (resume via localStorage; only the mute setting is saved
-today), run stats/seed display, anything GitHub Pages deployment needs.
+Run persistence (landed: resume via localStorage at round boundaries; mid-round
+state is not saved), run stats/seed display, anything GitHub Pages deployment needs.
 The mobile layout pass has landed (landscape phone layout, rotate prompt in
 portrait, touch drag). Lower priority than
 it sounds — the game is already playable end-to-end without it.

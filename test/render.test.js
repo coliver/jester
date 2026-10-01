@@ -1202,3 +1202,98 @@ test("played cards keep their order in the play area while they score", async ()
     hurry();
   });
 });
+
+// --- run persistence (localStorage in the jsdom window) -----------------------
+
+const savedRun = () => JSON.parse(window.localStorage.getItem(gameModule.SAVE_KEY));
+
+test("persistence: the shop is saved on render, buying updates the save, and a loss clears it", async () => {
+  window.localStorage.clear();
+  dealtState({ target: 1 });
+  document.querySelector("#hand-row .card").click();
+  document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
+  assert.equal(gameModule._getState().phase, "shop");
+
+  const saved = savedRun();
+  assert.equal(saved.phase, "shop");
+  assert.equal(saved.jesters.length, 0);
+  assert.equal(saved.shopOffers.length, 3);
+
+  document.querySelector("#shop-items .shop-item button").click();
+  assert.equal(savedRun().jesters.length, 1);
+  assert.equal(savedRun().money, gameModule._getState().money);
+
+  // loadRun() rebuilds the same shop from storage.
+  const loaded = gameModule.loadRun();
+  assert.equal(loaded.phase, "shop");
+  assert.deepEqual(loaded.jesters.map((j) => j.id), gameModule._getState().jesters.map((j) => j.id));
+
+  const state = dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1 });
+  assert.ok(window.localStorage.getItem(gameModule.SAVE_KEY)); // a half-played round is not what's saved
+  assert.equal(savedRun().phase, "shop");
+  state.phase = "gameover";
+  gameModule.render();
+  assert.equal(window.localStorage.getItem(gameModule.SAVE_KEY), null);
+});
+
+test("persistence: a round start is saved, and a corrupt or unusable save is ignored", async () => {
+  window.localStorage.clear();
+  dealtState();
+  gameModule.nextRound(); // startRound() saves the new round
+  await sleep(DEAL_ANIMATION_MS);
+  assert.equal(savedRun().phase, "playing");
+  assert.equal(gameModule.loadRun().phase, "playing");
+
+  window.localStorage.setItem(gameModule.SAVE_KEY, "{not json");
+  assert.equal(gameModule.loadRun(), null);
+  window.localStorage.setItem(gameModule.SAVE_KEY, JSON.stringify({ v: 1, phase: "shop" }));
+  assert.equal(gameModule.loadRun(), null);
+
+  const realStorage = Object.getOwnPropertyDescriptor(window, "localStorage");
+  Object.defineProperty(window, "localStorage", { configurable: true, get() { throw new Error("blocked"); } });
+  try {
+    assert.equal(gameModule.loadRun(), null);
+    gameModule.render(); // saving with storage blocked must not throw
+  } finally {
+    Object.defineProperty(window, "localStorage", realStorage);
+  }
+});
+
+test("shop: New Run needs a second click, then starts a fresh run and saves it", async () => {
+  window.localStorage.clear();
+  dealtState({ target: 1 });
+  document.querySelector("#hand-row .card").click();
+  document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
+  assert.equal(gameModule._getState().phase, "shop");
+
+  const btn = document.getElementById("new-run-btn");
+  assert.ok(!btn.classList.contains("hidden"));
+  btn.click();
+  assert.equal(gameModule._getState().phase, "shop"); // first click only arms it
+  assert.ok(btn.classList.contains("confirm"));
+  btn.click();
+  await sleep(DEAL_ANIMATION_MS);
+  const state = gameModule._getState();
+  assert.equal(state.phase, "playing");
+  assert.equal(state.ante, 1);
+  assert.equal(state.money, 4);
+  assert.equal(savedRun().phase, "playing");
+  assert.ok(btn.classList.contains("hidden"));
+  assert.equal(btn.textContent, "New Run");
+});
+
+test("shop: an armed New Run button disarms itself", async () => {
+  dealtState({ target: 1 });
+  document.querySelector("#hand-row .card").click();
+  document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
+  const btn = document.getElementById("new-run-btn");
+  btn.click();
+  assert.ok(btn.classList.contains("confirm"));
+  await sleep(gameModule.NEW_RUN_CONFIRM_MS + 50);
+  assert.ok(!btn.classList.contains("confirm"));
+  assert.equal(btn.textContent, "New Run");
+  assert.equal(gameModule._getState().phase, "shop");
+});

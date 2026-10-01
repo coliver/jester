@@ -31,6 +31,10 @@ const {
   finishRoundWin,
   PROP_POOL,
   nextRound,
+  serializeRun,
+  restoreRun,
+  TRICK_POOL,
+  DECREE_POOL,
   _getState,
   _setState,
 } = require("../game.js");
@@ -1282,4 +1286,82 @@ test("the last round of the last ante is always The King", () => {
   assert.equal(_getState().bossModifier, KING_BOSS);
   assert.equal(_getState().handsLeft, 3);
   assert.ok(!BOSS_MODIFIERS.includes(KING_BOSS));
+});
+
+// --- run persistence (the serialize/restore round trip; no storage involved) ---
+
+// Pushes the fresh state through real JSON, the way localStorage would.
+function roundTrip(state) {
+  return restoreRun(JSON.parse(JSON.stringify(serializeRun(state))));
+}
+
+function savedShopState() {
+  const state = freshRoundState();
+  state.jesters = [{ ...JESTER_POOL[0], sellBonus: 3 }, { ...JESTER_POOL[1], sellBonus: 0 }];
+  state.tricks = [{ ...TRICK_POOL[2] }, { ...DECREE_POOL[0] }];
+  state.props = [PROP_POOL[0]];
+  state.handLevels = { Pair: 3 };
+  state.money = 17;
+  state.target = 1;
+  state.masterDeck[0] = { ...state.masterDeck[0], enh: "glass" };
+  state.removed = [state.masterDeck.pop()];
+  finishRoundWin();
+  return state;
+}
+
+test("a shop save restores the run, offers, and owned cards", () => {
+  const before = savedShopState();
+  assert.equal(before.phase, "shop");
+  const after = roundTrip(before);
+  assert.equal(after.phase, "shop");
+  for (const key of ["ante", "round", "money", "target", "rerollCost", "jestersSold", "packAvailable", "handLevels"]) {
+    assert.deepEqual(after[key], before[key], key);
+  }
+  assert.deepEqual(after.jesters.map(j => [j.id, j.sellBonus]), before.jesters.map(j => [j.id, j.sellBonus]));
+  assert.equal(typeof after.jesters[0].apply === "function" || typeof after.jesters[0].roundEnd === "function", true);
+  assert.deepEqual(after.tricks.map(t => t.id), before.tricks.map(t => t.id));
+  assert.equal(typeof after.tricks[1].apply, "function"); // the decree keeps its effect
+  assert.deepEqual(after.props, before.props);
+  assert.deepEqual(after.shopOffers.map(j => j.id), before.shopOffers.map(j => j.id));
+  assert.deepEqual(after.shopTricks.map(j => j.id), before.shopTricks.map(j => j.id));
+  assert.deepEqual(after.shopDecrees.map(j => j.id), before.shopDecrees.map(j => j.id));
+  assert.equal(after.shopProp?.id ?? null, before.shopProp?.id ?? null);
+  assert.deepEqual(after.masterDeck, before.masterDeck); // enhancements survive
+  assert.deepEqual(after.removed, before.removed);
+  assert.deepEqual(after.lastEarnings, before.lastEarnings);
+});
+
+test("an open pack is restored with the same cards", () => {
+  const before = savedShopState();
+  before.pack = DECREE_POOL.slice(0, 3);
+  before.packKind = "decree";
+  assert.deepEqual(roundTrip(before).pack.map(c => c.id), before.pack.map(c => c.id));
+});
+
+test("a saved boss round resumes with the same boss", () => {
+  const state = freshRoundState();
+  state.round = 3;
+  state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "water");
+  const saved = roundTrip(state);
+  assert.equal(saved.bossModifier, state.bossModifier);
+  _setState(saved);
+  startRound(saved.bossModifier);
+  assert.equal(_getState().bossModifier.id, "water");
+  assert.equal(_getState().discardsLeft, 0);
+  assert.equal(_getState().hand.length, _getState().handSize);
+});
+
+test("a bad save is rejected rather than half restored", () => {
+  const good = JSON.parse(JSON.stringify(serializeRun(savedShopState())));
+  const bad = (patch) => restoreRun({ ...good, ...patch });
+  assert.ok(restoreRun(good));
+  assert.equal(restoreRun(null), null);
+  assert.equal(bad({ v: 99 }), null);
+  assert.equal(bad({ phase: "gameover" }), null);
+  assert.equal(bad({ money: "lots" }), null);
+  assert.equal(bad({ jesters: [{ id: "no_such_jester" }] }), null);
+  assert.equal(bad({ props: "nope" }), null);
+  assert.equal(bad({ handLevels: { "Royal Marmalade": 2 } }), null);
+  assert.equal(bad({ masterDeck: [{ id: "x", suit: "?", rank: "2" }] }), null);
+  assert.equal(bad({ boss: "no_such_boss" }), null);
 });

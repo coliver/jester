@@ -689,7 +689,8 @@ function animateShuffle() {
   pile.classList.add("shuffling");
 }
 
-function startRound() {
+// `boss` is only passed when resuming a saved run, so a refresh can't re-roll the boss.
+function startRound(boss) {
   state.deck = freshDeck();
   state.hand = [];
   state.played = [];
@@ -698,7 +699,7 @@ function startRound() {
   state.roundScore = 0;
   state.handTypesPlayed = new Set();
   state.bossModifier = state.round === ROUNDS_PER_ANTE
-    ? (state.ante >= FINAL_ANTE ? KING_BOSS : BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)])
+    ? (boss || (state.ante >= FINAL_ANTE ? KING_BOSS : BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)]))
     : null;
   const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0) + propSum("handSizeDelta");
   const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0) + propSum("discardsDelta");
@@ -712,6 +713,7 @@ function startRound() {
   state.phase = "playing";
   state.dealtIds = new Map();
   state.discardsUsed = 0;
+  persistRun(true);
 
   const deal = () => {
     state.hand = draw(state.handSize);
@@ -1836,6 +1838,140 @@ function restart() {
   render();
 }
 
+// --- Run persistence ---------------------------------------------------------
+//
+// A run is saved to localStorage at round boundaries only: when a round starts
+// and whenever the shop changes. Mid-hand state (deck order, hand, selection,
+// score) is not saved, so reloading mid-round restarts that round, with the
+// same boss. Jesters, masks, decrees, props and offers are saved by id and
+// rebuilt from their pools; the only per-instance jester state is sellBonus.
+
+const SAVE_KEY = "jester-run";
+const SAVE_VERSION = 1;
+const SAVED_SCALARS = {
+  ante: "number", round: "number", target: "number", roundScore: "number", money: "number",
+  handsLeft: "number", discardsLeft: "number", handSize: "number", rerollCost: "number",
+  jestersSold: "number", freeRerollUsed: "boolean", packAvailable: "boolean",
+  decreePackAvailable: "boolean", sortMode: "string", packKind: "string",
+};
+
+function runStorage() {
+  try { return typeof window !== "undefined" ? window.localStorage : null; } catch { return null; }
+}
+
+function serializeRun(s) {
+  const data = { v: SAVE_VERSION, phase: s.phase };
+  for (const key of Object.keys(SAVED_SCALARS)) data[key] = s[key];
+  data.jesters = s.jesters.map(j => ({ id: j.id, sellBonus: j.sellBonus || 0 }));
+  data.tricks = s.tricks.map(t => t.id);
+  data.props = s.props.map(v => v.id);
+  data.shopProp = s.shopProp?.id ?? null;
+  data.shopOffers = s.shopOffers.map(j => j.id);
+  data.shopTricks = s.shopTricks.map(t => t.id);
+  data.shopDecrees = s.shopDecrees.map(d => d.id);
+  data.pack = s.pack ? s.pack.map(t => t.id) : null;
+  data.handLevels = s.handLevels;
+  data.masterDeck = s.masterDeck;
+  data.removed = s.removed;
+  data.lastEarnings = s.lastEarnings;
+  data.boss = s.bossModifier?.id ?? null;
+  return data;
+}
+
+// Rebuilds a run state from saved data, or returns null if anything is off
+// (wrong version, unknown ids, bad shapes), so a stale save never breaks the game.
+function restoreRun(data) {
+  const byId = (pool, id) => pool.find(x => x.id === id);
+  const cardOk = c => c && typeof c.id === "string" && SUITS.includes(c.suit) && RANKS.includes(c.rank);
+  const list = (ids, pool) => {
+    if (!Array.isArray(ids)) throw new Error("not a list");
+    return ids.map(id => {
+      const item = byId(pool, id);
+      if (!item) throw new Error("unknown id " + id);
+      return item;
+    });
+  };
+  try {
+    if (!data || data.v !== SAVE_VERSION || (data.phase !== "shop" && data.phase !== "playing")) return null;
+    const s = newState();
+    for (const [key, type] of Object.entries(SAVED_SCALARS)) {
+      if (typeof data[key] !== type) return null;
+      s[key] = data[key];
+    }
+    s.phase = data.phase;
+    s.jesters = data.jesters.map(j => ({ ...list([j.id], JESTER_POOL)[0], sellBonus: Number(j.sellBonus) || 0 }));
+    s.tricks = list(data.tricks, [...TRICK_POOL, ...DECREE_POOL]).map(t => ({ ...t }));
+    s.props = list(data.props, PROP_POOL);
+    s.shopProp = data.shopProp ? list([data.shopProp], PROP_POOL)[0] : null;
+    s.shopOffers = list(data.shopOffers, JESTER_POOL);
+    s.shopTricks = list(data.shopTricks, TRICK_POOL);
+    s.shopDecrees = list(data.shopDecrees, DECREE_POOL);
+    s.pack = data.pack ? list(data.pack, s.packKind === "decree" ? DECREE_POOL : TRICK_POOL) : null;
+    s.handLevels = {};
+    for (const [name, level] of Object.entries(data.handLevels)) {
+      if (!HAND_TYPES.some(t => t.name === name) || typeof level !== "number") return null;
+      s.handLevels[name] = level;
+    }
+    if (!Array.isArray(data.masterDeck) || !data.masterDeck.every(cardOk)) return null;
+    if (!Array.isArray(data.removed) || !data.removed.every(cardOk)) return null;
+    s.masterDeck = data.masterDeck.map(c => ({ ...c }));
+    s.removed = data.removed.map(c => ({ ...c }));
+    s.lastEarnings = data.lastEarnings || null;
+    s.bossModifier = data.boss ? list([data.boss], BOSS_POOL)[0] : null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+// Saves at the start of a round (startRound passes roundStart) and whenever the
+// shop is drawn, and forgets the run once it ends. Anything else, such as a
+// hand in progress, is deliberately not saved.
+function persistRun(roundStart = false) {
+  const storage = runStorage();
+  if (!storage || DEBUG_ENABLED || !state) return;
+  try {
+    if (state.phase === "gameover" || state.phase === "win") storage.removeItem(SAVE_KEY);
+    else if (state.phase === "shop" || (state.phase === "playing" && roundStart)) {
+      storage.setItem(SAVE_KEY, JSON.stringify(serializeRun(state)));
+    }
+  } catch { /* storage full or blocked: the run just isn't saved */ }
+}
+
+// Abandoning a run takes two clicks: the first arms the button, and it disarms itself after a moment.
+const NEW_RUN_CONFIRM_MS = 3000;
+function initNewRunButton() {
+  const btn = document.getElementById("new-run-btn");
+  let timer = null;
+  const disarm = () => {
+    clearTimeout(timer);
+    timer = null;
+    btn.textContent = "New Run";
+    btn.classList.remove("confirm");
+  };
+  btn.addEventListener("click", () => {
+    if (timer === null) {
+      btn.textContent = "Abandon this run?";
+      btn.classList.add("confirm");
+      timer = setTimeout(disarm, NEW_RUN_CONFIRM_MS);
+      return;
+    }
+    disarm();
+    restart();
+  });
+}
+
+function loadRun() {
+  const storage = runStorage();
+  if (!storage || DEBUG_ENABLED) return null;
+  try {
+    const raw = storage.getItem(SAVE_KEY);
+    return raw ? restoreRun(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
 // --- Rendering ---------------------------------------------------------------
 
 const SUIT_ORDER = new Map(SUITS.map((s, i) => [s, i]));
@@ -2153,6 +2289,7 @@ function renderScoreHud(score) {
 
 function render() {
   if (typeof document === "undefined") return;
+  persistRun();
   document.getElementById("ante-val").textContent = state.ante;
   document.getElementById("venue-val").textContent = venueName(state.ante);
   document.getElementById("round-val").textContent = state.round;
@@ -2460,6 +2597,7 @@ function renderOverlay() {
   const moneyBtn = document.getElementById("money-btn");
   const debug = state.phase === "playing" && state.debugShop;
   moneyBtn.classList.toggle("hidden", !debug);
+  document.getElementById("new-run-btn").classList.toggle("hidden", state.phase !== "shop");
   if (state.phase === "shop" || debug) {
     overlay.classList.remove("hidden", "end");
     document.getElementById("overlay-title").textContent = debug ? "Debug Shop" : "Round Cleared!";
@@ -2670,6 +2808,7 @@ function initApp() {
     handReferenceList.appendChild(document.createElement("li"));
   }
   document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
+  initNewRunButton();
 
   // On a landscape phone the hand-rankings panel moves into the left column
   // (under the HUD) to save vertical space.
@@ -2686,10 +2825,17 @@ function initApp() {
     mq.addEventListener("change", placeTools);
   }
 
-  state = newState();
-  grantStartingJester();
-  startRound();
-  render();
+  const saved = loadRun();
+  if (saved?.phase === "shop") {
+    state = saved;
+    shopIntroFor = saved.lastEarnings; // no payout count-up for a shop that was already opened
+    render();
+  } else {
+    state = saved || newState();
+    if (!saved) grantStartingJester();
+    startRound(saved?.bossModifier);
+    render();
+  }
 }
 
 // Browser entry point. Guarded so this file can also be `require()`d from
@@ -2749,6 +2895,11 @@ const testHooks = {
   nextRound,
   restart,
   render,
+  serializeRun,
+  restoreRun,
+  loadRun,
+  SAVE_KEY,
+  NEW_RUN_CONFIRM_MS,
   // test-only state access
   _getState: () => state,
   _setScoringAnimation: (on) => { scoringOverride = on; },

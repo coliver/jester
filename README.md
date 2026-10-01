@@ -76,6 +76,10 @@ static (it's also set up for GitHub Pages).
   card clips plus synthesized stings) with a mute button that remembers its
   setting. Layout is landscape-first: a wide desktop layout with a fanned
   hand, a compact landscape phone layout, and a rotate prompt in portrait.
+- Run persistence: the run is saved to localStorage when a round starts and whenever the
+  shop changes, and resumes on reload. Reloading mid-round restarts that round with the same
+  boss; a finished run (win or loss) clears the save. The shop has a New Run button (two
+  clicks to confirm) to abandon a run. Not saved under `?debug`.
 - Add `?debug` to the URL for a debug shop, a Win button that instantly clears the current round into the real shop, and a starting hand of jesters.
 - A Deck button that opens a grid of all
   52 cards showing which are still in the draw pile, in hand, played, or
@@ -85,7 +89,7 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Run persistence, a Balatro-sized jester roster, spectral-style cards, decks,
+Mid-round saves, a Balatro-sized jester roster, spectral-style cards, decks,
 and stakes. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for the
