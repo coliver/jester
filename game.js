@@ -615,6 +615,7 @@ function newState() {
     played: [],
     discarded: [],
     selected: new Set(),
+    staged: new Set(), // selected cards that have been moved into the play area
     jesters: [],
     tricks: [],
     props: [],
@@ -688,7 +689,7 @@ function startRound() {
   state.hand = [];
   state.played = [];
   state.discarded = [];
-  state.selected = new Set();
+  clearSelection();
   state.roundScore = 0;
   state.handTypesPlayed = new Set();
   state.bossModifier = state.round === ROUNDS_PER_ANTE
@@ -822,18 +823,48 @@ function scoreSelection(selected) {
 
 // --- Actions ---------------------------------------------------------------
 
+function clearSelection() {
+  state.selected = new Set();
+  state.staged = new Set();
+}
+
+// Between pressing Play Hand and the hand scoring, the cards fly up into the play area; input waits.
+const PLAY_ANIMATION_MS = 380;
+let playPending = false;
+
 function toggleCard(id) {
-  if (state.phase !== "playing") return;
+  if (state.phase !== "playing" || playPending) return;
   const card = state.hand.find(c => c.id === id);
   if (!card) return;
   if (state.selected.has(id)) {
     state.selected.delete(id);
+    state.staged?.delete(id);
     Sound.cardDeselect();
   } else if (state.selected.size < MAX_SELECTED) {
     state.selected.add(id);
     Sound.cardSelect();
   }
   render();
+}
+
+// Dragging a hand card into the play area selects it and parks it there; dragging it
+// (or clicking it) back puts it in the hand again, unselected. Both return whether anything changed.
+function stageCard(id) {
+  if (state.phase !== "playing" || playPending || !state.hand.some(c => c.id === id)) return false;
+  if (!state.selected.has(id)) {
+    if (state.selected.size >= MAX_SELECTED) return false;
+    state.selected.add(id);
+  }
+  state.staged.add(id);
+  Sound.cardSelect();
+  return true;
+}
+
+function unstageCard(id) {
+  if (playPending || !state.staged.delete(id)) return false;
+  state.selected.delete(id);
+  Sound.cardDeselect();
+  return true;
 }
 
 function getSelectedCards() {
@@ -843,6 +874,25 @@ function getSelectedCards() {
 // The Poet Laureate bars a hand type once it has been played this round.
 function handBlocked(handName) {
   return Boolean(state.bossModifier?.noRepeatHands && state.handTypesPlayed?.has(handName));
+}
+
+// The Play Hand button: selected cards still in the hand first fly up into the play area, then the hand scores.
+function playSelected() {
+  if (playPending) return;
+  const toStage = getSelectedCards().filter(c => !state.staged.has(c.id));
+  if (toStage.length === 0 || state.phase !== "playing" || prefersReducedMotion()) {
+    playHand();
+    return;
+  }
+  const from = cardRects(toStage.map(c => c.id));
+  for (const c of toStage) state.staged.add(c.id);
+  render();
+  flipCards(from);
+  playPending = true;
+  setTimeout(() => {
+    playPending = false;
+    playHand();
+  }, PLAY_ANIMATION_MS);
 }
 
 function playHand() {
@@ -866,7 +916,7 @@ function playHand() {
 
   state.played.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
-  state.selected = new Set();
+  clearSelection();
   const shattered = selected.filter(c => c.enh === "glass" && Math.random() < GLASS_BREAK_CHANCE).map(c => c.id);
   if (shattered.length) destroyCards(shattered);
   const drawn = draw(state.handSize - state.hand.length);
@@ -885,7 +935,7 @@ function playHand() {
 
 function discardSelected() {
   const selected = getSelectedCards();
-  if (selected.length === 0 || state.discardsLeft <= 0) return;
+  if (playPending || selected.length === 0 || state.discardsLeft <= 0) return;
   state.discardsLeft -= 1;
   state.discardsUsed += 1;
   Sound.discard(selected.length);
@@ -895,7 +945,7 @@ function discardSelected() {
   }
   state.discarded.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
-  state.selected = new Set();
+  clearSelection();
   const drawn = draw(state.handSize - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
@@ -1065,12 +1115,16 @@ function moveJester(id, toIndex) {
 // until a sort button is clicked again. Selected cards score left to right.
 function moveHandCard(id, toIndex) {
   const cards = sortedHand();
-  const from = cards.findIndex(c => c.id === id);
+  // The hand row only shows cards that aren't parked in the play area, so indices count those.
+  const visible = cards.filter(c => !state.staged.has(c.id));
+  const from = visible.findIndex(c => c.id === id);
   if (from === -1) return;
-  const to = Math.max(0, Math.min(cards.length - 1, toIndex));
+  const to = Math.max(0, Math.min(visible.length - 1, toIndex));
   if (to === from) return;
-  const [card] = cards.splice(from, 1);
-  cards.splice(to, 0, card);
+  const anchor = visible[to];
+  const [card] = cards.splice(cards.indexOf(visible[from]), 1);
+  const at = cards.indexOf(anchor);
+  cards.splice(to > from ? at + 1 : at, 0, card);
   state.hand = cards;
   state.sortMode = "custom";
   Sound.click();
@@ -1094,13 +1148,22 @@ function makeJesterDraggable(el, id) {
 
 // `getSlots` returns the sibling elements that make up the row; `onDrop`
 // gets the index of the slot nearest the pointer when a drag is released.
-function makeDraggable(el, getSlots, onDrop) {
+// An optional `zone` ({ target: () => element, onDrop: (rect) => void }) is a
+// drop area outside the row: releasing the pointer over it calls zone.onDrop
+// with the dragged card's last on-screen rect instead of reordering.
+function makeDraggable(el, getSlots, onDrop, zone) {
   el.addEventListener("dragstart", (e) => e.preventDefault());
   el.addEventListener("pointerdown", (e) => {
     if (e.button > 0 || e.target.closest("button")) return;
     const startX = e.clientX, startY = e.clientY;
     let dragging = false;
     let slots = [], centers = [], from = -1, hover = -1;
+    let overZone = false;
+    const pointerInZone = (ev) => {
+      if (!zone) return false;
+      const r = zone.target().getBoundingClientRect();
+      return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+    };
 
     // Nearest slot center to the pointer wins, so gaps, overlaps and sloppy
     // aim all still land somewhere sensible. Centers are measured once at
@@ -1143,10 +1206,17 @@ function makeDraggable(el, getSlots, onDrop) {
       }
       if (ev.cancelable) ev.preventDefault();
       el.style.transform = `translate(${dx}px, ${dy}px)`;
-      const target = nearest(ev.clientX, ev.clientY);
+      const inside = pointerInZone(ev);
+      if (inside !== overZone) {
+        overZone = inside;
+        zone.target().classList.toggle("drop-ready", inside);
+      }
+      // Over the drop zone the row closes back up instead of opening a gap.
+      const target = inside ? from : nearest(ev.clientX, ev.clientY);
       if (from !== -1 && target !== -1) showGap(target);
     };
     const cleanup = () => {
+      if (zone) zone.target().classList.remove("drop-ready");
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
       document.removeEventListener("pointercancel", onCancel);
@@ -1160,11 +1230,17 @@ function makeDraggable(el, getSlots, onDrop) {
     const onUp = (ev) => {
       cleanup();
       if (!dragging) return;
+      const rect = el.getBoundingClientRect();
+      const droppedInZone = pointerInZone(ev);
       reset();
       // The click that follows a drag would open the inspect tooltip.
       const swallow = (c) => { c.stopImmediatePropagation(); c.preventDefault(); };
       el.addEventListener("click", swallow, { capture: true, once: true });
       setTimeout(() => el.removeEventListener("click", swallow, true), 0);
+      if (droppedInZone) {
+        zone.onDrop(rect);
+        return;
+      }
       const best = nearest(ev.clientX, ev.clientY);
       if (best !== -1) onDrop(best);
     };
@@ -1294,7 +1370,7 @@ function useDecree(index) {
   if (!decree || !decree.decree || !canUseDecree(decree)) return;
   const ids = getSelectedCards().map(c => c.id);
   state.tricks.splice(index, 1);
-  state.selected = new Set();
+  clearSelection();
   if (decree.destroy) {
     destroyCards(ids);
     const drawn = draw(state.handSize - state.hand.length);
@@ -1481,16 +1557,23 @@ function trickCardHTML(t) {
   return `<span class="trick-glyph">${t.decree ? "📜" : "🎭"}</span>${cardArtHTML(t.decree ? "decrees" : "masks", t.id)}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.decree ? "Decree" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
 
+// A card-sized face for a shop offer or an owned card. Its text lives in the tap-to-read tooltip,
+// so the face only carries the art, name and rarity, and every card stays the same size.
+function cardFace(className, html) {
+  const face = document.createElement("div");
+  face.className = className;
+  face.innerHTML = html;
+  makeInspectable(face, () => `<div class="${className.split(" ")[0]}">${html}</div>`);
+  return face;
+}
+
+function jesterFaceHTML(j) {
+  return `${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span>`;
+}
+
 // Held trick cards, with a Use button (and Sell in the shop) on each.
 function fillTrickList(container, withSell) {
   container.innerHTML = "";
-  const target = () => {
-    if (withSell) return container; // shop list: bare cards
-    const slot = document.createElement("div");
-    slot.className = "trick-slot";
-    container.appendChild(slot);
-    return slot;
-  };
   state.tricks.forEach((t, i) => {
     const div = document.createElement("div");
     div.className = "trick" + (t.decree ? " decree" : "");
@@ -1503,19 +1586,34 @@ function fillTrickList(container, withSell) {
     useBtn.disabled = Boolean(state.pack) || (t.decree && !canUseDecree(t));
     if (t.decree) useBtn.title = `Select 1-${t.max} card${t.max > 1 ? "s" : ""} in hand during a round`;
     useBtn.addEventListener("click", () => useTrick(i));
-    div.appendChild(useBtn);
     if (withSell) {
+      // Shop list: the buttons sit under the card so it keeps the common card size.
+      const slot = document.createElement("div");
+      slot.className = "owned-slot";
+      const btns = document.createElement("div");
+      btns.className = "owned-btns";
       const sellBtn = document.createElement("button");
       sellBtn.className = "sell-btn";
       sellBtn.textContent = `Sell $${trickSellValue(t)}`;
       sellBtn.addEventListener("click", () => sellTrick(i));
-      div.appendChild(sellBtn);
+      btns.append(useBtn, sellBtn);
+      slot.append(div, btns);
+      container.appendChild(slot);
+    } else {
+      div.appendChild(useBtn);
+      const slot = document.createElement("div");
+      slot.className = "trick-slot";
+      slot.appendChild(div);
+      container.appendChild(slot);
     }
-    target().appendChild(div);
   });
   if (withSell) return;
   // Play row: outline the free slots too, so the row is visible when empty.
-  for (let i = state.tricks.length; i < trickSlots(); i++) target();
+  for (let i = state.tricks.length; i < trickSlots(); i++) {
+    const slot = document.createElement("div");
+    slot.className = "trick-slot";
+    container.appendChild(slot);
+  }
 }
 
 // Pip positions for the number cards as [x, y] in 0..1 across the pip field
@@ -1643,9 +1741,15 @@ function render() {
   state.dealtIds = new Map();
 
   const handRow = document.getElementById("hand-row");
+  const playArea = document.getElementById("play-area");
   handRow.innerHTML = "";
-  const handCards = sortedHand();
-  for (const [i, card] of handCards.entries()) {
+  playArea.innerHTML = "";
+  const allCards = sortedHand();
+  const isStaged = (card) => state.selected.has(card.id) && state.staged?.has(card.id);
+  const handCards = allCards.filter(c => !isStaged(c));
+  for (const card of allCards) {
+    const staged = isStaged(card);
+    const i = handCards.indexOf(card);
     const div = document.createElement("div");
     div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
     const enh = ENHANCEMENTS[card.enh];
@@ -1653,7 +1757,7 @@ function render() {
     const isSelected = state.selected.has(card.id);
     if (isSelected) div.classList.add("selected");
     // Fan position, -1 (leftmost) .. 1 (rightmost); CSS decides whether to use it.
-    div.style.setProperty("--fan", handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
+    div.style.setProperty("--fan", !staged && handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
     // The hand is rebuilt on every render; deriving the bob's phase from the
     // clock (staggered per card) keeps it continuous instead of restarting.
     div.style.setProperty("--bob-delay", `-${(performance.now() + i * 620) % BOB_PERIOD_MS}ms`);
@@ -1672,15 +1776,25 @@ function render() {
     div.setAttribute("role", "button");
     div.setAttribute("aria-pressed", String(isSelected));
     div.setAttribute("aria-label", `${card.rank} of ${card.suit}${enh ? `, ${enh.name} Card` : ""}`);
-    div.addEventListener("click", () => toggleCard(card.id));
-    makeDraggable(div, () => handRow.children, (index) => moveHandCard(card.id, index));
+    div.dataset.cardId = card.id;
+    div.addEventListener("click", () => {
+      const from = cardRects([card.id]);
+      toggleCard(card.id);
+      if (staged) flipCards(from);
+    });
+    if (staged) {
+      makeDraggable(div, () => [], () => {}, { target: () => document.getElementById("hand-area"), onDrop: (rect) => returnToHand(card.id, rect) });
+    } else {
+      makeDraggable(div, () => handRow.children, (index) => moveHandCard(card.id, index),
+        { target: () => playArea, onDrop: (rect) => dropIntoPlayArea(card.id, rect) });
+    }
     div.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         toggleCard(card.id);
       }
     });
-    handRow.appendChild(div);
+    (staged ? playArea : handRow).appendChild(div);
   }
 
   const selected = getSelectedCards();
@@ -1699,6 +1813,18 @@ function render() {
 
   renderDeckView();
   renderOverlay();
+}
+
+function dropIntoPlayArea(id, rect) {
+  if (!stageCard(id)) return;
+  render();
+  flipCards(new Map([[String(id), rect]]));
+}
+
+function returnToHand(id, rect) {
+  if (!unstageCard(id)) return;
+  render();
+  flipCards(new Map([[String(id), rect]]));
 }
 
 function cardStatuses() {
@@ -1757,6 +1883,30 @@ let moneyTick = 0;
 
 function prefersReducedMotion() {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// FLIP for cards moving between the hand and the play area: measure before the
+// re-render, then slide each card from where it was to where it landed.
+function cardRects(ids) {
+  const wanted = new Set(ids.map(String));
+  const rects = new Map();
+  for (const el of document.querySelectorAll(".card[data-card-id]")) {
+    if (wanted.has(el.dataset.cardId)) rects.set(el.dataset.cardId, el.getBoundingClientRect());
+  }
+  return rects;
+}
+
+function flipCards(from) {
+  if (prefersReducedMotion() || typeof document.documentElement.animate !== "function") return;
+  for (const el of document.querySelectorAll(".card[data-card-id]")) {
+    const was = from.get(el.dataset.cardId);
+    if (!was) continue;
+    const now = el.getBoundingClientRect();
+    el.animate(
+      [{ translate: `${was.left - now.left}px ${was.top - now.top}px` }, { translate: "0 0" }],
+      { duration: 240, easing: "cubic-bezier(0.22, 0.9, 0.3, 1)" },
+    );
+  }
 }
 
 // The round's payout, one chip per line so each can land in turn.
@@ -1848,12 +1998,8 @@ function renderOverlay() {
       dealIn(div, "j:" + j.id);
       const canBuy = state.money - j.price >= debtFloor() && state.jesters.length < jesterSlots();
       if (!canBuy) div.classList.add("unaffordable");
-      div.innerHTML = `
-        ${jesterHeaderHTML(j)}
-        <div class="shop-desc">${j.desc}</div>
-        <div class="price">$${j.price}</div>
-        <button ${canBuy ? "" : "disabled"}>Buy</button>
-      `;
+      div.append(cardFace("jester", jesterFaceHTML(j)));
+      div.insertAdjacentHTML("beforeend", `<div class="price">$${j.price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`);
       div.querySelector("button").addEventListener("click", () => buyJester(j.id));
       shopItems.appendChild(div);
     }
@@ -1866,7 +2012,8 @@ function renderOverlay() {
       const div = document.createElement("div");
       div.className = "shop-item prop" + (canBuy ? "" : " unaffordable");
       dealIn(div, "v:" + prop.id);
-      div.innerHTML = `<span class="trick-glyph">★</span><span class="trick-name">${prop.name}</span><span class="trick-desc">${prop.desc}</span><div class="price">$${PROP_PRICE}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`;
+      div.append(cardFace("trick prop", `<span class="trick-glyph">★</span><span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
+      div.insertAdjacentHTML("beforeend", `<div class="price">$${PROP_PRICE}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`);
       div.querySelector("button").addEventListener("click", buyProp);
       propEl.appendChild(div);
     }
@@ -1885,11 +2032,14 @@ function renderOverlay() {
       const price = pack ? PACK_PRICE : t.price;
       const canBuy = state.money - price >= debtFloor() && (pack ? !state.pack : state.tricks.length < trickSlots());
       const div = document.createElement("div");
-      div.className = "shop-item trick" + (pack ? " pack" : "") + (pack === "decree" || t?.decree ? " decree" : "") + (canBuy ? "" : " unaffordable");
+      const isDecree = pack === "decree" || Boolean(t?.decree);
+      div.className = "shop-item" + (pack ? " pack" : "") + (isDecree ? " decree" : "") + (canBuy ? "" : " unaffordable");
       dealIn(div, pack ? "p:" + pack : "t:" + t.id);
-      div.innerHTML = `${pack
-        ? `<span class="trick-glyph">${pack === "decree" ? "📜📜📜" : "🎭🎭🎭"}</span><span class="trick-name">${pack === "decree" ? "Decree" : "Mask"} Pack</span><span class="trick-desc">${pack === "decree" ? `Pick 1 of ${PACK_SIZE} decrees, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} masks, used right away.`}</span>`
-        : trickCardHTML(t)}<div class="price">$${price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`;
+      const face = pack
+        ? `<span class="trick-glyph">${pack === "decree" ? "📜📜📜" : "🎭🎭🎭"}</span><span class="trick-name">${pack === "decree" ? "Decree" : "Mask"} Pack</span><span class="trick-hand">Pack</span><span class="trick-desc">${pack === "decree" ? `Pick 1 of ${PACK_SIZE} decrees, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} masks, used right away.`}</span>`
+        : trickCardHTML(t);
+      div.append(cardFace("trick" + (pack ? " pack" : "") + (isDecree ? " decree" : ""), face));
+      div.insertAdjacentHTML("beforeend", `<div class="price">$${price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`);
       div.querySelector("button").addEventListener("click", pack ? () => buyPack(pack) : buy);
       (pack ? shopPacks : shopTricks).appendChild(div);
     }
@@ -1901,10 +2051,11 @@ function renderOverlay() {
     packItems.innerHTML = "";
     for (const t of state.pack || []) {
       const div = document.createElement("div");
-      div.className = "shop-item trick" + (t.decree ? " decree" : "");
+      div.className = "shop-item";
       dealIn(div, "k:" + t.id);
       const full = t.decree && state.tricks.length >= trickSlots();
-      div.innerHTML = `${trickCardHTML(t)}<button ${full ? "disabled title=\"No free slot\"" : ""}>Take</button>`;
+      div.append(cardFace("trick" + (t.decree ? " decree" : ""), trickCardHTML(t)));
+      div.insertAdjacentHTML("beforeend", `<button ${full ? "disabled title=\"No free slot\"" : ""}>Take</button>`);
       div.querySelector("button").addEventListener("click", () => pickFromPack(t.id));
       packItems.appendChild(div);
     }
@@ -1921,17 +2072,18 @@ function renderOverlay() {
     if (state.jesters.length > 0) {
       ownedSection.classList.remove("hidden");
       state.jesters.forEach((j) => {
-        const div = document.createElement("div");
-        div.className = "jester";
+        // The slot wraps the card and its Sell button, so dragging reorders them together.
+        const slot = document.createElement("div");
+        slot.className = "jester-slot owned-slot";
+        const div = cardFace("jester", jesterFaceHTML(j));
         if (!ownedSeen.has(j.id)) div.classList.add("dealt");
-        div.innerHTML = `${jesterHeaderHTML(j)}${j.desc}`;
         makeJesterDraggable(div, j.id);
         const sellBtn = document.createElement("button");
         sellBtn.className = "sell-btn";
         sellBtn.textContent = `Sell $${sellValue(j)}`;
         sellBtn.addEventListener("click", () => sellJester(j.id));
-        div.appendChild(sellBtn);
-        ownedList.appendChild(div);
+        slot.append(div, sellBtn);
+        ownedList.appendChild(slot);
       });
     } else {
       ownedSection.classList.add("hidden");
@@ -1972,7 +2124,7 @@ function renderOverlay() {
 // --- Init ---------------------------------------------------------------
 
 function initApp() {
-  document.getElementById("play-btn").addEventListener("click", playHand);
+  document.getElementById("play-btn").addEventListener("click", playSelected);
   document.getElementById("discard-btn").addEventListener("click", discardSelected);
   document.getElementById("shop-btn").classList.toggle("hidden", !DEBUG_ENABLED);
   document.getElementById("shop-btn").addEventListener("click", () => setDebugShop(true));
@@ -2074,6 +2226,10 @@ const testHooks = {
   toggleCard,
   getSelectedCards,
   playHand,
+  playSelected,
+  stageCard,
+  unstageCard,
+  PLAY_ANIMATION_MS,
   discardSelected,
   buyJester,
   sellJester,

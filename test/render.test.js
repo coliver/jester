@@ -36,7 +36,8 @@ global.window = dom.window;
 global.document = dom.window.document;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const DEAL_ANIMATION_MS = 450; // startRound()'s real deal delay is 420ms
+const DEAL_ANIMATION_MS = 450;
+const PLAY_WAIT_MS = 430; // Play Hand shows the cards in the play area for 380ms first // startRound()'s real deal delay is 420ms
 
 // document/window are on the global now, so this require() runs game.js's
 // real browser entry point (initApp(): wires the buttons below once for the
@@ -160,12 +161,13 @@ test("card selection is blocked outside the playing phase", () => {
 
 // --- playing a hand via a real button click --------------------------------
 
-test("clicking Play Hand scores the selection and refills the hand", () => {
+test("clicking Play Hand scores the selection and refills the hand", async () => {
   dealtState();
   const cards = [...document.querySelectorAll("#hand-row .card")].slice(0, 2);
   cards.forEach((c) => c.click());
 
   document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
 
   const after = gameModule._getState();
   assert.equal(after.handsLeft, 3);
@@ -178,10 +180,11 @@ test("clicking Play Hand scores the selection and refills the hand", () => {
 
 // --- shop overlay + buy/sell/reroll wiring ---------------------------------
 
-test("winning a round opens the shop overlay with working buy/sell/reroll buttons", () => {
+test("winning a round opens the shop overlay with working buy/sell/reroll buttons", async () => {
   dealtState({ target: 1 }); // any hand clears it
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
 
   assert.equal(gameModule._getState().phase, "shop");
   assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
@@ -226,6 +229,7 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
   document.getElementById("overlay-btn").click();
   assert.ok(document.getElementById("overlay").classList.contains("hidden"));
   assert.equal(text("round-val"), "2");
+  await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
 });
 
 test("shop: an unaffordable offer is marked unaffordable and its button disabled", () => {
@@ -244,10 +248,11 @@ test("shop: reroll button is disabled when reroll is unaffordable", () => {
 
 // --- game over overlay ------------------------------------------------------
 
-test("running out of hands opens the Off With Your Head overlay; Restart resets the run", () => {
+test("running out of hands opens the Off With Your Head overlay; Restart resets the run", async () => {
   dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1 }); // one hand left, unreachable target
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
 
   assert.equal(gameModule._getState().phase, "gameover");
   assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
@@ -264,10 +269,11 @@ test("running out of hands opens the Off With Your Head overlay; Restart resets 
 
 // --- win overlay -------------------------------------------------------------
 
-test("clearing the final ante opens the Court Is Amused overlay", () => {
+test("clearing the final ante opens the Court Is Amused overlay", async () => {
   dealtState({ ante: 8, round: 3, target: 1 }); // FINAL_ANTE, ROUNDS_PER_ANTE
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
 
   assert.equal(gameModule._getState().phase, "win");
   assert.equal(text("overlay-title"), "The Court Is Amused");
@@ -764,4 +770,132 @@ test("the King's mood follows score progress and shows in the amusement meter", 
   assert.equal(document.getElementById("amusement").dataset.mood, "amused");
   assert.match(text("amusement-label"), /amused/);
   assert.equal(document.getElementById("amusement-fill").style.width.slice(0, 2), "53");
+});
+
+// --- the play area -------------------------------------------------------------
+
+// jsdom has no layout: fake the play area as a box well above the hand.
+function fakePlayArea() {
+  document.getElementById("play-area").getBoundingClientRect = () => ({ left: 0, right: 500, top: 0, bottom: 100 });
+}
+
+// Drags a card from (x0, y0) to (x1, y1).
+function dragTo(el, x0, y0, x1, y1) {
+  el.dispatchEvent(ptr("pointerdown", x0, y0));
+  document.dispatchEvent(ptr("pointermove", (x0 + x1) / 2, (y0 + y1) / 2));
+  document.dispatchEvent(ptr("pointermove", x1, y1));
+  document.dispatchEvent(ptr("pointerup", x1, y1));
+}
+
+test("Play Hand moves the selected cards into the play area, then scores them", async () => {
+  dealtState();
+  [...document.querySelectorAll("#hand-row .card")].slice(0, 2).forEach((c) => c.click());
+  document.getElementById("play-btn").click();
+
+  assert.equal(document.querySelectorAll("#play-area .card").length, 2);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 6);
+  assert.equal(gameModule._getState().handsLeft, 4); // not scored yet
+
+  document.getElementById("play-btn").click(); // a second press mid-flight does nothing
+  await sleep(PLAY_WAIT_MS);
+  assert.equal(gameModule._getState().handsLeft, 3);
+  assert.equal(document.querySelectorAll("#play-area .card").length, 0);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+});
+
+test("input is ignored while the played cards are on their way up", async () => {
+  dealtState();
+  document.querySelector("#hand-row .card").click();
+  document.getElementById("play-btn").click();
+  document.querySelector("#hand-row .card").click(); // ignored: would otherwise select a second card
+  document.getElementById("discard-btn").click();
+  assert.equal(gameModule._getState().selected.size, 1);
+  assert.equal(gameModule._getState().discardsLeft, 3);
+  await sleep(PLAY_WAIT_MS);
+  assert.equal(gameModule._getState().handsLeft, 3);
+});
+
+test("dragging a hand card into the play area selects and parks it; dragging it out returns it", () => {
+  dealtState();
+  fakePlayArea();
+  const card = document.querySelector("#hand-row .card");
+  const id = card.dataset.cardId;
+  dragTo(card, 300, 300, 250, 50);
+
+  const state = gameModule._getState();
+  assert.ok(state.selected.has(id));
+  assert.equal(document.querySelectorAll("#play-area .card").length, 1);
+  assert.equal(document.querySelector("#play-area .card").dataset.cardId, id);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 7);
+  assert.equal(document.getElementById("play-btn").disabled, false);
+
+  // released back over the hand
+  document.getElementById("hand-area").getBoundingClientRect = () => ({ left: 0, right: 500, top: 200, bottom: 400 });
+  dragTo(document.querySelector("#play-area .card"), 250, 50, 250, 300);
+  assert.equal(gameModule._getState().selected.size, 0);
+  assert.equal(document.querySelectorAll("#play-area .card").length, 0);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+
+  // released over the play area again (not the hand): stays put
+  dragTo(document.querySelector("#hand-row .card"), 300, 300, 250, 50);
+  dragTo(document.querySelector("#play-area .card"), 250, 50, 260, 60);
+  assert.equal(document.querySelectorAll("#play-area .card").length, 1);
+});
+
+test("the play area highlights while a card is dragged over it", () => {
+  dealtState();
+  fakePlayArea();
+  const area = document.getElementById("play-area");
+  const card = document.querySelector("#hand-row .card");
+  card.dispatchEvent(ptr("pointerdown", 300, 300));
+  document.dispatchEvent(ptr("pointermove", 250, 150));
+  document.dispatchEvent(ptr("pointermove", 250, 50));
+  assert.ok(area.classList.contains("drop-ready"));
+  document.dispatchEvent(ptr("pointermove", 250, 300));
+  assert.ok(!area.classList.contains("drop-ready"));
+  document.dispatchEvent(ptr("pointerup", 250, 300));
+  assert.equal(gameModule._getState().selected.size, 0);
+});
+
+test("clicking a card in the play area sends it back to the hand", () => {
+  dealtState();
+  fakePlayArea();
+  dragTo(document.querySelector("#hand-row .card"), 300, 300, 250, 50);
+  document.querySelector("#play-area .card").click();
+  assert.equal(gameModule._getState().selected.size, 0);
+  assert.equal(gameModule._getState().staged.size, 0);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+});
+
+test("the play area holds at most 5 cards", () => {
+  dealtState();
+  fakePlayArea();
+  for (let i = 0; i < 6; i++) dragTo(document.querySelector("#hand-row .card"), 300, 300, 250, 50);
+  assert.equal(document.querySelectorAll("#play-area .card").length, 5);
+  assert.equal(document.querySelectorAll("#hand-row .card").length, 3);
+});
+
+test("reordering the hand still works with cards parked in the play area", () => {
+  dealtState();
+  fakePlayArea();
+  const parked = document.querySelector("#hand-row .card").dataset.cardId;
+  dragTo(document.querySelector("#hand-row .card"), 300, 300, 250, 50);
+  const label = (el) => el.dataset.cardId;
+  const before = [...document.querySelectorAll("#hand-row .card")].map(label);
+  const cards = [...document.querySelectorAll("#hand-row .card")];
+  cards.forEach((el, i) => {
+    el.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 100, top: 200, bottom: 300 });
+  });
+  const last = cards.length - 1;
+  dragTo(cards[0], 50, 250, last * 100 + 50, 250);
+  assert.deepEqual([...document.querySelectorAll("#hand-row .card")].map(label), [...before.slice(1), before[0]]);
+  assert.equal(document.querySelector("#play-area .card").dataset.cardId, parked);
+});
+
+test("stageCard and unstageCard refuse outside the playing phase or for unknown cards", () => {
+  dealtState({ phase: "shop" });
+  assert.equal(gameModule.stageCard(gameModule._getState().hand[0].id), false);
+  dealtState();
+  assert.equal(gameModule.stageCard("nope"), false);
+  assert.equal(gameModule.unstageCard("nope"), false);
 });

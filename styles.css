@@ -504,7 +504,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    stacked on the right so all eight cards fit at a comfortable size. */
 @media (orientation: landscape) {
   :root {
-    --card-w: min(130px, calc((100vw - 150px) / 8), calc((100vh - 245px) / 1.4));
+    /* Three card rows (jesters, play area, hand) plus the controls, banner and padding must fit the
+       viewport height, so the card height is (viewport - --chrome) / 3. */
+    --chrome: 175px;
+    --card-w: min(130px, calc((100vw - 150px) / 8), calc((100vh - var(--chrome)) / 4.2));
     --card-h: calc(var(--card-w) * 1.4);
   }
   body { padding: 8px; min-height: 0; }
@@ -530,13 +533,16 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 150px minmax(0, 1fr);
     column-gap: 10px;
     row-gap: 2px;
-    /* fill the viewport; jesters stay on top, hand + preview + buttons centre in the rest */
-    min-height: calc(100vh - 16px);
+    /* Exactly the viewport (a definite height, so the two 1fr rows share only the leftover space
+       instead of the trailing one growing to match the play area and forcing a page scrollbar). */
+    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
     grid-template-rows: auto auto 1fr auto auto auto 1fr;
   }
   #app > * { grid-column: 2; }
   #boss-banner { grid-row: 1; }
   #top-row { grid-row: 2; }
+  #play-area { grid-row: 3; align-self: center; }
   #hand-area { grid-row: 5; }
   #controls { grid-row: 6; margin-top: 8px; }
   #hud {
@@ -585,7 +591,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
   #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #jester-row .jester-art { width: 34px; margin: 0 auto 2px; }
-  #top-row .jester-desc, #top-row .trick-desc { display: none; }
   #trick-row { gap: 6px; }
   #trick-row .trick-slot { width: var(--card-w); }
   #trick-row .trick { padding: 4px; }
@@ -597,7 +602,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #preview { min-height: 18px; font-size: 12px; line-height: 1.1; text-align: left; padding: 0 4px; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
   .card { flex: 0 0 auto; padding: 5px; }
-  .card + .card { margin-left: -24px; }
+  .card + .card { margin-left: calc(var(--card-w) * -0.2); } /* overlap scales with the card, so small phone cards stay readable */
   /* A slight fan (rotate about the bottom edge, ends dip) lets the cards overlap more. */
   .card {
     --tilt: calc(var(--fan, 0) * 5deg);
@@ -616,6 +621,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .card:hover, .card.selected { z-index: 1; }
 }
 
+/* Short landscape screens (phones): trim the chrome around the three card rows so the cards stay readable. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --chrome: 160px; }
+  body { padding: 4px; }
+  #app { height: calc(100vh - 8px); height: calc(100dvh - 8px); }
+  #controls { margin-top: 4px; }
+  #controls button:not(.sort-btn) { font-size: 15px; padding: 6px 22px; min-width: 100px; }
+  #jester-row, #trick-row { padding: 2px 4px 2px 8px; }
+  #app #play-area { min-height: calc(var(--card-h) + 8px); }
+}
+
 /* Play-screen polish: felt table, scoreboard rail, jester stage, one clear primary action. */
 body {
   background:
@@ -632,7 +648,7 @@ body {
 #hands-val { color: var(--accent-2); }
 #discards-val { color: var(--red); }
 
-#jester-row, #trick-row {
+#jester-row, #trick-row, #play-area {
   background: rgba(0, 0, 0, 0.22);
   border: 1px dashed rgba(255, 207, 86, 0.22);
   box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
@@ -689,6 +705,29 @@ body {
 .trick.decree .trick-glyph, .trick.decree .trick-name { color: var(--accent-2); }
 
 .card { position: relative; }
+/* Play area: the middle of the three card rows. Reserved at card height so hands played here never shift the layout. */
+#play-area {
+  min-height: calc(var(--card-h) + 16px);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+#play-area:empty::before {
+  content: "Drag cards here to play";
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+#play-area.drop-ready { border-color: rgba(255, 207, 86, 0.75); background: rgba(255, 207, 86, 0.1); }
+/* Parked cards sit flat and spaced apart, not fanned and overlapped like the hand. */
+#play-area .card, #play-area .card.selected { transform: none; margin-left: 0; }
+#play-area .card:hover, #play-area .card.selected:hover { transform: translateY(-6px); }
+
 .card .enh-badge {
   position: absolute;
   top: 6px;
@@ -830,7 +869,7 @@ body::before {
   padding: 8px 12px 16px;
 }
 #shop-yours {
-  flex: 0 0 clamp(150px, 26vw, 220px);
+  flex: 0 0 calc(var(--card-w) * 2 + 8px + 36px); /* two cards across, plus padding and a scrollbar */
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 8px 10px 16px;
@@ -857,27 +896,23 @@ body::before {
 #pack-items { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 #pack-skip-btn { padding: 6px 16px; font-size: 13px; background: transparent; border: 2px solid var(--muted); color: var(--muted); }
 
-.shop-item {
-  width: 112px;
-  box-sizing: border-box;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--accent-2);
-  border-radius: 10px;
-  font-size: 11px;
-  line-height: 1.3;
-  text-align: center;
-}
-.shop-item .card-art { width: 56px; height: 56px; }
-.shop-item .jester-name { color: var(--accent-2); font-weight: 700; }
-.shop-item .price { color: var(--accent); font-weight: 700; font-size: 14px; margin: 6px 0; }
+/* A shop offer is a card-sized face (the same size as every other card) with its price and
+   Buy button underneath; the offer's text lives in the tap-to-read tooltip. */
+.shop-item { width: var(--card-w); display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.shop-item .price { color: var(--accent); font-weight: 700; font-size: 14px; }
 .shop-item.unaffordable .price { color: var(--red); }
-.shop-item button { width: 100%; padding: 7px; font-size: 13px; }
+.shop-item button, .owned-slot button { width: 100%; padding: 5px 2px; font-size: 12px; }
 .shop-item.unaffordable button { opacity: 0.5; cursor: not-allowed; }
-.shop-item.prop { border-color: var(--accent); background: rgba(255, 207, 86, 0.08); }
-.shop-item.prop > span { display: block; }
-.shop-item.pack { border-style: dashed; }
-#pack-items .shop-item { width: 118px; }
+.shop-item.unaffordable > .jester, .shop-item.unaffordable > .trick { filter: saturate(0.55) brightness(0.85); }
+.trick.prop, .trick.pack { border-color: var(--accent); }
+.trick.pack { border-style: dashed; }
+.trick.prop .trick-glyph, .trick.pack .trick-glyph {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--card-w) * 0.3);
+}
 
 #shop-yours-empty { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 #shop-yours-empty.hidden { display: none; }
@@ -885,10 +920,12 @@ body::before {
 #owned-jesters-section.hidden, #owned-tricks-section.hidden { display: none; }
 #owned-jesters, #owned-tricks {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, var(--card-w));
+  gap: 8px;
 }
-#owned-jesters .jester, #owned-tricks .trick { width: auto; padding: 4px; font-size: 10px; }
+.owned-slot { width: var(--card-w); display: flex; flex-direction: column; gap: 3px; }
+.owned-btns { display: flex; gap: 3px; }
+.owned-btns button { flex: 1 1 0; min-width: 0; }
 #owned-props { margin: 0; font-size: 12px; color: var(--muted); }
 #owned-props:empty { display: none; }
 
@@ -1008,7 +1045,7 @@ body::before {
    The frame and foxing are pseudo-elements, as on .card, so they never fight the
    drag/deal transforms. The aspect ratio is only a floor: a long description
    grows the card rather than overflowing it. */
-.jester, .shop-item:not(.prop):not(.trick) {
+.jester {
   position: relative;
   background: var(--stock);
   border: 0;
@@ -1019,7 +1056,7 @@ body::before {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
 }
 .jester { aspect-ratio: 5 / 7; }
-.jester::before, .shop-item:not(.prop):not(.trick)::before {
+.jester::before {
   content: "";
   position: absolute;
   inset: 3px;
@@ -1027,7 +1064,7 @@ body::before {
   border-radius: 3px;
   pointer-events: none;
 }
-.jester::after, .shop-item:not(.prop):not(.trick)::after {
+.jester::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1039,7 +1076,7 @@ body::before {
 .jester:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .jester.dragging { box-shadow: 0 8px 18px rgba(0, 0, 0, 0.55); }
 
-.jester .jester-art, .shop-item:not(.prop):not(.trick) .jester-art {
+.jester .jester-art {
   border: 1px solid var(--gilt);
   border-radius: 2px;
   box-shadow: 0 0 0 2px rgba(255, 250, 232, 0.55), 0 0 0 3px rgba(70, 40, 15, 0.4);
@@ -1047,7 +1084,7 @@ body::before {
   width: calc(100% - 6px);
   margin-left: 3px;
 }
-.jester .jester-name, .shop-item:not(.prop):not(.trick) .jester-name {
+.jester .jester-name {
   color: var(--ink-black);
   font-size: 1.08em;
   letter-spacing: 0.01em;
@@ -1055,22 +1092,19 @@ body::before {
   margin-bottom: 3px;
   border-bottom: 1px solid rgba(70, 40, 15, 0.4);
 }
-.jester .jester-rarity, .shop-item:not(.prop):not(.trick) .jester-rarity {
+.jester .jester-rarity {
   font-style: italic;
   text-transform: none;
   letter-spacing: 0.04em;
   font-size: 0.9em;
   margin-bottom: 3px;
 }
-.jester .jester-rarity::before, .shop-item:not(.prop):not(.trick) .jester-rarity::before { content: "\2766\00a0"; }
-.jester .jester-rarity::after, .shop-item:not(.prop):not(.trick) .jester-rarity::after { content: "\00a0\2767"; }
-.jester .rarity-common, .shop-item .rarity-common { color: #2c5f8a; }
-.jester .rarity-uncommon, .shop-item .rarity-uncommon { color: #2f6f46; }
-.jester .rarity-rare, .shop-item .rarity-rare { color: var(--ink-red); }
-.shop-item:not(.prop):not(.trick) .jester-name { color: var(--ink-black); }
-.shop-item:not(.prop):not(.trick) .price { color: #6b4c10; }
+.jester .jester-rarity::before { content: "\2766\00a0"; }
+.jester .jester-rarity::after { content: "\00a0\2767"; }
+.jester .rarity-common { color: #2c5f8a; }
+.jester .rarity-uncommon { color: #2f6f46; }
+.jester .rarity-rare { color: var(--ink-red); }
 .shop-item.unaffordable:not(.prop):not(.trick) .price { color: var(--ink-red); }
-.shop-item:not(.prop):not(.trick) .shop-desc { color: #3a2a1c; }
 
 /* The inspect tooltip shows the text only, on its own panel. */
 #inspect .jester { aspect-ratio: auto; box-shadow: none; color: inherit; font-family: inherit; }
@@ -1082,13 +1116,15 @@ body::before {
 #inspect .jester .jester-rarity { font-style: normal; text-transform: uppercase; font-size: 9px; }
 #inspect .jester .jester-rarity::before, #inspect .jester .jester-rarity::after { content: none; }
 
-/* Play-row jesters are exactly playing-card sized (--card-w x --card-h, so they
-   scale with the hand in every layout). The art is the same square as everywhere
-   else (sized off the card so a two-line name still fits); the description lives in the tap-to-read tooltip. */
+/* Every jester, mask, decree, prop and pack face is exactly playing-card sized (--card-w x --card-h,
+   so they scale with the hand in every layout): in the play rows, the shop, the pack picker and the
+   owned list alike. The art is the same square everywhere (sized off the card so a two-line name
+   still fits); descriptions live in the tap-to-read tooltip. */
 #jester-row .jester-slot { width: var(--card-w); min-height: var(--card-h); }
-#jester-row .jester {
+#jester-row .jester, #overlay .jester {
   width: var(--card-w);
   height: var(--card-h);
+  box-sizing: border-box;
   aspect-ratio: auto;
   padding: calc(var(--card-w) * 0.08) calc(var(--card-w) * 0.08) calc(var(--card-w) * 0.06);
   font-size: max(7px, calc(var(--card-w) * 0.12));
@@ -1097,12 +1133,33 @@ body::before {
   flex-direction: column;
   overflow: hidden;
 }
-#jester-row .jester-art {
+#jester-row .jester-art, #overlay .jester-art {
   flex: none;
   width: calc(var(--card-w) * 0.7);
   aspect-ratio: 1;
   margin: 1px auto calc(var(--card-w) * 0.05);
 }
-#jester-row .jester-name { flex: none; margin-bottom: 1px; padding-bottom: 1px; }
-#jester-row .jester-rarity { flex: none; margin: auto 0 0; font-size: 0.85em; }
-#jester-row .jester-desc { display: none; }
+#jester-row .jester-name, #overlay .jester-name { flex: none; margin-bottom: 1px; padding-bottom: 1px; }
+#jester-row .jester-rarity, #overlay .jester-rarity { flex: none; margin: auto 0 0; font-size: 0.85em; }
+.jester .jester-desc, .trick .trick-desc { display: none; }
+#inspect .jester .jester-desc, #inspect .trick .trick-desc { display: block; }
+
+/* Masks and decrees: the art flexes to whatever the name (one or two lines) and the Use button
+   leave, so no card grows taller than the rest. */
+#trick-row .trick-slot { height: var(--card-h); }
+#trick-row .trick, #overlay .trick {
+  width: var(--card-w);
+  height: var(--card-h);
+  box-sizing: border-box;
+  aspect-ratio: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: max(8px, calc(var(--card-w) * 0.1));
+  line-height: 1.1;
+}
+#trick-row .trick > span, #trick-row .trick > button, #overlay .trick > span { flex: none; }
+#overlay .trick > .trick-glyph { flex: none; }
+#overlay .trick.prop > .trick-glyph, #overlay .trick.pack > .trick-glyph { flex: 1 1 0; }
+#trick-row .card-art, #overlay .trick .card-art { flex: 1 1 0; min-height: 0; width: 100%; height: auto; margin: 0 0 2px; }
