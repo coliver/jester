@@ -122,6 +122,49 @@ const Sound = (() => {
     tone({ delay: 0.07 + clinks * 0.05 + 0.04, freq: 660, glideTo: 880, duration: 0.22, type: "sine", gain: 0.14 });
   }
 
+  // Scoring ticks climb a pentatonic ladder, one rung per trigger in a hand, so a long chain
+  // of jesters sounds like it is building. n is how many triggers have already happened.
+  const LADDER = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+  function rung(n) {
+    return 392 * Math.pow(2, LADDER[Math.min(Math.max(0, n), LADDER.length - 1)] / 12);
+  }
+
+  function scoreChip(n = 0) {
+    const f = rung(n);
+    tone({ freq: f, duration: 0.14, type: "triangle", gain: 0.16 });
+    tone({ freq: f * 2, duration: 0.07, type: "sine", gain: 0.05 });
+    noiseBurst({ duration: 0.02, freq: 5200, q: 1, gain: 0.05 });
+  }
+
+  function scoreMult(n = 0) {
+    const f = rung(n);
+    tone({ freq: f, duration: 0.16, type: "square", gain: 0.06 });
+    tone({ freq: f / 2, duration: 0.2, type: "triangle", gain: 0.13 });
+  }
+
+  function scoreXMult(n = 0) {
+    const f = rung(n);
+    noiseBurst({ duration: 0.12, freq: 800, q: 0.8, gain: 0.2 });
+    tone({ freq: f / 2, glideTo: f, duration: 0.24, type: "sawtooth", gain: 0.1 });
+    tone({ delay: 0.06, freq: f * 1.5, duration: 0.28, type: "triangle", gain: 0.1 });
+  }
+
+  // The chips and mult colliding into the hand's total; bigger hands (tier 1, 2) get a longer flourish.
+  function scoreTotal(tier = 0) {
+    noiseBurst({ duration: 0.16, freq: 1400, q: 0.5, gain: 0.25 });
+    tone({ freq: 140, glideTo: 55, duration: 0.32, type: "sine", gain: 0.32 });
+    const notes = [523.25, 783.99, 1046.5, 1318.5, 1568, 2093].slice(0, 2 + tier * 2);
+    notes.forEach((f, i) => tone({ delay: 0.06 + i * 0.07, freq: f, duration: 0.24, type: "triangle", gain: 0.12 }));
+  }
+
+  // A run of rising ticks while the total counts into the round score.
+  function scoreRoll(seconds = 0.65) {
+    const ticks = 9;
+    for (let i = 0; i < ticks; i++) {
+      tone({ delay: (i * seconds) / ticks, freq: 800 + i * 90, duration: 0.03, type: "square", gain: 0.04 });
+    }
+  }
+
   function coinBuy() {
     tone({ freq: 1400, duration: 0.05, type: "square", gain: 0.1 });
     tone({ delay: 0.05, freq: 1900, duration: 0.12, type: "square", gain: 0.09 });
@@ -167,6 +210,7 @@ const Sound = (() => {
 
   return {
     cardFlip, dealHand, cardSelect, cardDeselect, discard, playHandResolve,
+    scoreChip, scoreMult, scoreXMult, scoreTotal, scoreRoll,
     coinBuy, coinSell, shuffle, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
   };

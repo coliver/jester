@@ -1,6 +1,6 @@
 """Queue one ComfyUI job per CSV row.
 
-Usage: python3 queue_cards.py [kind] [--limit N] [--only ID[,ID...]] [--repeat N] [--prefix DIR]
+Usage: python3 queue_cards.py [kind] [--limit N] [--only ID[,ID...]] [--repeat N] [--seed N] [--prefix DIR]
   kind     jesters (default), decrees, masks, faces, bosses or court: reads assets/<kind>/prompts.csv
            (columns: id,prompt), the single source of art prompts. Card ids,
            names and rarities live in game.js; test/art-prompts.test.js keeps
@@ -35,6 +35,7 @@ parser.add_argument("kind", nargs="?", default="jesters", choices=["jesters", "d
 parser.add_argument("--limit", type=int, default=None, help="queue only the first N rows")
 parser.add_argument("--only", default=None, help="comma-separated card ids to queue (default: all)")
 parser.add_argument("--repeat", type=int, default=1, help="queue each card N times with different seeds")
+parser.add_argument("--seed", type=int, default=None, help="use this seed for every card (default: random per card)")
 parser.add_argument("--prefix", default="joker_cards", help="ComfyUI output subfolder")
 args = parser.parse_args()
 
@@ -66,7 +67,7 @@ for index, card in enumerate(cards):
     workflow[PROMPT_NODE]["inputs"][PROMPT_FIELD] = (
         f"{STYLE}, {prompt}"
     )
-    seed = random.randrange(0, 2**48)
+    seed = args.seed if args.seed is not None else random.randrange(0, 2**48)
     for node in SEED_NODES:
         workflow[node]["inputs"]["seed"] = seed
     workflow[SAVE_NODE]["inputs"]["filename_prefix"] = (

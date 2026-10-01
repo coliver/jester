@@ -783,16 +783,21 @@ function isFaceCard(card, ctx) {
   return FACE_RANKS.has(card.rank) || Boolean(ctx?.pareidolia);
 }
 
+// Besides the totals, the result lists every scoring trigger in the order it happens
+// (each played card, then each jester left to right) so the screen can play them out
+// one at a time. Each step: { type, chips, multAdd, multMul, money } plus the card id
+// or jester index and name; steps that do nothing (a jester whose condition isn't met)
+// are left out.
 function scoreSelection(selected) {
   const hand = evaluateHand(selected);
-  let chips = hand.baseChips + selected.reduce((sum, c) => sum + cardChipValue(c), 0);
-  let mult = hand.baseMult;
-  let multMul = 1;
-  let money = 0;
+  const steps = [];
   for (const c of selected) {
-    if (c.enh === "bonus") chips += BONUS_CHIPS;
-    else if (c.enh === "mult") mult += MULT_BONUS;
-    else if (c.enh === "glass") multMul *= GLASS_MULT;
+    const step = { type: "card", id: c.id, chips: cardChipValue(c), multAdd: 0, multMul: 1, money: 0 };
+    step.debuffed = step.chips === 0;
+    if (c.enh === "bonus") step.chips += BONUS_CHIPS;
+    else if (c.enh === "mult") step.multAdd = MULT_BONUS;
+    else if (c.enh === "glass") step.multMul = GLASS_MULT;
+    steps.push(step);
   }
 
   // Cards still in hand after this selection is played/discarded — used by
@@ -812,16 +817,32 @@ function scoreSelection(selected) {
   };
 
   for (const [i, j] of state.jesters.entries()) {
-    if (i === 0 && state.bossModifier?.silenceLeftmost) continue;
+    const step = { type: "jester", index: i, id: j.id, name: j.name, chips: 0, multAdd: 0, multMul: 1, money: 0 };
+    if (i === 0 && state.bossModifier?.silenceLeftmost) {
+      steps.push({ ...step, silenced: true });
+      continue;
+    }
     const effect = j.apply ? j.apply(ctx, j) : {};
-    if (effect.chips) chips += effect.chips;
-    if (effect.multAdd) mult += effect.multAdd;
-    if (effect.multMul) multMul *= effect.multMul;
-    if (effect.money) money += effect.money;
+    step.chips = effect.chips || 0;
+    step.multAdd = effect.multAdd || 0;
+    step.multMul = effect.multMul || 1;
+    step.money = effect.money || 0;
+    if (step.chips || step.multAdd || step.multMul !== 1 || step.money) steps.push(step);
+  }
+
+  let chips = hand.baseChips;
+  let mult = hand.baseMult;
+  let multMul = 1;
+  let money = 0;
+  for (const step of steps) {
+    chips += step.chips;
+    mult += step.multAdd;
+    multMul *= step.multMul;
+    money += step.money;
   }
 
   const total = Math.floor(chips * mult * multMul);
-  return { hand, chips, mult, multMul, total, money };
+  return { hand, chips, mult, multMul, total, money, steps };
 }
 
 // --- Actions ---------------------------------------------------------------
@@ -836,7 +857,7 @@ const PLAY_ANIMATION_MS = 380;
 let playPending = false;
 
 function toggleCard(id) {
-  if (state.phase !== "playing" || playPending) return;
+  if (state.phase !== "playing" || playPending || scoring) return;
   const card = state.hand.find(c => c.id === id);
   if (!card) return;
   if (state.selected.has(id)) {
@@ -853,7 +874,7 @@ function toggleCard(id) {
 // Dragging a hand card into the play area selects it and parks it there; dragging it
 // (or clicking it) back puts it in the hand again, unselected. Both return whether anything changed.
 function stageCard(id) {
-  if (state.phase !== "playing" || playPending || !state.hand.some(c => c.id === id)) return false;
+  if (state.phase !== "playing" || playPending || scoring || !state.hand.some(c => c.id === id)) return false;
   if (!state.selected.has(id)) {
     if (state.selected.size >= MAX_SELECTED) return false;
     state.selected.add(id);
@@ -864,7 +885,7 @@ function stageCard(id) {
 }
 
 function unstageCard(id) {
-  if (playPending || !state.staged.delete(id)) return false;
+  if (playPending || scoring || !state.staged.delete(id)) return false;
   state.selected.delete(id);
   Sound.cardDeselect();
   return true;
@@ -881,7 +902,7 @@ function handBlocked(handName) {
 
 // The Play Hand button: selected cards still in the hand first fly up into the play area, then the hand scores.
 function playSelected() {
-  if (playPending) return;
+  if (playPending || scoring) return;
   const toStage = getSelectedCards().filter(c => !state.staged.has(c.id));
   if (toStage.length === 0 || state.phase !== "playing" || prefersReducedMotion()) {
     playHand();
@@ -898,8 +919,191 @@ function playSelected() {
   }, PLAY_ANIMATION_MS);
 }
 
+// --- Scoring sequence ------------------------------------------------------
+// A played hand resolves in the state at once (so the rules stay easy to test), then plays
+// out on screen the way Balatro does it: the hand name and its base chips x mult, each card
+// scoring left to right, each jester in turn, then the two numbers collide into a total that
+// rolls into the round score. While it runs, `scoring` holds what the screen still has to
+// show (the old score, the played cards, the cards drawn after them), and input is locked.
+// Clicking or pressing a key speeds the rest up.
+
+const SCORE_CARD_MS = 330;
+const SCORE_JESTER_MS = 430;
+const SCORE_FACET_MS = 140;
+const SCORE_ROLL_MS = 650;
+const SCORE_FAST = 0.18; // a click plays the remaining delays at this fraction of their length
+let scoring = null;
+let scoringOverride = null;
+
+// Tests (and anything without real animation support) can force it on or off.
+function scoringAnimated() {
+  if (scoringOverride !== null) return scoringOverride;
+  return typeof document !== "undefined" && !prefersReducedMotion() && typeof document.documentElement.animate === "function";
+}
+
+// Runs fn now, or once the sequence has finished if one is playing (sounds that
+// announce the outcome of the hand, like the round being won).
+function cue(fn) {
+  if (scoring) scoring.after.push(fn); else fn();
+}
+
+function beginScoring(selected, result) {
+  return {
+    result,
+    cards: selected,
+    target: state.target,
+    scoreBefore: state.roundScore,
+    scoreAfter: state.roundScore + result.total,
+    shownScore: state.roundScore,
+    money: state.money,
+    drawn: new Set(),
+    dealtIds: new Map(),
+    after: [],
+    fast: false,
+    done: null,
+  };
+}
+
+// The chips x mult counters in the sidebar. `xmult` is the running product of every X effect.
+function renderTally(chips, mult, xmult = 1) {
+  document.getElementById("tally-chips").textContent = chips;
+  document.getElementById("tally-mult").textContent = mult;
+  const x = document.getElementById("tally-x");
+  x.textContent = xmult === 1 ? "" : `×${Number(xmult.toFixed(2))}`;
+}
+
+function restartClass(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth; // so adding it again restarts the animation
+  el.classList.add(cls);
+}
+
+// A floating number over `el` (the card or jester that just scored).
+function scorePop(el, text, kind, slot) {
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const pop = document.createElement("div");
+  pop.className = `score-pop ${kind}`;
+  pop.textContent = text;
+  pop.style.left = `${r.left + r.width / 2}px`;
+  pop.style.top = `${r.top + 6 - slot * 26}px`;
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 1000);
+}
+
+function shakeScreen() {
+  restartClass(document.getElementById("app"), "shake");
+}
+
+function jesterElements() {
+  return document.querySelectorAll("#jester-row .jester");
+}
+
+// Resolves after ms, or a fraction of it once the player has clicked to hurry things along.
+function scoringPause(s, ms) {
+  return new Promise(resolve => setTimeout(resolve, s.fast ? ms * SCORE_FAST : ms));
+}
+
+function rollScore(s) {
+  return new Promise(resolve => {
+    const frame = typeof window.requestAnimationFrame === "function"
+      ? (fn) => window.requestAnimationFrame(fn)
+      : (fn) => setTimeout(() => fn(performance.now()), 16);
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / (SCORE_ROLL_MS * (s.fast ? SCORE_FAST : 1)));
+      s.shownScore = Math.round(s.scoreBefore + (s.scoreAfter - s.scoreBefore) * (1 - Math.pow(1 - k, 3)));
+      renderScoreHud(s.shownScore);
+      if (k < 1) frame(step); else resolve();
+    };
+    frame(step);
+  });
+}
+
+async function runScoring(s) {
+  const { result } = s;
+  const hand = result.hand;
+  const preview = document.getElementById("preview");
+  const tally = document.getElementById("tally");
+  const need = Math.max(1, s.target - s.scoreBefore); // what this hand has to add to clear the round
+  // How big the hand is next to what's left to score: drives the glow while it builds and the finale.
+  const tier = result.total >= need ? 2 : result.total >= need * 0.5 ? 1 : 0;
+  let chips = hand.baseChips, mult = hand.baseMult, xmult = 1, ticks = 0, heat = 0;
+  try {
+    document.getElementById("preview-name").textContent = hand.name;
+    renderTally(chips, mult);
+    tally.className = "";
+    delete preview.dataset.heat;
+    await scoringPause(s, 380);
+
+    const bump = (id) => restartClass(document.getElementById(id), "bump");
+    const cardEls = new Map(s.cards.map(c => [c.id, document.querySelector(`.card[data-card-id="${c.id}"]`)]));
+    for (const step of result.steps) {
+      const el = step.type === "card" ? cardEls.get(step.id) : jesterElements()[step.index];
+      if (el) restartClass(el, step.type === "card" ? "scoring" : "trigger");
+      const facets = [];
+      if (step.silenced) facets.push(["Silenced", "mute"]);
+      if (step.debuffed) facets.push(["Debuffed", "mute"]);
+      if (step.chips) facets.push([`+${step.chips}`, "chips"]);
+      if (step.multAdd) facets.push([`+${step.multAdd} Mult`, "mult"]);
+      if (step.multMul !== 1) facets.push([`×${Number(step.multMul.toFixed(2))}`, "xmult"]);
+      if (step.money) facets.push([`+$${step.money}`, "money"]);
+
+      for (const [i, [text, kind]] of facets.entries()) {
+        scorePop(el, text, kind, i);
+        if (kind === "chips") { chips += step.chips; bump("tally-chips"); Sound.scoreChip(ticks++); }
+        else if (kind === "mult") { mult += step.multAdd; bump("tally-mult"); Sound.scoreMult(ticks++); }
+        else if (kind === "xmult") { xmult *= step.multMul; bump("tally-x"); Sound.scoreXMult(ticks++); }
+        else if (kind === "money") {
+          s.money += step.money;
+          document.getElementById("money-val").textContent = s.money;
+          Sound.coinBuy();
+        }
+        renderTally(chips, mult, xmult);
+        const running = chips * mult * xmult;
+        const now = running >= need ? 2 : running >= need * 0.5 ? 1 : 0;
+        if (now > heat) {
+          heat = now;
+          preview.dataset.heat = String(heat);
+          if (heat === 2) shakeScreen();
+        }
+        if (i < facets.length - 1) await scoringPause(s, SCORE_FACET_MS);
+      }
+      await scoringPause(s, facets.length === 0 ? 0 : step.type === "card" ? SCORE_CARD_MS : SCORE_JESTER_MS);
+    }
+
+    // The two numbers collide into the hand's total...
+    await scoringPause(s, 280);
+    document.getElementById("tally-total").textContent = result.total;
+    tally.className = `merged tier-${tier}`;
+    Sound.scoreTotal(tier);
+    if (tier === 2) shakeScreen();
+    await scoringPause(s, 520);
+
+    // ...which rolls into the round score.
+    tally.classList.add("landing");
+    Sound.scoreRoll(SCORE_ROLL_MS / 1000);
+    restartClass(document.getElementById("score-val"), "bump");
+    await rollScore(s);
+    await scoringPause(s, 300);
+  } finally {
+    finishScoring(s);
+  }
+}
+
+function finishScoring(s) {
+  if (scoring !== s) return;
+  scoring = null;
+  document.getElementById("tally").className = "";
+  delete document.getElementById("preview").dataset.heat;
+  if (state) state.dealtIds = s.dealtIds;
+  for (const fn of s.after) fn();
+  render();
+}
+
 function playHand() {
-  const selected = getSelectedCards();
+  // In the order the cards are shown, so they score left to right as laid out in the play area.
+  const selected = sortedHand().filter(c => state.selected.has(c.id));
   if (selected.length === 0 || state.handsLeft <= 0) return;
 
   // Level-up hooks fire before scoring, so the hand scores at its new level.
@@ -910,12 +1114,15 @@ function playHand() {
     if (j.onPlay && j.onPlay().levelUp) levelUpHand(played);
   }
 
+  // The hand resolves in the state right away; the screen then plays it out (see runScoring),
+  // and anything that should only be seen or heard afterwards goes through cue().
   const result = scoreSelection(selected);
+  if (scoringAnimated()) scoring = beginScoring(selected, result);
   state.roundScore += result.total;
   state.money += result.money;
   if (state.bossModifier?.handTax && state.money > 0) state.money -= state.bossModifier.handTax;
   state.handsLeft -= 1;
-  Sound.playHandResolve(result.total);
+  if (!scoring) Sound.playHandResolve(result.total);
 
   state.played.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
@@ -925,20 +1132,27 @@ function playHand() {
   const drawn = draw(state.handSize - state.hand.length);
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
-  if (drawn.length) Sound.dealHand(drawn.length);
+  if (drawn.length) cue(() => Sound.dealHand(drawn.length));
+  if (scoring) {
+    // The new cards wait out the scoring, then deal in.
+    scoring.drawn = new Set(drawn.map(c => c.id));
+    scoring.dealtIds = state.dealtIds;
+    state.dealtIds = new Map();
+  }
 
   if (state.roundScore >= state.target) {
     finishRoundWin();
   } else if (state.handsLeft <= 0) {
     state.phase = "gameover";
-    Sound.gameOver();
+    cue(() => Sound.gameOver());
   }
   render();
+  if (scoring) scoring.done = runScoring(scoring);
 }
 
 function discardSelected() {
   const selected = getSelectedCards();
-  if (playPending || selected.length === 0 || state.discardsLeft <= 0) return;
+  if (playPending || scoring || selected.length === 0 || state.discardsLeft <= 0) return;
   state.discardsLeft -= 1;
   state.discardsUsed += 1;
   Sound.discard(selected.length);
@@ -981,11 +1195,11 @@ function finishRoundWin() {
 
   if (state.ante >= FINAL_ANTE && state.round >= ROUNDS_PER_ANTE) {
     state.phase = "win";
-    Sound.gameWin();
+    cue(() => Sound.gameWin());
     return;
   }
 
-  Sound.roundWin();
+  cue(() => Sound.roundWin());
   state.phase = "shop";
   state.rerollCost = rerollBaseCost();
   state.freeRerollUsed = false;
@@ -1117,6 +1331,7 @@ function moveJester(id, toIndex) {
 // Dragging a hand card switches to a custom order (neither sort button active)
 // until a sort button is clicked again. Selected cards score left to right.
 function moveHandCard(id, toIndex) {
+  if (scoring) return;
   const cards = sortedHand();
   // The hand row only shows cards that aren't parked in the play area, so indices count those.
   const visible = cards.filter(c => !state.staged.has(c.id));
@@ -1291,7 +1506,7 @@ function trickSellValue(trick) {
 }
 
 function canAct() {
-  return inShop() || state.phase === "playing";
+  return !scoring && (inShop() || state.phase === "playing");
 }
 
 function buyProp() {
@@ -1744,17 +1959,14 @@ function renderHandReference() {
   });
 }
 
-function render() {
-  if (typeof document === "undefined") return;
-  document.getElementById("ante-val").textContent = state.ante;
-  document.getElementById("venue-val").textContent = venueName(state.ante);
-  document.getElementById("round-val").textContent = state.round;
-  document.getElementById("audience-val").textContent = audienceName(state.round);
-  document.getElementById("score-val").textContent = `${state.roundScore} / ${state.target}`;
-  const mood = courtMood(state.roundScore, state.target, state.handsLeft);
+// The score readout and the King's mood, which follow `score` (the real round score, or the
+// number still rolling up to it while a hand is being scored).
+function renderScoreHud(score) {
+  document.getElementById("score-val").textContent = `${score} / ${state.target}`;
+  const mood = courtMood(score, state.target, state.handsLeft);
   document.getElementById("amusement").dataset.mood = mood;
   document.getElementById("amusement-label").textContent = `The King is ${MOODS[mood].label.toLowerCase()}`;
-  document.getElementById("amusement-fill").style.width = `${Math.min(100, state.target > 0 ? (state.roundScore / state.target) * 100 : 0)}%`;
+  document.getElementById("amusement-fill").style.width = `${Math.min(100, state.target > 0 ? (score / state.target) * 100 : 0)}%`;
   const kingArt = document.getElementById("amusement-art");
   const kingSrc = `assets/court/${MOODS[mood].img}.png`;
   if (kingArt.getAttribute("src") !== kingSrc) {
@@ -1763,7 +1975,16 @@ function render() {
     kingArt.onerror = () => { kingArt.hidden = true; };
     kingArt.src = kingSrc;
   }
-  document.getElementById("money-val").textContent = state.money;
+}
+
+function render() {
+  if (typeof document === "undefined") return;
+  document.getElementById("ante-val").textContent = state.ante;
+  document.getElementById("venue-val").textContent = venueName(state.ante);
+  document.getElementById("round-val").textContent = state.round;
+  document.getElementById("audience-val").textContent = audienceName(state.round);
+  renderScoreHud(scoring ? scoring.shownScore : state.roundScore);
+  document.getElementById("money-val").textContent = scoring ? scoring.money : state.money;
   document.getElementById("hands-val").textContent = state.handsLeft;
   document.getElementById("discards-val").textContent = state.discardsLeft;
 
@@ -1832,7 +2053,7 @@ function render() {
 
   const handRow = document.getElementById("hand-row");
   const playArea = document.getElementById("play-area");
-  const allCards = sortedHand();
+  const allCards = sortedHand().filter(c => !scoring?.drawn.has(c.id)); // cards drawn after a hand wait for its scoring
   const handCards = allCards.filter(c => !isStaged(c));
   const wantHand = [], wantPlay = [];
   const present = new Set();
@@ -1860,23 +2081,30 @@ function render() {
     }
     (staged ? wantPlay : wantHand).push(el);
   }
+  const scoringIds = new Set(scoring?.cards.map(c => c.id));
   for (const [id, el] of handEls) {
-    if (!present.has(id)) {
+    if (!present.has(id) && !scoringIds.has(id)) {
       el.remove();
       handEls.delete(id);
     }
   }
   syncChildren(handRow, wantHand);
-  syncChildren(playArea, wantPlay);
+  syncChildren(playArea, scoring ? scoring.cards.map(c => handEls.get(c.id)).filter(Boolean) : wantPlay); // played cards stay up while they score
 
   const selected = getSelectedCards();
   const previewName = document.getElementById("preview-name");
-  if (selected.length > 0) {
-    const result = scoreSelection(selected);
-    previewName.textContent = result.hand.name;
-    if (handBlocked(result.hand.name)) previewName.insertAdjacentHTML("beforeend", ` <span class="preview-note">already played</span>`);
-  } else {
-    previewName.textContent = " ";
+  const tallyEl = document.getElementById("tally");
+  if (!scoring) { // while a hand scores, the sequence drives the preview
+    if (selected.length > 0) {
+      const result = scoreSelection(selected);
+      previewName.textContent = result.hand.name;
+      if (handBlocked(result.hand.name)) previewName.insertAdjacentHTML("beforeend", ` <span class="preview-note">already played</span>`);
+      renderTally(result.hand.baseChips, result.hand.baseMult);
+      tallyEl.classList.remove("idle");
+    } else {
+      previewName.textContent = " ";
+      tallyEl.classList.add("idle");
+    }
   }
 
   const blocked = selected.length > 0 && handBlocked(evaluateHand(selected).name);
@@ -1884,7 +2112,7 @@ function render() {
   document.getElementById("discard-btn").disabled = selected.length === 0 || state.discardsLeft <= 0 || state.phase !== "playing";
 
   renderDeckView();
-  renderOverlay();
+  if (!scoring) renderOverlay(); // the shop or game over screen waits for the scoring to finish
 }
 
 function dropIntoPlayArea(id, rect) {
@@ -2228,6 +2456,10 @@ function initApp() {
     hideInspect();
   });
 
+  const hurry = () => { if (scoring) scoring.fast = true; };
+  document.addEventListener("pointerdown", hurry);
+  document.addEventListener("keydown", hurry);
+
   const muteBtn = document.getElementById("mute-btn");
   function syncMuteBtn() {
     const muted = Sound.isMuted();
@@ -2327,6 +2559,9 @@ const testHooks = {
   render,
   // test-only state access
   _getState: () => state,
+  _setScoringAnimation: (on) => { scoringOverride = on; },
+  _scoringDone: () => scoring?.done || Promise.resolve(),
+  _isScoring: () => scoring !== null,
   destroyCards,
   _setState: (s) => { state = s; },
 };

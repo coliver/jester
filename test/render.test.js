@@ -947,3 +947,146 @@ test("destroyed cards stay in the deck screen, marked as removed", () => {
   assert.match(document.getElementById("deck-btn").textContent, /\/51\)/); // the live deck total drops by one
   document.getElementById("deck-close-btn").click();
 });
+
+// --- the scoring sequence --------------------------------------------------
+// The hand resolves in the state at once, but the screen plays it out: the old score stays up,
+// the played cards stay in the play area, the shop waits, and input is locked, until the
+// sequence ends (a click hurries it along, which these tests use to keep them quick).
+
+const hurry = () => document.dispatchEvent(new window.Event("pointerdown"));
+
+// Runs fn with the sequence switched on (jsdom has no Web Animations, so it is off by default).
+async function withScoringAnimation(fn) {
+  gameModule._setScoringAnimation(true);
+  try {
+    await fn();
+    await gameModule._scoringDone();
+  } finally {
+    gameModule._setScoringAnimation(null);
+  }
+}
+
+test("selecting cards shows the hand's base chips and mult in the counters", () => {
+  dealtState();
+  const tally = document.getElementById("tally");
+  assert.ok(tally.classList.contains("idle"));
+  document.querySelector("#hand-row .card").click();
+  assert.ok(!tally.classList.contains("idle"));
+  const base = gameModule.evaluateHand(gameModule.getSelectedCards()).baseChips;
+  assert.equal(text("tally-chips"), String(base));
+  assert.equal(text("tally-x"), "");
+  document.querySelector("#hand-row .card").click();
+  assert.ok(tally.classList.contains("idle"));
+});
+
+test("a scored hand plays out on screen before the score, shop and new cards appear", async () => {
+  await withScoringAnimation(async () => {
+    const jester = jesterByName("Jester"); // +4 Mult
+    dealtState({ target: 1, jesters: [{ ...jester }] });
+    const before = gameModule._getState().roundScore;
+    const pops = [];
+    const observer = new window.MutationObserver((records) => {
+      for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains("score-pop")) pops.push(n.textContent);
+    });
+    observer.observe(document.body, { childList: true });
+
+    document.querySelector("#hand-row .card").click();
+    document.getElementById("play-btn").click();
+    await sleep(PLAY_WAIT_MS);
+
+    // Resolved in the state already...
+    const state = gameModule._getState();
+    assert.equal(state.handsLeft, 3);
+    assert.ok(state.roundScore > before);
+    assert.equal(state.phase, "shop");
+    // ...but not yet on screen.
+    assert.ok(gameModule._isScoring());
+    assert.equal(text("score-val"), `${before} / 1`);
+    assert.equal(document.querySelectorAll("#play-area .card").length, 1);
+    assert.equal(document.querySelectorAll("#hand-row .card").length, 7); // the replacement is still to be dealt
+    assert.ok(document.getElementById("overlay").classList.contains("hidden"));
+    assert.equal(text("preview-name").trim(), gameModule.evaluateHand([state.played.at(-1)]).name);
+
+    // Input is locked meanwhile.
+    document.querySelector("#hand-row .card").click();
+    document.getElementById("discard-btn").click();
+    assert.equal(state.selected.size, 0);
+    assert.equal(state.discardsLeft, 3);
+
+    hurry();
+    await gameModule._scoringDone();
+    observer.disconnect();
+
+    assert.ok(!gameModule._isScoring());
+    assert.equal(text("score-val"), `${state.roundScore} / 1`);
+    assert.equal(document.querySelectorAll("#play-area .card").length, 0);
+    assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+    assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
+    assert.ok(document.getElementById("tally").classList.contains("idle"));
+    assert.ok(pops.some((p) => /^\+\d+$/.test(p)), `no chips popup in ${pops}`); // the card
+    assert.ok(pops.includes("+4 Mult"), `no jester popup in ${pops}`);
+  });
+});
+
+test("the sequence shows X effects, money and a debuffed card, and a missed target plays on to the next hand", async () => {
+  await withScoringAnimation(async () => {
+    const purse = { ...jesterByName("Jester"), id: "test_purse", name: "Purse", apply: () => ({ money: 2 }) };
+    const jesters = [{ ...jesterByName("Cavendish") }, purse];
+    dealtState({ target: Number.MAX_SAFE_INTEGER, jesters, bossModifier: { suitDebuff: "♠" } });
+    const state = gameModule._getState();
+    state.hand[0] = { ...state.hand[0], rank: "K", suit: "♠" }; // debuffed: scores no chips
+    gameModule.render();
+    const pops = [];
+    const observer = new window.MutationObserver((records) => {
+      for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains("score-pop")) pops.push(n.textContent);
+    });
+    observer.observe(document.body, { childList: true });
+
+    document.querySelector(`#hand-row .card[data-card-id="${state.hand[0].id}"]`).click();
+    document.getElementById("play-btn").click();
+    await sleep(PLAY_WAIT_MS);
+    hurry();
+    await gameModule._scoringDone();
+    observer.disconnect();
+
+    assert.ok(pops.includes("Debuffed"), `${pops}`);
+    assert.ok(pops.includes("×3"), `no X popup in ${pops}`);
+    assert.ok(pops.includes("+$2"), `no money popup in ${pops}`);
+    assert.equal(state.money, 4 + 2);
+    assert.equal(state.phase, "playing");
+    assert.equal(text("score-val"), `${state.roundScore} / ${state.target}`);
+    assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+  });
+});
+
+test("losing on the last hand waits for the sequence, then shows the end screen", async () => {
+  await withScoringAnimation(async () => {
+    dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1 });
+    document.querySelector("#hand-row .card").click();
+    document.getElementById("play-btn").click();
+    await sleep(PLAY_WAIT_MS);
+    assert.equal(gameModule._getState().phase, "gameover");
+    assert.ok(document.getElementById("overlay").classList.contains("hidden"));
+    hurry();
+    await gameModule._scoringDone();
+    assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
+  });
+});
+
+test("played cards keep their order in the play area while they score", async () => {
+  await withScoringAnimation(async () => {
+    const state = dealtState({ target: Number.MAX_SAFE_INTEGER });
+    state.sortMode = "rank"; // shown sorted, whatever order the hand array is in
+    state.hand.reverse();
+    gameModule.render();
+    [...document.querySelectorAll("#hand-row .card")].slice(0, 4).forEach((c) => c.click());
+    document.getElementById("play-btn").click();
+    const order = () => [...document.querySelectorAll("#play-area .card")].map((c) => c.dataset.cardId);
+    const before = order();
+    assert.equal(before.length, 4);
+    await sleep(PLAY_WAIT_MS);
+    assert.ok(gameModule._isScoring());
+    assert.deepEqual(order(), before);
+    hurry();
+  });
+});

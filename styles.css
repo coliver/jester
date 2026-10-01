@@ -1174,3 +1174,137 @@ body::before {
   #boss-art { width: 20px; height: 20px; }
   #boss-quip { display: none; }
 }
+
+/* --- Scoring sequence ----------------------------------------------------------
+   The chips x mult counters under the hand name, and the animation of a played hand:
+   each card and jester that scores pops with a floating number, the counters glow as
+   the hand gets big, then they merge into a total that rolls into the round score. */
+#preview { height: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#tally { position: relative; display: flex; justify-content: center; align-items: center; gap: 4px; width: 100%; flex: none; }
+#tally.idle { visibility: hidden; }
+.tally-box {
+  min-width: 50px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-family: var(--card-font);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: right;
+  color: #fff;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.2s, transform 0.25s;
+}
+.tally-box.chips { background: linear-gradient(180deg, #3c78d8, #24508f); }
+.tally-box.mult { background: linear-gradient(180deg, #d9435a, #8f1f33); }
+.tally-times { color: var(--muted); font-weight: 700; font-size: 14px; transition: opacity 0.2s; }
+/* The running product of every X effect, stuck on the corner of the mult box like a wax seal. */
+#tally-x {
+  position: absolute;
+  right: -4px;
+  top: -13px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffd96e, #e0a22a);
+  color: #3a1c00;
+  font-size: 13px;
+  font-weight: 900;
+  transform: rotate(8deg);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+#tally-x:empty { display: none; }
+#tally-total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--card-font);
+  font-size: 26px;
+  font-weight: 900;
+  font-style: normal;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(255, 207, 86, 0.8), 0 2px 0 rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+#tally.merged .tally-box, #tally.merged .tally-times, #tally.merged #tally-x { opacity: 0; transform: scale(0.5); }
+#tally.merged #tally-total { animation: total-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+#tally.merged.tier-1 #tally-total { font-size: 30px; text-shadow: 0 0 16px #ffb347, 0 0 4px #fff, 0 2px 0 rgba(0, 0, 0, 0.5); }
+#tally.merged.tier-2 #tally-total { font-size: 34px; color: #fff3c4; text-shadow: 0 0 22px #ff7b3a, 0 0 8px #ffd96e, 0 2px 0 rgba(0, 0, 0, 0.5); animation-name: total-pop-big; }
+#tally.landing #tally-total { animation: total-land 0.65s ease-in forwards; }
+
+/* The counters heat up as the hand outgrows what the round still needs: half of it, then all of it. */
+#preview[data-heat="1"] .tally-box { box-shadow: 0 0 10px 2px rgba(255, 170, 60, 0.8), inset 0 -3px 0 rgba(0, 0, 0, 0.3); animation: heat-flicker 0.45s ease-in-out infinite alternate; }
+#preview[data-heat="2"] .tally-box { box-shadow: 0 0 16px 5px rgba(255, 110, 40, 0.95), 0 0 4px 1px #fff3c4, inset 0 -3px 0 rgba(0, 0, 0, 0.3); text-shadow: 0 0 8px #fff3c4; animation: heat-flicker 0.25s ease-in-out infinite alternate; }
+
+.tally-box.bump { animation: tally-bump 0.24s ease-out; }
+#tally-x.bump { animation: x-bump 0.3s ease-out; }
+#score-val.bump { animation: score-glow 0.9s ease-out; }
+
+.card.scoring { animation: card-score 0.4s ease-out; z-index: 2; }
+.jester.trigger { animation: jester-trigger 0.45s ease-out; z-index: 2; }
+
+.score-pop {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, 0);
+  padding: 2px 9px;
+  border-radius: 7px;
+  font-size: 17px;
+  font-weight: 800;
+  font-style: normal;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
+  animation: score-pop 1s ease-out forwards;
+}
+.score-pop.chips { background: #2f66c2; }
+.score-pop.mult { background: #c4344b; }
+.score-pop.xmult { background: linear-gradient(180deg, #ffd96e, #d9435a); color: #2a0a10; font-size: 22px; }
+.score-pop.money { background: #7a5a10; color: #ffe38a; border: 1px solid #ffd96e; }
+.score-pop.mute { background: #4a4a54; color: #d8d0e0; font-size: 13px; }
+
+#app.shake { animation: screen-shake 0.4s linear; }
+
+@keyframes tally-bump { 0% { transform: scale(1); } 35% { transform: scale(1.28); } 100% { transform: scale(1); } }
+@keyframes x-bump { 0% { transform: rotate(8deg) scale(1); } 35% { transform: rotate(-4deg) scale(1.4); } 100% { transform: rotate(8deg) scale(1); } }
+@keyframes score-glow {
+  0% { text-shadow: 0 0 12px rgba(255, 207, 86, 0.45); }
+  25% { text-shadow: 0 0 26px #ffd96e, 0 0 6px #fff; color: #fff3c4; }
+  100% { text-shadow: 0 0 12px rgba(255, 207, 86, 0.45); }
+}
+@keyframes heat-flicker { from { filter: brightness(1); } to { filter: brightness(1.25); } }
+@keyframes total-pop { 0% { opacity: 0; transform: scale(0.3); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes total-pop-big { 0% { opacity: 0; transform: scale(0.2); } 60% { opacity: 1; transform: scale(1.35); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes total-land { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: translate(-40px, -90px) scale(0.5); } }
+@keyframes card-score {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-20px) scale(1.12) rotate(-3deg); box-shadow: 0 16px 24px rgba(255, 207, 86, 0.6); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes jester-trigger {
+  0% { transform: scale(1) rotate(0deg); }
+  20% { transform: scale(1.14) rotate(-7deg); box-shadow: 0 0 18px 4px rgba(107, 227, 255, 0.7); }
+  40% { transform: scale(1.14) rotate(6deg); }
+  60% { transform: scale(1.08) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes score-pop {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }
+  15% { opacity: 1; transform: translate(-50%, -4px) scale(1.25); }
+  30% { transform: translate(-50%, -8px) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -40px) scale(1); }
+}
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-5px, 3px); }
+  30% { transform: translate(5px, -3px); }
+  45% { transform: translate(-4px, -2px); }
+  60% { transform: translate(4px, 3px); }
+  80% { transform: translate(-2px, 1px); }
+}

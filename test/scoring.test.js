@@ -464,3 +464,56 @@ test("jester order changes scoring: Blueprint copies whichever Jester is on its 
   assert.deepEqual(s.jesters.map(j => j.id), ["blueprint", "base_jester"]);
   assert.equal(scoreSelection(selected).mult, 9);
 });
+
+// --- scoring steps: the trigger-by-trigger breakdown the screen plays out ---
+
+test("scoreSelection lists each played card, then each jester that fires, left to right", () => {
+  const selected = [card("A", "♠"), card("A", "♥"), card("9", "♦")];
+  _setState(baseState({
+    jesters: [jesterById("jolly_jester"), jesterById("zany_jester"), jesterById("sly_jester")],
+    hand: selected,
+  }));
+  const r = scoreSelection(selected);
+  // Zany Jester needs three of a kind, so it stays out of the list.
+  assert.deepEqual(r.steps.map(s => `${s.type}:${s.id}`), [
+    "card:A♠", "card:A♥", "card:9♦", "jester:jolly_jester", "jester:sly_jester",
+  ]);
+  assert.equal(r.steps[0].chips, 11);
+  assert.equal(r.steps[2].chips, 9);
+  assert.equal(r.steps[3].multAdd, 8);
+  assert.equal(r.steps[4].chips, 50);
+  assert.equal(r.steps[3].index, 0);
+  assert.equal(r.steps[4].index, 2);
+});
+
+test("the steps add up to the totals", () => {
+  const selected = [card("K", "♠"), card("K", "♥"), card("5", "♦")];
+  selected[0].enh = "bonus";
+  selected[1].enh = "glass";
+  selected[2].enh = "mult";
+  _setState(baseState({ jesters: [jesterById("base_jester"), jesterById("blackboard")], hand: selected }));
+  const r = scoreSelection(selected);
+  const sum = (key, init) => r.steps.reduce((acc, s) => (key === "multMul" ? acc * s[key] : acc + s[key]), init);
+  assert.equal(sum("chips", r.hand.baseChips), r.chips);
+  assert.equal(sum("multAdd", r.hand.baseMult), r.mult);
+  assert.equal(sum("multMul", 1), r.multMul);
+  assert.equal(r.total, Math.floor(r.chips * r.mult * r.multMul));
+  assert.equal(r.steps[0].chips, 10 + 30); // Bonus card: face value plus 30
+  assert.equal(r.steps[1].multMul, 2); // Glass card
+  assert.equal(r.steps[2].multAdd, 4); // Mult card
+});
+
+test("a silenced jester and a debuffed card show up as steps that add nothing", () => {
+  const selected = [card("9", "♠"), card("9", "♥")];
+  _setState(baseState({
+    jesters: [jesterById("base_jester")],
+    hand: selected,
+    bossModifier: { silenceLeftmost: true, suitDebuff: "♠" },
+  }));
+  const r = scoreSelection(selected);
+  assert.equal(r.steps[0].debuffed, true);
+  assert.equal(r.steps[0].chips, 0);
+  assert.equal(r.steps[1].debuffed, false);
+  assert.equal(r.steps[2].silenced, true);
+  assert.equal(r.mult, r.hand.baseMult); // Silenced: the +4 never lands
+});

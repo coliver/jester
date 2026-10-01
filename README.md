@@ -57,6 +57,12 @@ static (it's also set up for GitHub Pages).
   silenced leftmost jester) applies for that round; ante 8's boss is always
   the King. Clearing round 3 of ante 8 wins the run; running out of hands
   first ends it.
+- Balatro-style scoring: the hand name and live chips × mult counters sit in the
+  sidebar; each played card, then each jester left to right, pops with a floating
+  number and a rising-pitch tick; the counters glow as the hand nears what the round
+  needs, merge into a total, and roll into the score (the King reacts as it climbs).
+  The result is already in the state when the sequence starts; click or press a key
+  to speed it up. Skipped under `prefers-reduced-motion`.
 - In-game hand-ranking reference (collapsible panel below the controls).
 - Sort the hand by rank or suit, or drag cards into your own order (the
   sort buttons go inactive until you click one again). Selected cards score
@@ -78,8 +84,7 @@ static (it's also set up for GitHub Pages).
 ## What's intentionally left out
 
 Run persistence, a Balatro-sized jester roster, spectral-style cards, decks,
-stakes, and scoring animations (there is a deal animation and sound, but
-scoring itself is instant). This is the "real basic" version — small and
+and stakes. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for the
 jesters landed early since it's additive and non-breaking — see
