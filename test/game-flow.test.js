@@ -25,6 +25,7 @@ const {
   discardSelected,
   buyJester,
   sellJester,
+  sellTrick,
   rerollShop,
   buyProp,
   finishRoundWin,
@@ -288,6 +289,39 @@ test("shop: buying is blocked without enough money", () => {
   const after = _getState();
   assert.equal(after.jesters.length, 0);
   assert.equal(after.money, jester.price - 1);
+});
+
+test("jesters, masks and decrees can be sold mid-round, not just in the shop", () => {
+  const state = freshRoundState();
+  assert.equal(state.phase, "playing");
+  const jester = JESTER_POOL.find(j => j.price === 5);
+  state.jesters = [jester];
+  state.tricks = [{ id: "m", name: "Mask", hand: "Pair", price: 4 }, { id: "d", name: "Decree", decree: true, price: 3 }];
+  state.money = 0;
+
+  sellJester(jester.id);
+  sellTrick(1); // the decree, $3 -> $1
+  sellTrick(0); // the mask, $4 -> $2
+
+  const after = _getState();
+  assert.equal(after.jesters.length, 0);
+  assert.equal(after.tricks.length, 0);
+  assert.equal(after.money, 2 + 1 + 2);
+});
+
+test("nothing can be sold once the run is over", () => {
+  const state = freshRoundState();
+  state.phase = "gameover";
+  state.jesters = [JESTER_POOL[0]];
+  state.tricks = [{ id: "m", name: "Mask", hand: "Pair", price: 4 }];
+  state.money = 0;
+
+  sellJester(JESTER_POOL[0].id);
+  sellTrick(0);
+
+  assert.equal(_getState().jesters.length, 1);
+  assert.equal(_getState().tricks.length, 1);
+  assert.equal(_getState().money, 0);
 });
 
 test("shop: selling refunds half price (rounded down, min 1) and frees the slot", () => {
@@ -1063,12 +1097,12 @@ test("buyJester ignores unknown ids, unaffordable offers and a full roster", () 
   assert.equal(state.money, 50);
 });
 
-test("sellJester ignores unknown ids and calls outside the shop", () => {
+test("sellJester ignores unknown ids and calls after the run is over", () => {
   const { sellJester } = require("../game.js");
   const state = shopState({ jesters: [{ ...JESTER_POOL[0], sellBonus: 0 }] });
   sellJester("nope");
   assert.equal(state.jesters.length, 1);
-  state.phase = "playing";
+  state.phase = "gameover";
   sellJester(JESTER_POOL[0].id);
   assert.equal(state.jesters.length, 1);
   assert.equal(state.money, 20);
@@ -1090,11 +1124,11 @@ test("buyTrick and buyDecree ignore unknown ids, unaffordable offers and calls o
   assert.equal(state.money, 20);
 });
 
-test("sellTrick ignores calls outside the shop and bad indexes", () => {
+test("sellTrick ignores calls after the run is over and bad indexes", () => {
   const { sellTrick } = require("../game.js");
   const state = shopState({ tricks: [decreeById("decree_oath_diamonds")] });
   sellTrick(5);
-  state.phase = "playing";
+  state.phase = "gameover";
   sellTrick(0);
   assert.equal(state.tricks.length, 1);
   assert.equal(state.money, 20);

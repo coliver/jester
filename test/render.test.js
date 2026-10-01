@@ -374,6 +374,34 @@ test("slot counters, deck count, and tap-to-inspect popups", () => {
   document.getElementById("deck-close-btn").click();
 });
 
+test("play rows: the tap-to-inspect popup has a Sell button for jesters, masks and decrees", () => {
+  const { TRICK_POOL, DECREE_POOL } = gameModule;
+  const jester = jesterByName("Baron");
+  const mask = { ...TRICK_POOL[0] };
+  const decree = { ...DECREE_POOL[0] };
+  const s = dealtState({ jesters: [jester], tricks: [mask, decree], money: 0 });
+  const inspect = document.getElementById("inspect");
+  const sellBtn = () => inspect.querySelector(".sell-btn");
+
+  document.querySelector("#jester-row .jester").click();
+  assert.equal(sellBtn().textContent, `Sell $${Math.max(1, Math.floor(jester.price / 2))}`);
+  sellBtn().click();
+  assert.equal(s.jesters.length, 0);
+  assert.equal(s.money, Math.max(1, Math.floor(jester.price / 2)));
+  assert.ok(inspect.classList.contains("hidden"));
+
+  // Selling the second card by tooltip finds it by identity, not a stale index.
+  document.querySelectorAll("#trick-row .trick")[1].click();
+  assert.equal(sellBtn().textContent, `Sell $${Math.max(1, Math.floor(decree.price / 2))}`);
+  sellBtn().click();
+  assert.deepEqual(s.tricks, [mask]);
+  assert.ok(inspect.classList.contains("hidden"));
+
+  document.querySelector("#trick-row .trick").click();
+  sellBtn().click();
+  assert.equal(s.tricks.length, 0);
+});
+
 // --- jester art fallback (missing_no) ---------------------------------------
 // The jsdom document runs without runScripts, so inline onerror attributes
 // never fire on their own; these tests run the attribute's source with the

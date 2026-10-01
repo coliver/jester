@@ -31,7 +31,7 @@ static (it's also set up for GitHub Pages).
   scale off jesters sold or their resale value — plus a handful that
   change round setup — extra hand size/discards, shop debt, a free reroll,
   round-end payouts and sell-value growth, or a discard/evaluation hook) bought from a 3-item
-  shop after each round win; sell owned jesters or reroll the shop's offers
+  shop after each round win; sell owned jesters (any time, from the tap-to-inspect tooltip) or reroll the shop's offers
   (for an escalating cost) between rounds. Saved money earns interest ($1
   per $5 held, capped at $5) on every round win.
 - Mask cards: each poker hand has a level, and a mask card (one per hand, a

@@ -1039,7 +1039,7 @@ function addDebugMoney(amount = 1000) {
 }
 
 function sellJester(id) {
-  if (!inShop()) return;
+  if (!canAct()) return;
   const idx = state.jesters.findIndex(j => j.id === id);
   if (idx === -1) return;
   const [jester] = state.jesters.splice(idx, 1);
@@ -1309,7 +1309,7 @@ function useDecree(index) {
 }
 
 function sellTrick(index) {
-  if (!inShop()) return;
+  if (!canAct()) return;
   const [trick] = state.tricks.splice(index, 1);
   if (!trick) return;
   state.money += trickSellValue(trick);
@@ -1419,18 +1419,20 @@ function jesterHeaderHTML(j) {
 
 // Tap (or Enter/Space) a card to read its full text in a small tooltip under
 // it; the landscape layout hides descriptions so the card rows stay compact.
-function makeInspectable(el, bodyHTML) {
+// `sell` ({ label, fn }, optional) adds a Sell button to the tooltip, so cards
+// in the play rows can be sold without crowding the cards themselves.
+function makeInspectable(el, bodyHTML, sell) {
   el.tabIndex = 0;
   el.setAttribute("role", "button");
   el.dataset.inspectable = "1";
   el.addEventListener("click", (e) => {
     if (e.target.closest("button")) return;
-    toggleInspect(el, bodyHTML());
+    toggleInspect(el, bodyHTML(), sell?.());
   });
   el.addEventListener("keydown", (e) => {
     if (e.target !== el || (e.key !== "Enter" && e.key !== " ")) return;
     e.preventDefault();
-    toggleInspect(el, bodyHTML());
+    toggleInspect(el, bodyHTML(), sell?.());
   });
 }
 
@@ -1441,7 +1443,7 @@ function hideInspect() {
   document.getElementById("inspect").classList.add("hidden");
 }
 
-function toggleInspect(anchor, html) {
+function toggleInspect(anchor, html, sell) {
   const tip = document.getElementById("inspect");
   if (inspectAnchor && inspectAnchor.isConnected && inspectAnchor === anchor) {
     hideInspect();
@@ -1449,6 +1451,16 @@ function toggleInspect(anchor, html) {
   }
   inspectAnchor = anchor;
   tip.innerHTML = html;
+  if (sell) {
+    const btn = document.createElement("button");
+    btn.className = "sell-btn";
+    btn.textContent = sell.label;
+    btn.addEventListener("click", () => {
+      hideInspect();
+      sell.fn();
+    });
+    tip.appendChild(btn);
+  }
   tip.classList.remove("hidden");
   const rect = anchor.getBoundingClientRect();
   const left = Math.max(6, Math.min(rect.left + rect.width / 2 - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 6));
@@ -1481,7 +1493,8 @@ function fillTrickList(container, withSell) {
     const div = document.createElement("div");
     div.className = "trick" + (t.decree ? " decree" : "");
     div.innerHTML = trickCardHTML(t);
-    makeInspectable(div, () => `<div class="trick">${trickCardHTML(t)}</div>`);
+    makeInspectable(div, () => `<div class="trick">${trickCardHTML(t)}</div>`,
+      withSell ? undefined : () => ({ label: `Sell $${trickSellValue(t)}`, fn: () => sellTrick(state.tricks.indexOf(t)) }));
     const useBtn = document.createElement("button");
     useBtn.className = "use-btn";
     useBtn.textContent = "Use";
@@ -1602,7 +1615,8 @@ function render() {
       const div = document.createElement("div");
       div.className = "jester";
       div.innerHTML = `${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span>`;
-      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span></div>`);
+      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span></div>`,
+        () => ({ label: `Sell $${sellValue(j)}`, fn: () => sellJester(j.id) }));
       makeJesterDraggable(div, j.id);
       slot.appendChild(div);
     }
