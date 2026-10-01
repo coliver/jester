@@ -117,7 +117,8 @@ body {
 }
 
 #jester-row .jester-slot {
-  flex: 0 0 96px;
+  width: 96px; /* explicit, so the row's intrinsic width counts empty slots too */
+  flex: 0 0 auto;
   border: 1px dashed rgba(255,255,255,0.22);
   border-radius: 9px;
   min-height: 64px;
@@ -431,7 +432,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 #trick-row { padding: 6px; min-height: 64px; }
 #trick-row .trick-slot {
-  flex: 0 0 116px;
+  width: 116px;
+  flex: 0 0 auto;
   min-height: 64px;
   border: 1px dashed rgba(255,255,255,0.22);
   border-radius: 9px;
@@ -489,8 +491,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .card .suit-mid { font-size: 18px; }
   .card { padding: 3px; flex: 0 0 auto; border-radius: 6px; }
   #hud { padding: 8px 12px; gap: 6px 10px; }
-  #jester-row { flex-wrap: nowrap; overflow-x: auto; min-height: 0; padding: 6px; gap: 6px; }
-  #jester-row .jester-slot { flex: 0 0 90px; }
+  /* No overflow-x scroll: cards are touch-action:none (draggable), so a scrolling row couldn't be swiped. Slots shrink and cards overlap instead. */
+  #jester-row { flex-wrap: nowrap; min-height: 0; padding: 6px; gap: 6px; }
+  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; }
+  #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
   #hand-row { flex-wrap: nowrap; gap: 4px; min-height: 0; padding: 6px 0 12px; }
 }
@@ -577,9 +581,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #deck-grid { grid-template-columns: repeat(7, 1fr); }
 }
 
-/* Phone landscape (Balatro-style): HUD in a left column, everything else
+/* Landscape layout (phone-first, used on desktop too): HUD in a left column, everything else
    stacked on the right so all eight cards fit at a comfortable size. */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) {
   :root {
     --card-w: min(130px, calc((100vw - 150px) / 8), calc((100vh - 245px) / 1.4));
     --card-h: calc(var(--card-w) * 1.4);
@@ -601,7 +605,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   }
   #side-tools #hand-reference ol { right: auto; width: 280px; bottom: auto; top: 0; left: calc(100% + 6px); }
   #app {
-    max-width: none;
+    max-width: 1100px;
+    margin: 0 auto;
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
     column-gap: 10px;
@@ -657,19 +662,34 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #jester-row, #trick-row { flex-wrap: nowrap; min-height: 84px; padding: 4px 4px 4px 8px; gap: 0; }
   #jester-row { gap: 6px; }
   /* Slots shrink (and the cards overflow into overlap) only when the row runs out of room. */
-  #jester-row .jester-slot { flex: 0 1 90px; min-width: 36px; }
+  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; }
   #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
   #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #jester-row .jester-art { width: 34px; margin: 0 auto 2px; }
   #top-row .jester-desc, #top-row .trick-desc { display: none; }
   #trick-row { gap: 6px; }
-  #trick-row .trick-slot { flex-basis: 78px; }
+  #trick-row .trick-slot { width: 78px; }
   #trick-row .trick { padding: 4px; }
   #trick-row .trick-glyph { font-size: 16px; }
   #preview { min-height: 18px; font-size: 12px; line-height: 1.1; text-align: left; padding: 0 4px; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
   .card { flex: 0 0 auto; padding: 5px; }
-  .card + .card { margin-left: -14px; }
+  .card + .card { margin-left: -24px; }
+  /* A slight fan (rotate about the bottom edge, ends dip) lets the cards overlap more. */
+  .card {
+    --tilt: calc(var(--fan, 0) * 5deg);
+    --dip: calc(var(--fan, 0) * var(--fan, 0) * 6px);
+    transform-origin: 50% 100%;
+    transform: translateY(var(--dip)) rotate(var(--tilt));
+  }
+  .card.selected { transform: translateY(calc(var(--dip) - 16px)) rotate(var(--tilt)); }
+  /* Hover: straighten, lift and enlarge so the card clearly reacts (and its full face shows). */
+  .card:focus-visible { transform: translateY(calc(var(--dip) - 12px)) scale(1.08); }
+  .card.selected:focus-visible { transform: translateY(calc(var(--dip) - 22px)) scale(1.08); }
+  @media (hover: hover) {
+    .card:hover { transform: translateY(calc(var(--dip) - 12px)) scale(1.08); box-shadow: 0 12px 22px rgba(0, 0, 0, 0.55); }
+    .card.selected:hover { transform: translateY(calc(var(--dip) - 22px)) scale(1.08); box-shadow: 0 14px 24px rgba(255, 207, 86, 0.55); }
+  }
   .card .rank-bottom { align-self: flex-start; }
   .card:hover, .card.selected { z-index: 1; }
   .card .rank-top, .card .rank-bottom { font-size: 26px; line-height: 1; }

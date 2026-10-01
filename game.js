@@ -1427,13 +1427,16 @@ function render() {
 
   const handRow = document.getElementById("hand-row");
   handRow.innerHTML = "";
-  for (const card of sortedHand()) {
+  const handCards = sortedHand();
+  for (const [i, card] of handCards.entries()) {
     const div = document.createElement("div");
     div.className = "card " + (RED_SUITS.has(card.suit) ? "red" : "black");
     const enh = ENHANCEMENTS[card.enh];
     if (enh) div.classList.add("enh-" + card.enh);
     const isSelected = state.selected.has(card.id);
     if (isSelected) div.classList.add("selected");
+    // Fan position, -1 (leftmost) .. 1 (rightmost); CSS decides whether to use it.
+    div.style.setProperty("--fan", handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
     if (dealt.has(card.id)) {
       div.classList.add("dealt");
       div.style.animationDelay = `${dealt.get(card.id) * 70}ms`;
@@ -1728,7 +1731,7 @@ function initApp() {
   // On a landscape phone the hand-rankings panel moves into the left column
   // (under the HUD) to save vertical space.
   if (typeof window.matchMedia === "function") {
-    const mq = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+    const mq = window.matchMedia("(orientation: landscape)");
     const sideTools = document.getElementById("side-tools");
     const handRef = document.getElementById("hand-reference");
     const controls = document.getElementById("controls");
