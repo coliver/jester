@@ -561,7 +561,7 @@ function newState() {
     pack: null,
     packKind: "trick", // trick | tarot
     rerollCost: REROLL_BASE_COST,
-    sortMode: "rank", // rank | suit
+    sortMode: "rank", // rank | suit | custom (hand order set by dragging)
     phase: "playing", // playing | shop | gameover | win
     dealtIds: new Map(),
     lastEarnings: null,
@@ -973,20 +973,70 @@ function moveJester(id, toIndex) {
   render();
 }
 
+// Dragging a hand card switches to a custom order (neither sort button active)
+// until a sort button is clicked again. Selected cards score left to right.
+function moveHandCard(id, toIndex) {
+  const cards = sortedHand();
+  const from = cards.findIndex(c => c.id === id);
+  if (from === -1) return;
+  const to = Math.max(0, Math.min(cards.length - 1, toIndex));
+  if (to === from) return;
+  const [card] = cards.splice(from, 1);
+  cards.splice(to, 0, card);
+  state.hand = cards;
+  state.sortMode = "custom";
+  Sound.click();
+  render();
+}
+
 // Pointer-based drag (HTML5 drag-and-drop doesn't fire on touch screens).
 // Cards set `touch-action: none` in CSS so the browser doesn't claim the
 // gesture for scrolling (which would cancel the drag). Dropping over another
 // jester in the same row puts the dragged one in that slot; the target is
-// the nearest slot center to the pointer.
+// the nearest slot center to the pointer. Hand cards use the same gesture.
 const DRAG_THRESHOLD_PX = 6;
 
 function makeJesterDraggable(el, id) {
   el.dataset.jesterId = id;
+  // Slots are the card's wrapper in the play row, or the cards themselves in
+  // the shop list; either way sibling order is jester order.
+  makeDraggable(el, () => (el.closest(".jester-slot") || el).parentElement.children,
+    (index) => moveJester(id, index));
+}
+
+// `getSlots` returns the sibling elements that make up the row; `onDrop`
+// gets the index of the slot nearest the pointer when a drag is released.
+function makeDraggable(el, getSlots, onDrop) {
   el.addEventListener("dragstart", (e) => e.preventDefault());
   el.addEventListener("pointerdown", (e) => {
     if (e.button > 0 || e.target.closest("button")) return;
     const startX = e.clientX, startY = e.clientY;
     let dragging = false;
+    let slots = [], centers = [], from = -1, hover = -1;
+
+    // Nearest slot center to the pointer wins, so gaps, overlaps and sloppy
+    // aim all still land somewhere sensible. Centers are measured once at
+    // drag start: the slots shift as feedback, which must not move the target.
+    const nearest = (x, y) => {
+      let best = -1, bestDist = Infinity;
+      centers.forEach((c, i) => {
+        const d = Math.hypot(x - c.x, y - c.y);
+        if (d < bestDist) { best = i; bestDist = d; }
+      });
+      return best;
+    };
+    // The slots between the dragged one and the hover target slide one place
+    // toward where it came from, opening a gap where it will land.
+    const showGap = (target) => {
+      if (target === hover) return;
+      hover = target;
+      slots.forEach((slot, i) => {
+        let j = i;
+        if (from < target && i > from && i <= target) j = i - 1;
+        else if (target < from && i >= target && i < from) j = i + 1;
+        slot.style.translate = j === i ? "" : `${centers[j].x - centers[i].x}px ${centers[j].y - centers[i].y}px`;
+      });
+    };
 
     const onMove = (ev) => {
       const dx = ev.clientX - startX, dy = ev.clientY - startY;
@@ -996,9 +1046,17 @@ function makeJesterDraggable(el, id) {
         hideInspect();
         el.classList.add("dragging");
         el.style.zIndex = "5";
+        slots = [...getSlots()];
+        centers = slots.map(slot => {
+          const r = slot.getBoundingClientRect();
+          return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 };
+        });
+        from = hover = slots.findIndex(slot => slot === el || slot.contains(el));
       }
       if (ev.cancelable) ev.preventDefault();
       el.style.transform = `translate(${dx}px, ${dy}px)`;
+      const target = nearest(ev.clientX, ev.clientY);
+      if (from !== -1 && target !== -1) showGap(target);
     };
     const cleanup = () => {
       document.removeEventListener("pointermove", onMove);
@@ -1008,6 +1066,7 @@ function makeJesterDraggable(el, id) {
     const reset = () => {
       el.classList.remove("dragging");
       el.style.transform = el.style.zIndex = "";
+      for (const slot of slots) slot.style.translate = "";
     };
     const onCancel = () => { cleanup(); reset(); };
     const onUp = (ev) => {
@@ -1018,18 +1077,8 @@ function makeJesterDraggable(el, id) {
       const swallow = (c) => { c.stopImmediatePropagation(); c.preventDefault(); };
       el.addEventListener("click", swallow, { capture: true, once: true });
       setTimeout(() => el.removeEventListener("click", swallow, true), 0);
-      // Forgiving drop: the slot whose center is nearest the pointer wins, so
-      // gaps, overlaps and sloppy aim all still land somewhere sensible.
-      // Slots are the card's wrapper in the play row, or the cards themselves
-      // in the shop list; either way sibling order is jester order.
-      const home = el.closest(".jester-slot") || el;
-      let best = -1, bestDist = Infinity;
-      [...home.parentElement.children].forEach((slot, i) => {
-        const r = slot.getBoundingClientRect();
-        const d = Math.hypot(ev.clientX - (r.left + r.right) / 2, ev.clientY - (r.top + r.bottom) / 2);
-        if (d < bestDist) { best = i; bestDist = d; }
-      });
-      if (best !== -1) moveJester(id, best);
+      const best = nearest(ev.clientX, ev.clientY);
+      if (best !== -1) onDrop(best);
     };
 
     document.addEventListener("pointermove", onMove);
@@ -1246,6 +1295,7 @@ const SUIT_ORDER = new Map(SUITS.map((s, i) => [s, i]));
 
 function sortedHand() {
   const cards = [...state.hand];
+  if (state.sortMode === "custom") return cards;
   if (state.sortMode === "suit") {
     return cards.sort((a, b) => {
       const suitDiff = SUIT_ORDER.get(a.suit) - SUIT_ORDER.get(b.suit);
@@ -1452,6 +1502,7 @@ function render() {
     div.setAttribute("aria-pressed", String(isSelected));
     div.setAttribute("aria-label", `${card.rank} of ${card.suit}${enh ? `, ${enh.name} Card` : ""}`);
     div.addEventListener("click", () => toggleCard(card.id));
+    makeDraggable(div, () => handRow.children, (index) => moveHandCard(card.id, index));
     div.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();

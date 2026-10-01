@@ -535,6 +535,35 @@ test("skipping a pack closes it, and Escape closes the deck view", () => {
   assert.ok(document.getElementById("deck-modal").classList.contains("hidden"));
 });
 
+// --- reordering hand cards ---------------------------------------------------
+
+test("dragging a hand card reorders the hand and switches to custom order", () => {
+  dealtState();
+  const cards = () => [...document.querySelectorAll("#hand-row .card")];
+  const label = (el) => el.querySelector(".rank-top").textContent;
+  const before = cards().map(label);
+  const row = document.getElementById("hand-row");
+  cards().forEach((el, i) => {
+    el.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 100, top: 0, bottom: 50 });
+  });
+  const last = cards().length - 1;
+  const first = cards()[0];
+  first.dispatchEvent(ptr("pointerdown", 50, 25));
+  document.dispatchEvent(ptr("pointermove", 200, 25));
+  document.dispatchEvent(ptr("pointermove", last * 100 + 50, 25));
+  document.dispatchEvent(ptr("pointerup", last * 100 + 50, 25));
+
+  assert.deepEqual(cards().map(label), [...before.slice(1), before[0]]);
+  assert.equal(gameModule._getState().sortMode, "custom");
+  assert.equal(gameModule._getState().selected.size, 0); // the drag's click didn't select
+  assert.ok(!document.getElementById("sort-rank-btn").classList.contains("active"));
+  assert.ok(!document.getElementById("sort-suit-btn").classList.contains("active"));
+  assert.equal(row.children.length, before.length);
+
+  document.getElementById("sort-rank-btn").click();
+  assert.equal(gameModule._getState().sortMode, "rank");
+});
+
 // --- reordering jesters ---------------------------------------------------
 
 function ownedIds() {
