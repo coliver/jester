@@ -227,7 +227,7 @@ const JESTER_POOL = [
   {
     id: "to_the_moon", name: "To the Moon", price: 5, rarity: "Uncommon",
     desc: "Earn an extra $1 of interest per $5 held (up to $5) at round end",
-    roundEnd: (ctx) => ({ money: Math.min(INTEREST_CAP, Math.floor(ctx.money / INTEREST_UNIT)) }),
+    roundEnd: (ctx) => ({ money: interestOn(ctx.money) }),
   },
   {
     id: "golden_jester", name: "Golden Jester", price: 6, rarity: "Common",

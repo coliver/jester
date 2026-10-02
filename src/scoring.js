@@ -10,6 +10,23 @@ function rankNum(rank) {
 // of the same rank is a real four of a kind). Owning Four Fingers drops the
 // flush/straight requirement to 4 cards — any 4 (of the up to 5 selected)
 // that qualify are enough, so a 5-card selection checks every 4-card window.
+// The highest run of at least runSize consecutive ranks among `cards`, as rank
+// numbers (Ace may count low as 1), or null. A longer run is returned whole,
+// so a 5-card straight under Four Fingers still scores all five cards.
+function straightRun(cards, runSize) {
+  const nums = [...new Set(cards.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
+  const withWheel = nums.includes(14) ? [1, ...nums] : nums;
+  let best = null;
+  let start = 0;
+  for (let i = 1; i <= withWheel.length; i++) {
+    if (i === withWheel.length || withWheel[i] !== withWheel[i - 1] + 1) {
+      if (i - start >= runSize) best = withWheel.slice(start, i);
+      start = i;
+    }
+  }
+  return best;
+}
+
 function evaluateHand(cards) {
   const rankCounts = {};
   for (const c of cards) rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
@@ -23,16 +40,10 @@ function evaluateHand(cards) {
     isFlush = SUITS.some(s => cards.filter(c => cardIsSuit(c, s)).length >= runSize);
   }
 
-  let isStraight = false;
-  if (cards.length >= runSize) {
-    const nums = [...new Set(cards.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
-    const withWheel = nums.includes(14) ? [1, ...nums] : nums; // Ace can also count low
-    for (let i = 0; i + runSize - 1 < withWheel.length; i++) {
-      if (withWheel[i + runSize - 1] - withWheel[i] === runSize - 1) { isStraight = true; break; }
-    }
-  }
+  const isStraight = !!straightRun(cards, runSize);
+  const isStraightFlush = SUITS.some(suit => straightRun(cards.filter(c => cardIsSuit(c, suit)), runSize));
 
-  const h = { counts, isFlush, isStraight };
+  const h = { counts, isFlush, isStraight, isStraightFlush };
   const type = HAND_TYPES.find(t => t.test(h));
   if (!type) throw new Error("No hand type matched");
   const base = handBase(type);
@@ -53,16 +64,7 @@ function getScoringCards(typeName, cards, runSize) {
   ).sort((a, b) => rankNum(b[0].rank) - rankNum(a[0].rank));
 
   const straightCards = pool => {
-    const nums = [...new Set(pool.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
-    const withWheel = nums.includes(14) ? [1, ...nums] : nums;
-
-    // Keep the highest straight found.
-    let targets = null;
-    for (let i = 0; i + runSize <= withWheel.length; i++) {
-      const window = withWheel.slice(i, i + runSize);
-      if (window.at(-1) - window[0] === runSize - 1) targets = window;
-    }
-
+    const targets = straightRun(pool, runSize);
     if (!targets) return [];
     return targets.map(n =>
       pool.find(c => rankNum(c.rank) === (n === 1 ? 14 : n))
@@ -84,7 +86,6 @@ function getScoringCards(typeName, cards, runSize) {
     return suit ? cards.filter(c => cardIsSuit(c, suit)) : [];
   }
 
-  if (typeName.includes("Five of a Kind")) return groups.find(g => g.length >= 5) ?? [];
   if (typeName.includes("Four of a Kind")) return groups.find(g => g.length >= 4) ?? [];
 
   if (typeName.includes("Full House")) {

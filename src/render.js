@@ -117,14 +117,14 @@ function render() {
   syncChildren(playArea, scoring ? scoring.cards.map(c => handEls.get(c.id)).filter(Boolean) : wantPlay); // played cards stay up while they score
 
   const selected = getSelectedCards();
+  const selectedHand = selected.length > 0 ? evaluateHand(selected) : null;
   const previewName = document.getElementById("preview-name");
   const tallyEl = document.getElementById("tally");
   if (!scoring) { // while a hand scores, the sequence drives the preview
-    if (selected.length > 0) {
-      const result = scoreSelection(selected);
-      previewName.textContent = result.hand.name;
-      if (handBlocked(result.hand.name)) previewName.insertAdjacentHTML("beforeend", ` <span class="preview-note">already played</span>`);
-      renderTally(result.hand.baseChips, result.hand.baseMult);
+    if (selectedHand) {
+      previewName.textContent = selectedHand.name;
+      if (handBlocked(selectedHand.name)) previewName.insertAdjacentHTML("beforeend", ` <span class="preview-note">already played</span>`);
+      renderTally(selectedHand.baseChips, selectedHand.baseMult);
       tallyEl.classList.remove("idle");
     } else {
       previewName.textContent = " ";
@@ -132,7 +132,7 @@ function render() {
     }
   }
 
-  const blocked = selected.length > 0 && handBlocked(evaluateHand(selected).name);
+  const blocked = !!selectedHand && handBlocked(selectedHand.name);
   document.getElementById("play-btn").disabled = selected.length === 0 || state.phase !== "playing" || blocked;
   document.getElementById("discard-btn").disabled = selected.length === 0 || state.discardsLeft <= 0 || state.phase !== "playing";
 

@@ -3,7 +3,7 @@
 
 function finishRoundWin() {
   const reward = 3 + state.handsLeft + state.discardsLeft;
-  const interest = Math.min(INTEREST_CAP, Math.floor(state.money / INTEREST_UNIT));
+  const interest = interestOn(state.money);
   const roundEndCtx = {
     money: state.money, discardsLeft: state.discardsLeft, discardsUsed: state.discardsUsed,
     jesters: state.jesters, isBoss: state.round === ROUNDS_PER_ANTE, deck: freshDeck(),
@@ -34,13 +34,7 @@ function finishRoundWin() {
   state.phase = "shop";
   state.rerollCost = rerollBaseCost();
   state.freeRerollUsed = false;
-  const owned = new Set(state.jesters.map(j => j.id));
-  const pool = JESTER_POOL.filter(j => !owned.has(j.id));
-  for (let i = pool.length - 1; i > 0; i--) {
-    const r = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[r]] = [pool[r], pool[i]];
-  }
-  state.shopOffers = pool.slice(0, 3);
+  rollShopOffers();
   rollTrickOffers();
   state.packAvailable = true;
   state.decreePackAvailable = true;
@@ -70,12 +64,7 @@ function buyJester(id) {
 
 function rollShopOffers() {
   const owned = new Set(state.jesters.map(j => j.id));
-  const pool = JESTER_POOL.filter(j => !owned.has(j.id));
-  for (let i = pool.length - 1; i > 0; i--) {
-    const r = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[r]] = [pool[r], pool[i]];
-  }
-  state.shopOffers = pool.slice(0, 3);
+  state.shopOffers = shuffled(JESTER_POOL.filter(j => !owned.has(j.id))).slice(0, 3);
 }
 
 function shuffled(list) {
@@ -89,12 +78,7 @@ function shuffled(list) {
 
 // Two random trick cards and two decrees for sale (duplicates of owned ones are fine).
 function rollTrickOffers() {
-  const pool = [...TRICK_POOL];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const r = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[r]] = [pool[r], pool[i]];
-  }
-  state.shopTricks = pool.slice(0, 2);
+  state.shopTricks = shuffled(TRICK_POOL).slice(0, 2);
   state.shopDecrees = shuffled(DECREE_POOL).slice(0, 2);
 }
 
@@ -152,13 +136,7 @@ function rerollShop() {
   if (freeReroll) state.freeRerollUsed = true;
   else state.rerollCost += 1;
   Sound.shuffle();
-  const owned = new Set(state.jesters.map(j => j.id));
-  const pool = JESTER_POOL.filter(j => !owned.has(j.id));
-  for (let i = pool.length - 1; i > 0; i--) {
-    const r = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[r]] = [pool[r], pool[i]];
-  }
-  state.shopOffers = pool.slice(0, 3);
+  rollShopOffers();
   rollTrickOffers();
   render();
 }

@@ -13,6 +13,7 @@ const {
   evaluateHand,
   scoreSelection,
   targetForRound,
+  interestOn,
   JESTER_POOL,
   _setState,
 } = require("../tools/load-game.js");
@@ -361,6 +362,32 @@ test("Four Fingers still allows the Ace-low wheel at 4 cards (A-2-3-4)", () => {
   const wheelFour = [card("A", "♠"), card("2", "♥"), card("3", "♦"), card("4", "♣")];
   _setState(baseState({ jesters: [jesterById("four_fingers")], hand: wheelFour }));
   assert.equal(evaluateHand(wheelFour).isStraight, true);
+});
+
+test("Four Fingers: a flush plus a straight in different suits is not a Straight Flush", () => {
+  const mixed = [card("2", "♥"), card("3", "♥"), card("4", "♥"), card("K", "♥"), card("5", "♠")];
+  _setState(baseState({ jesters: [jesterById("four_fingers")], hand: mixed }));
+  assert.equal(evaluateHand(mixed).name, "Flush");
+});
+
+test("Four Fingers: a 5-card straight scores all five cards", () => {
+  const five = [card("5", "♠"), card("6", "♥"), card("7", "♦"), card("8", "♣"), card("9", "♠")];
+  _setState(baseState({ jesters: [jesterById("four_fingers")], hand: five }));
+  assert.equal(evaluateHand(five).scoringCards.length, 5);
+});
+
+test("five cards of one rank score as Four of a Kind", () => {
+  const five = [card("7", "♠"), card("7", "♥"), card("7", "♦"), card("7", "♣"), card("7", "♠")];
+  _setState(baseState({ jesters: [], hand: five }));
+  const hand = evaluateHand(five);
+  assert.equal(hand.name, "Four of a Kind");
+  assert.equal(hand.scoringCards.length, 5);
+});
+
+test("interestOn: debt earns no interest", () => {
+  assert.equal(interestOn(-7), 0);
+  assert.equal(interestOn(12), 2);
+  assert.equal(interestOn(100), 5);
 });
 
 // --- jester-to-jester synergy/anti-synergy ---------------------------------

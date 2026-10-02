@@ -100,6 +100,7 @@ const testHooks = {
   evaluateHand,
   scoreSelection,
   targetForRound,
+  interestOn,
   rankNum,
   cardChipValue,
   freshDeck,

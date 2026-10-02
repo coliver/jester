@@ -3,6 +3,7 @@
 
 // Jesters score left to right, so array order is play order.
 function moveJester(id, toIndex) {
+  if (scoring) return;
   const from = state.jesters.findIndex(j => j.id === id);
   if (from === -1) return;
   const to = Math.max(0, Math.min(state.jesters.length - 1, toIndex));

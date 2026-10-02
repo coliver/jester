@@ -2,6 +2,7 @@
 // Starting rounds and runs, and saving and resuming a run.
 
 function nextRound() {
+  state.pack = null; // an unpicked pack is forfeited
   state.round += 1;
   if (state.round > ROUNDS_PER_ANTE) {
     state.round = 1;
@@ -35,7 +36,7 @@ function restart() {
 // its deck order, hand, score and hands/discards left. Not saved: the selection, cards
 // staged in the play area, and any scoring animation in progress. Jesters, masks,
 // decrees, props and offers are saved by id and rebuilt from their pools; the only
-// per-instance jester state is sellBonus.
+// per-instance jester state is sellBonus plus the scaling counters tricksUsed and rocketPayout.
 
 const SAVE_KEY = DEBUG_ENABLED ? "jester-run-debug" : "jester-run";
 const SAVE_VERSION = 1;
@@ -53,7 +54,7 @@ function runStorage() {
 function serializeRun(s) {
   const data = { v: SAVE_VERSION, phase: s.phase };
   for (const key of Object.keys(SAVED_SCALARS)) data[key] = s[key];
-  data.jesters = s.jesters.map(j => ({ id: j.id, sellBonus: j.sellBonus || 0 }));
+  data.jesters = s.jesters.map(j => ({ id: j.id, sellBonus: j.sellBonus || 0, tricksUsed: j.tricksUsed || 0, rocketPayout: j.rocketPayout || 0 }));
   data.tricks = s.tricks.map(t => t.id);
   data.props = s.props.map(v => v.id);
   data.shopProp = s.shopProp?.id ?? null;
@@ -95,7 +96,7 @@ function restoreRun(data) {
       s[key] = data[key];
     }
     s.phase = data.phase;
-    s.jesters = data.jesters.map(j => ({ ...list([j.id], JESTER_POOL)[0], sellBonus: Number(j.sellBonus) || 0 }));
+    s.jesters = data.jesters.map(j => ({ ...list([j.id], JESTER_POOL)[0], sellBonus: Number(j.sellBonus) || 0, tricksUsed: Number(j.tricksUsed) || 0, rocketPayout: Number(j.rocketPayout) || 0 }));
     s.tricks = list(data.tricks, [...TRICK_POOL, ...DECREE_POOL]).map(t => ({ ...t }));
     s.props = list(data.props, PROP_POOL);
     s.shopProp = data.shopProp ? list([data.shopProp], PROP_POOL)[0] : null;
@@ -134,13 +135,19 @@ function restoreRun(data) {
 
 // Saves whenever the screen is drawn in a round or the shop, and forgets the run once it
 // ends. startRound() also saves explicitly, before its deal animation has drawn anything.
+let lastSavedRun = null; // render() runs on every click; only write when the save changed
 function persistRun() {
   const storage = runStorage();
   if (!storage || !state) return;
   try {
-    if (state.phase === "gameover" || state.phase === "win") storage.removeItem(SAVE_KEY);
-    else if (state.phase === "shop" || (state.phase === "playing" && !state.debugShop)) {
-      storage.setItem(SAVE_KEY, JSON.stringify(serializeRun(state)));
+    if (state.phase === "gameover" || state.phase === "win") {
+      storage.removeItem(SAVE_KEY);
+      lastSavedRun = null;
+    } else if (state.phase === "shop" || (state.phase === "playing" && !state.debugShop)) {
+      const json = JSON.stringify(serializeRun(state));
+      if (json === lastSavedRun) return;
+      storage.setItem(SAVE_KEY, json);
+      lastSavedRun = json;
     }
   } catch { /* storage full or blocked: the run just isn't saved */ }
 }

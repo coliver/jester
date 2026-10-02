@@ -27,6 +27,8 @@ const FINAL_ANTE = 8;
 const REROLL_BASE_COST = 2;
 const INTEREST_UNIT = 5;
 const INTEREST_CAP = 5;
+// Interest on held money; debt earns none.
+const interestOn = money => Math.max(0, Math.min(INTEREST_CAP, Math.floor(money / INTEREST_UNIT)));
 const PROP_PRICE = 8;
 const BONUS_CHIPS = 30;
 const MULT_BONUS = 4;
@@ -65,8 +67,8 @@ function sellValue(jester) {
 // Each hand has a level (1 by default). Every level above 1 adds levelChips
 // and levelMult to the hand's base; mask cards are how a hand levels up.
 const HAND_TYPES = [
-  { name: "Straight Flush", chips: 100, mult: 8, levelChips: 40, levelMult: 4, mask: "Harlequin", test: h => h.isFlush && h.isStraight },
-  { name: "Four of a Kind", chips: 60, mult: 7, levelChips: 30, levelMult: 3, mask: "Il Capitano", test: h => h.counts[0] === 4 },
+  { name: "Straight Flush", chips: 100, mult: 8, levelChips: 40, levelMult: 4, mask: "Harlequin", test: h => h.isStraightFlush },
+  { name: "Four of a Kind", chips: 60, mult: 7, levelChips: 30, levelMult: 3, mask: "Il Capitano", test: h => h.counts[0] >= 4 },
   { name: "Full House", chips: 40, mult: 4, levelChips: 25, levelMult: 2, mask: "Pantalone", test: h => h.counts[0] === 3 && h.counts[1] === 2 },
   { name: "Flush", chips: 35, mult: 4, levelChips: 15, levelMult: 2, mask: "Pierrot", test: h => h.isFlush },
   { name: "Straight", chips: 30, mult: 4, levelChips: 30, levelMult: 3, mask: "Scaramouche", test: h => h.isStraight },
