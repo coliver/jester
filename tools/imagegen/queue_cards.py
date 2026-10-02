@@ -6,6 +6,9 @@ Usage: python3 queue_cards.py [kind] [--limit N] [--only ID[,ID...]] [--repeat N
            names and rarities live in src/; test/art-prompts.test.js keeps
            the two in step.
 Env: COMFY_URL (default http://127.0.0.1:8600)
+ComfyUI runs on the Windows host, which WSL cannot reach (refused/timeout), so from WSL run this
+with Windows Python: COMFY_URL=http://127.0.0.1:8600 python.exe queue_cards.py ... (export_cards.py
+only reads the output folder and works from WSL).
 
 style.txt is the shared style prefix put in front of every prompt (the text
 baked into the workflow's prompt node is overwritten on each run).
