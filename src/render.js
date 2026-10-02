@@ -6,6 +6,7 @@ function render() {
   persistRun();
   document.getElementById("venue-val").textContent = venueName(state.venue);
   document.getElementById("round-val").textContent = `Act ${state.round} - ${audienceName(state.round)}`;
+  document.title = `Jester - ${venueName(state.venue)}, Act ${state.round}`;
   renderScoreHud(scoring ? scoring.shownScore : state.roundScore);
   document.getElementById("money-val").textContent = scoring ? scoring.money : state.money;
   document.getElementById("hands-val").textContent = state.handsLeft;
