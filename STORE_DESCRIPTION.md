@@ -24,8 +24,8 @@ Jester is a poker-scoring roguelike set in a baroque masquerade court. Play poke
 - Permanent props add a hand, a discard, a jester slot, or a mask slot, but you can only buy one per ante.
 
 **Face the courtiers**
-- The last round of every ante is a boss. The Executioner allows a single hand, the Censor takes your discards, the Poet Laureate bans repeating a hand type, the Tax Collector bills you per hand, and the Spymaster silences your leftmost jester.
-- Ante 8 is always the King.
+- The last round of every ante is a boss. The Executioner allows a single hand, the Censor takes your discards, the Poet Laureate bans repeating a hand type, the Tax Collector takes $1 for every hand you play, and the Spymaster silences your leftmost jester.
+- The final round of ante 8 is always the King.
 
 **Spend, sell, gamble**
 - The shop opens after every round. Save money to earn interest, reroll the stock, sell jesters you've outgrown, and open packs for a pick of three.
