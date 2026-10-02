@@ -1,13 +1,13 @@
 # Jester art — generation prompts
 
 Art is deferred to Phase 4 per [ROADMAP.md](../../ROADMAP.md), but the
-asset pipeline (this file + the `<img>` hooks in game.js) is in place now
+asset pipeline (this file + the `<img>` hooks in src/cards-view.js) is in place now
 so art can be dropped in incrementally without further code changes.
 
 ## Convention
 
 - One square image per jester, saved as `assets/jesters/<id>.png` — the
-  `<id>` matches the `id` field in `JESTER_POOL` (game.js).
+  `<id>` matches the `id` field in `JESTER_POOL` (src/jesters.js).
 - Recommended source size **512×512**, exported/compressed down to
   **~150×150 PNG** (or WebP) for the actual asset — these render at
   roughly 80–100px in the UI, no need to ship large files.
@@ -31,7 +31,7 @@ it up. If you generate by hand, paste that text before the subject prompt.
 
 [prompts.csv](prompts.csv) holds one subject prompt per jester (columns
 `id,prompt`), keyed by the `id` in `JESTER_POOL`. It is the only copy: names,
-rarities and effects live in game.js, and `test/art-prompts.test.js` fails if
+rarities and effects live in src/jesters.js, and `test/art-prompts.test.js` fails if
 a jester has no prompt or a prompt names a jester that is gone. Queue the whole
 sheet into ComfyUI with `python3 tools/imagegen/queue_cards.py jesters`.
 
@@ -45,6 +45,6 @@ nice touch if you want one.
 
 ## Adding new jesters later
 
-Add the jester to `JESTER_POOL` (game.js), append an `id,prompt` row to
+Add the jester to `JESTER_POOL` (src/jesters.js), append an `id,prompt` row to
 [prompts.csv](prompts.csv), and drop the resulting file at
 `assets/jesters/<id>.png`. The test suite flags a missing row.

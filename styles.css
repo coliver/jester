@@ -770,7 +770,7 @@ body {
 .card.dragging { cursor: grabbing; transition: none; box-shadow: 0 14px 24px rgba(0, 0, 0, 0.55); }
 .jester-slot, #owned-jesters .jester { transition: translate 0.15s ease; }
 
-/* Candlelit masquerade-hall backdrop (see court.js): gilt damask lit by
+/* Candlelit masquerade-hall backdrop (see src/backdrop.js): gilt damask lit by
    flickering sconces. Dimmed and vignetted so cards and text stay readable. */
 #court {
   position: fixed;

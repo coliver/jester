@@ -6,8 +6,9 @@
 // Node's coverage instrumentation can't see, so code executed that way
 // never shows up as covered even when the tests genuinely exercise it.
 // Instead: build one jsdom document from the real index.html, attach it to
-// Node's own `global.document`/`global.window`, and `require("../game.js")`
-// normally — that runs in the same (instrumented) context node:test tracks,
+// Node's own `global.document`/`global.window`, and load the game's scripts with
+// `require("../tools/load-game.js")` — that runs them in the same (instrumented)
+// context node:test tracks,
 // while still getting a real DOM (querySelector, classList, click/dispatch)
 // instead of a hand-rolled fake.
 "use strict";
@@ -44,10 +45,10 @@ afterEach(() => new Promise((resolve) => setTimeout(resolve, 2)));
 const DEAL_ANIMATION_MS = 450;
 const PLAY_WAIT_MS = 430; // Play Hand shows the cards in the play area for 380ms first // startRound()'s real deal delay is 420ms
 
-// document/window are on the global now, so this require() runs game.js's
+// document/window are on the global now, so this require() runs the game's
 // real browser entry point (initApp(): wires the buttons below once for the
 // whole file, deals an initial hand via the animated setTimeout path, etc).
-const gameModule = require("../game.js");
+const gameModule = require("../tools/load-game.js");
 
 // The pending initial deal (scheduled by the require() above) must settle
 // before any test runs — otherwise it can fire mid-test and clobber
@@ -329,7 +330,7 @@ test("sort buttons re-order the hand and toggle the active class", () => {
   const expected = [...hand].sort((a, b) => {
     const s = suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
     // Ranks sort numerically ("10" > "9"), not lexically — use the game's
-    // own rankNum, same as sortedHand() does in game.js.
+    // own rankNum, same as sortedHand() does in src/cards-view.js.
     return s !== 0 ? s : gameModule.rankNum(a.rank) - gameModule.rankNum(b.rank);
   });
   const rendered = [...document.querySelectorAll("#hand-row .card .rank-top")].map((el) => el.textContent);

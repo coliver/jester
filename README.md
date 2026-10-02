@@ -14,8 +14,8 @@ Ball, tarot-style cards are Decrees, and a portrait of the King reacts to how
 the round is going. Playing cards are drawn as aged ivory stock with serif
 indices and split court-card panels.
 
-No build step, no dependencies — just `index.html`, `styles.css`,
-`game.js`, and `sounds.js`. Open `index.html` directly, or serve the folder with anything
+No build step, no dependencies — just `index.html`, `styles.css`, and the
+plain scripts in `src/`. Open `index.html` directly, or serve the folder with anything
 static (it's also set up for GitHub Pages).
 
 ## What's in scope
@@ -104,6 +104,27 @@ jesters landed early since it's additive and non-breaking — see
 
 Dev tooling only — the game itself still has no build step and no runtime
 dependencies.
+
+The game is a set of classic `<script>` files in `src/`, loaded in the order
+`index.html` lists them and sharing one global scope (no modules, so opening
+`index.html` from disk keeps working):
+
+- `data.js`, `jesters.js`, `court.js` — constants, mask/decree/prop pools, the
+  jester roster, boss modifiers, venues.
+- `state.js`, `scoring.js` — the run's `state`, deck and round setup; hand
+  detection and scoring.
+- `actions.js`, `score-sequence.js`, `shop.js`, `consumables.js`, `run.js` —
+  what the player can do: select/play/discard, the scoring animation,
+  shopping, using masks and decrees, new runs and saving.
+- `drag.js`, `cards-view.js`, `render.js`, `overlay.js` — drag-to-reorder and
+  everything drawn on screen.
+- `main.js` — wires up the page, plus the Node-only test hooks.
+- `sounds.js`, `backdrop.js` — audio and the candlelit canvas backdrop.
+
+Because the scripts share globals, ESLint is given each file's neighbours'
+top-level names (read from `index.html`, see `eslint.config.js`), and
+`test/globals.test.js` flags top-level names nothing uses. Tests load the
+scripts through `tools/load-game.js`.
 
 Tests run on Node's built-in test runner, no install required:
 

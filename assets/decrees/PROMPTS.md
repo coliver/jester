@@ -1,6 +1,6 @@
 # Decree art — generation prompts
 
-Optional art for the ten decree cards (`DECREE_POOL` in game.js). Same pipeline
+Optional art for the ten decree cards (`DECREE_POOL` in src/data.js). Same pipeline
 as the jesters (see [../jesters/PROMPTS.md](../jesters/PROMPTS.md)).
 
 ## Convention
@@ -22,7 +22,7 @@ Same shared style as the jesters
 
 [prompts.csv](prompts.csv) holds one subject prompt per decree (columns
 `id,prompt`), keyed by the `id` in `DECREE_POOL`. Names and effects live in
-game.js; `test/art-prompts.test.js` keeps the two in step. Queue the sheet into
+src/data.js; `test/art-prompts.test.js` keeps the two in step. Queue the sheet into
 ComfyUI with `python3 tools/imagegen/queue_cards.py decrees`.
 
 ## Adding new decrees later

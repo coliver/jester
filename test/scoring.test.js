@@ -2,8 +2,8 @@
 // runner, no dependencies: `node --test` (or `npm test`) from repo root.
 "use strict";
 
-// game.js expects a global `Sound` object (normally provided by sounds.js
-// in the browser); stub it so requiring game.js under Node doesn't blow up
+// The game expects a global `Sound` object (normally provided by sounds.js
+// in the browser); stub it so loading the game under Node doesn't blow up
 // when actions call Sound.*().
 global.Sound = new Proxy({}, { get: () => () => {} });
 
@@ -15,7 +15,7 @@ const {
   targetForRound,
   JESTER_POOL,
   _setState,
-} = require("../game.js");
+} = require("../tools/load-game.js");
 
 function card(rank, suit) {
   return { rank, suit, id: `${rank}${suit}` };
@@ -307,7 +307,7 @@ test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
 });
 
 // --- ported Balatro jesters, round 2: needed a small amount of new engine --
-// --- plumbing (see game.js) beyond the plain per-hand apply(ctx) hook ------
+// --- plumbing (see src/scoring.js) beyond the plain per-hand apply(ctx) hook ------
 
 test("Hack doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {
   const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("9", "♣"), card("K", "♣")];
@@ -459,7 +459,7 @@ test("targetForRound is always rounded to the nearest 10", () => {
 });
 
 test("jester order changes scoring: Blueprint copies whichever Jester is on its right", () => {
-  const { moveJester } = require("../game.js");
+  const { moveJester } = require("../tools/load-game.js");
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   const s = baseState({ jesters: [jesterById("base_jester"), jesterById("blueprint")], hand: selected });
   _setState(s);

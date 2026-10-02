@@ -1,11 +1,11 @@
 # Boss art — generation prompts
 
-Optional portraits for the boss courtiers (`BOSS_POOL` in game.js: the random
+Optional portraits for the boss courtiers (`BOSS_POOL` in src/court.js: the random
 `BOSS_MODIFIERS` plus `KING_BOSS`). Same pipeline as the jesters (see
 [../jesters/PROMPTS.md](../jesters/PROMPTS.md)).
 
 - One square image per boss, saved as `assets/bosses/<id>.png`, where `<id>`
-  matches the boss `id` in game.js.
+  matches the boss `id` in src/court.js.
 - Source at 512×512 or larger, export to **150×150 PNG**
   (`python3 tools/imagegen/export_cards.py bosses`). The boss banner shows it at 40px,
   so keep the subject bold.

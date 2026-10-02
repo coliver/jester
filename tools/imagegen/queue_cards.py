@@ -3,7 +3,7 @@
 Usage: python3 queue_cards.py [kind] [--limit N] [--only ID[,ID...]] [--repeat N] [--seed N] [--prefix DIR]
   kind     jesters (default), decrees, masks, faces, bosses or court: reads assets/<kind>/prompts.csv
            (columns: id,prompt), the single source of art prompts. Card ids,
-           names and rarities live in game.js; test/art-prompts.test.js keeps
+           names and rarities live in src/; test/art-prompts.test.js keeps
            the two in step.
 Env: COMFY_URL (default http://127.0.0.1:8600)
 

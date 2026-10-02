@@ -8,7 +8,7 @@ parts of Phases 4 and 5 (art, sound, mobile layout) already in. This
 document keeps the original phase plan and marks what has shipped.
 
 Guiding constraint carried through every phase: **no build step, no
-dependencies**, plain `index.html` / `styles.css` / `game.js`. Anything that
+dependencies**, plain `index.html` / `styles.css` / the scripts in `src/`. Anything that
 would require a bundler or framework is out of scope unless a phase says
 otherwise explicitly.
 
@@ -85,7 +85,7 @@ buy/sell/reroll, win and game-over flows, no console errors) plus
 
 ### 1. Rules/correctness fixes
 
-- **Ace-low straight.** `evaluateHand` in [game.js](game.js) treats Ace as
+- **Ace-low straight.** `evaluateHand` in [src/scoring.js](src/scoring.js) treats Ace as
   rank 14 only, so A-2-3-4-5 doesn't score as a straight (or straight
   flush). Fix `rankNum`/`isStraight` to also check the wheel case.
 - **Win condition.** The run currently escalates ante forever with no
@@ -107,7 +107,7 @@ buy/sell/reroll, win and game-over flows, no console errors) plus
   the 3 offers are fixed per shop visit with no player agency.
 - **Hand reference** — a small always-available legend (tooltip or panel)
   listing hand types and their base chip/mult, since `HAND_TYPES` in
-  game.js is the only place this lives today.
+  src/data.js is the only place this lives today.
 
 ### 3. Regression safety net
 

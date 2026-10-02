@@ -1,6 +1,6 @@
 # Mask art: generation prompts
 
-Optional art for the nine mask cards (`TRICK_POOL` in game.js, one per hand
+Optional art for the nine mask cards (`TRICK_POOL` in src/data.js, one per hand
 type). Same pipeline as the jesters (see [../jesters/PROMPTS.md](../jesters/PROMPTS.md))
 and the decrees (see [../decrees/PROMPTS.md](../decrees/PROMPTS.md)).
 
@@ -29,5 +29,5 @@ the card.
 
 [prompts.csv](prompts.csv) holds one subject prompt per mask (columns
 `id,prompt`), keyed by the `id` in `TRICK_POOL`. Character and hand names live
-in game.js (`HAND_TYPES`); `test/art-prompts.test.js` keeps the two in step.
+in src/data.js (`HAND_TYPES`); `test/art-prompts.test.js` keeps the two in step.
 Queue the sheet into ComfyUI with `python3 tools/imagegen/queue_cards.py masks`.

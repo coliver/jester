@@ -1,11 +1,28 @@
 "use strict";
 
+const path = require("node:path");
 const js = require("@eslint/js");
+const { ROOT, scriptPaths, topLevelNames } = require("./tools/game-scripts");
 
-// game.js/sounds.js are plain <script> tags (no bundler, no `type="module"`),
-// so they share one global scope. `Sound` is a top-level `const` in
-// sounds.js, loaded before game.js — that makes it a real global at runtime,
-// even though ESLint can't see across files.
+// The scripts in src/ are plain <script> tags (no bundler, no `type="module"`),
+// so they share one global scope: a top-level declaration in one file is a
+// global in every other. ESLint can't see across files, so each script is
+// given the other scripts' top-level names as globals (read from index.html's
+// script list; `let` names are writable, since e.g. `state` is reassigned from
+// several files).
+const scripts = scriptPaths().map((p) => path.join(ROOT, p));
+const declared = new Map(scripts.map((file) => [file, topLevelNames(file)]));
+
+function sharedGlobals(file) {
+  const globals = {};
+  for (const [other, names] of declared) {
+    if (other === file) continue;
+    for (const n of names.readonly) globals[n] = "readonly";
+    for (const n of names.writable) globals[n] = "writable";
+  }
+  return globals;
+}
+
 const browserGlobals = {
   window: "readonly",
   document: "readonly",
@@ -17,7 +34,7 @@ const browserGlobals = {
   setTimeout: "readonly",
   clearTimeout: "readonly",
   performance: "readonly",
-  // game.js also has a Node-only tail (module.exports guarded by
+  // main.js also has a Node-only tail (module.exports guarded by
   // `typeof module !== "undefined"`) so its test suite can import the pure
   // functions; these stay `undefined` in the browser.
   module: "readonly",
@@ -35,30 +52,29 @@ const nodeGlobals = {
 };
 
 // test/render.test.js attaches a jsdom document/window to Node's global (see
-// that file's header comment for why) so game.js's DOM code runs — and gets
+// that file's header comment for why) so the game's DOM code runs — and gets
 // coverage-tracked — in the same context node:test instruments.
 const testDomGlobals = { document: "readonly", window: "readonly" };
 
 module.exports = [
   { ignores: ["node_modules/**"] },
   js.configs.recommended,
-  {
-    files: ["game.js", "sounds.js", "court.js"],
+  ...scripts.map((file) => ({
+    files: [path.relative(ROOT, file)],
     languageOptions: {
       sourceType: "script",
       ecmaVersion: 2022,
-      globals: browserGlobals,
+      globals: { ...browserGlobals, ...sharedGlobals(file) },
     },
     rules: {
       // sounds.js swallows a blocked/unavailable localStorage on purpose.
       "no-empty": ["error", { allowEmptyCatch: true }],
+      // A top-level name is used by *other* scripts, which ESLint can't see, so
+      // only local variables can be checked. test/globals.test.js catches
+      // top-level names that nothing uses.
+      "no-unused-vars": ["error", { vars: "local" }],
     },
-  },
-  {
-    // sounds.js declares `Sound`, game.js consumes it as a script global.
-    files: ["game.js"],
-    languageOptions: { globals: { Sound: "readonly" } },
-  },
+  })),
   {
     files: ["test/**/*.js"],
     languageOptions: {
@@ -68,7 +84,7 @@ module.exports = [
     },
   },
   {
-    files: ["eslint.config.js"],
+    files: ["eslint.config.js", "tools/*.js"],
     languageOptions: {
       sourceType: "commonjs",
       ecmaVersion: 2022,

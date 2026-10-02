@@ -1,7 +1,7 @@
 // Keeps the art prompt sheets (assets/<kind>/prompts.csv, read by
-// tools/imagegen/queue_cards.py) in step with the card pools in game.js:
+// tools/imagegen/queue_cards.py) in step with the card pools in src/:
 // every card has exactly one prompt, and no prompt is left pointing at a card
-// that no longer exists. game.js owns ids, names and rarities; the CSVs own
+// that no longer exists. src/ owns ids, names and rarities; the CSVs own
 // only the prompt text.
 "use strict";
 
@@ -11,7 +11,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { JESTER_POOL, DECREE_POOL, TRICK_POOL, BOSS_POOL } = require("../game.js");
+const { JESTER_POOL, DECREE_POOL, TRICK_POOL, BOSS_POOL } = require("../tools/load-game.js");
 
 // Minimal RFC 4180 reader: quoted fields, "" escapes, CRLF or LF.
 function parseCsv(text) {

@@ -1,0 +1,169 @@
+// --- Init ---------------------------------------------------------------
+
+function initApp() {
+  document.getElementById("play-btn").addEventListener("click", playSelected);
+  document.getElementById("discard-btn").addEventListener("click", discardSelected);
+  document.getElementById("shop-btn").classList.toggle("hidden", !DEBUG_ENABLED);
+  document.getElementById("shop-btn").addEventListener("click", () => setDebugShop(true));
+  document.getElementById("win-btn").classList.toggle("hidden", !DEBUG_ENABLED);
+  document.getElementById("win-btn").addEventListener("click", debugWinRound);
+  document.getElementById("money-btn").addEventListener("click", () => addDebugMoney());
+  document.getElementById("sort-rank-btn").addEventListener("click", () => setSortMode("rank"));
+  document.getElementById("sort-suit-btn").addEventListener("click", () => setSortMode("suit"));
+
+  const deckModal = document.getElementById("deck-modal");
+  document.getElementById("deck-btn").addEventListener("click", () => setDeckViewOpen(true));
+  document.getElementById("deck-close-btn").addEventListener("click", () => setDeckViewOpen(false));
+  deckModal.addEventListener("click", (e) => { if (e.target === deckModal) setDeckViewOpen(false); });
+  const deckPile = document.getElementById("deck-pile");
+  deckPile.addEventListener("click", () => setDeckViewOpen(true));
+  deckPile.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    setDeckViewOpen(true);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-inspectable]")) hideInspect();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!deckModal.classList.contains("hidden")) setDeckViewOpen(false);
+    hideInspect();
+  });
+
+  const hurry = () => { if (scoring) scoring.fast = true; };
+  document.addEventListener("pointerdown", hurry);
+  document.addEventListener("keydown", hurry);
+
+  const muteBtn = document.getElementById("mute-btn");
+  function syncMuteBtn() {
+    const muted = Sound.isMuted();
+    muteBtn.textContent = muted ? "🔇" : "🔊";
+    muteBtn.classList.toggle("muted", muted);
+    muteBtn.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+  }
+  muteBtn.addEventListener("click", () => {
+    Sound.toggleMuted();
+    syncMuteBtn();
+  });
+  syncMuteBtn();
+
+  const handReferenceList = document.getElementById("hand-reference-list");
+  for (let i = 0; i < HAND_TYPES.length; i++) {
+    handReferenceList.appendChild(document.createElement("li"));
+  }
+  document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
+  initNewRunButton();
+
+  // On a landscape phone the hand-rankings panel moves into the left column
+  // (under the HUD) to save vertical space.
+  if (typeof window.matchMedia === "function") {
+    const mq = window.matchMedia("(orientation: landscape)");
+    const sideTools = document.getElementById("side-tools");
+    const handRef = document.getElementById("hand-reference");
+    const controls = document.getElementById("controls");
+    const placeTools = () => {
+      if (mq.matches) sideTools.append(handRef);
+      else controls.after(handRef);
+    };
+    placeTools();
+    mq.addEventListener("change", placeTools);
+  }
+
+  const saved = loadRun();
+  if (saved?.phase === "shop") {
+    state = saved;
+    shopIntroFor = saved.lastEarnings; // no payout count-up for a shop that was already opened
+    render();
+  } else if (saved && (saved.hand.length || saved.played.length)) {
+    state = saved; // resume mid-round exactly as it was
+    render();
+  } else {
+    state = saved || newState();
+    if (!saved) grantStartingJester();
+    startRound(saved?.bossModifier);
+    render();
+  }
+}
+
+// Browser entry point. Guarded so this file can also be `require()`d from
+// plain Node (see test/scoring.test.js) without a DOM.
+if (typeof document !== "undefined") {
+  initApp();
+}
+
+// Test hooks: pure scoring functions, the state machine's actions, and a
+// raw accessor to `state` so tests can drive/inspect it directly instead of
+// only going through the DOM.
+const testHooks = {
+  // pure functions
+  evaluateHand,
+  scoreSelection,
+  targetForRound,
+  rankNum,
+  cardChipValue,
+  freshDeck,
+  HAND_TYPES,
+  TRICK_POOL,
+  DECREE_POOL,
+  JESTER_POOL,
+  BOSS_MODIFIERS,
+  KING_BOSS,
+  BOSS_POOL,
+  courtMood,
+  VENUES,
+  // state machine
+  newState,
+  startRound,
+  toggleCard,
+  getSelectedCards,
+  playHand,
+  playSelected,
+  stageCard,
+  unstageCard,
+  PLAY_ANIMATION_MS,
+  discardSelected,
+  buyJester,
+  sellJester,
+  moveJester,
+  rerollShop,
+  buyProp,
+  finishRoundWin,
+  PROP_POOL,
+  buyTrick,
+  buyDecree,
+  useTrick,
+  sellTrick,
+  buyPack,
+  pickFromPack,
+  skipPack,
+  setDebugShop,
+  addDebugMoney,
+  debugWinRound,
+  nextRound,
+  restart,
+  render,
+  serializeRun,
+  restoreRun,
+  loadRun,
+  SAVE_KEY,
+  NEW_RUN_CONFIRM_MS,
+  // test-only state access
+  _getState: () => state,
+  _setScoringAnimation: (on) => { scoringOverride = on; },
+  _scoringDone: () => scoring?.done || Promise.resolve(),
+  _isScoring: () => scoring !== null,
+  destroyCards,
+  _setState: (s) => { state = s; },
+};
+
+// Plain Node (no DOM): export the hooks as a CommonJS module.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = testHooks;
+}
+// Browser test runner (jsdom driving the real index.html + initApp() path):
+// opts in by setting this sentinel *before* the game's scripts load. Real pages never
+// set it, so nothing extra ships to players.
+if (typeof window !== "undefined" && window.__JESTER_TEST__) {
+  window.__jesterTest = testHooks;
+}

@@ -4,8 +4,8 @@
 // runner: `node --test` (or `npm test`) from repo root.
 "use strict";
 
-// game.js expects a global `Sound` object (normally provided by sounds.js
-// in the browser); stub it so requiring game.js under Node doesn't blow up
+// The game expects a global `Sound` object (normally provided by sounds.js
+// in the browser); stub it so loading the game under Node doesn't blow up
 // when actions call Sound.*().
 global.Sound = new Proxy({}, { get: () => () => {} });
 
@@ -37,7 +37,7 @@ const {
   DECREE_POOL,
   _getState,
   _setState,
-} = require("../game.js");
+} = require("../tools/load-game.js");
 
 function withMockedRandom(value, fn) {
   const orig = Math.random;
@@ -61,7 +61,7 @@ function withBossModifier(id, fn) {
 }
 
 // Fresh, dealt state for each test. startRound() deals synchronously
-// outside a DOM (see game.js), so no waiting/faking timers is needed.
+// outside a DOM (see startRound in src/state.js), so no waiting/faking timers is needed.
 function freshRoundState() {
   _setState(newState());
   startRound();
@@ -764,7 +764,7 @@ test("Gros Michel gives +15 Mult and can be destroyed by its 1-in-6 round-end ro
 // --- Mask cards (hand levels) ---------------------------------------------
 
 test("using a trick card levels its hand and raises base chips/mult", () => {
-  const { TRICK_POOL, evaluateHand, useTrick } = require("../game.js");
+  const { TRICK_POOL, evaluateHand, useTrick } = require("../tools/load-game.js");
   const state = freshRoundState();
   const pair = [{ suit: "♠", rank: "5", id: "5♠" }, { suit: "♥", rank: "5", id: "5♥" }];
   assert.equal(evaluateHand(pair).baseChips, 10);
@@ -777,7 +777,7 @@ test("using a trick card levels its hand and raises base chips/mult", () => {
 });
 
 test("buyTrick respects money and the trick slot limit; sellTrick refunds half", () => {
-  const { TRICK_POOL, buyTrick, sellTrick } = require("../game.js");
+  const { TRICK_POOL, buyTrick, sellTrick } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.phase = "shop";
   state.money = 20;
@@ -792,7 +792,7 @@ test("buyTrick respects money and the trick slot limit; sellTrick refunds half",
 });
 
 test("trick pack: costs money, picking one levels its hand", () => {
-  const { buyPack, pickFromPack } = require("../game.js");
+  const { buyPack, pickFromPack } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.phase = "shop";
   state.money = 10;
@@ -808,7 +808,7 @@ test("trick pack: costs money, picking one levels its hand", () => {
 });
 
 test("Constellation gains X0.1 Mult per trick used", () => {
-  const { TRICK_POOL, useTrick } = require("../game.js");
+  const { TRICK_POOL, useTrick } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.jesters = [{ ...jesterById("constellation") }];
   const cards = [{ suit: "♠", rank: "5", id: "5♠" }];
@@ -903,7 +903,7 @@ test("Haggler's reroll discount never drops the base cost below $1", () => {
 // --- Decree cards (deck editing) ----------------------------------------------
 
 function decreeById(id) {
-  const { DECREE_POOL } = require("../game.js");
+  const { DECREE_POOL } = require("../tools/load-game.js");
   const t = DECREE_POOL.find(t => t.id === id);
   assert.ok(t, `no such decree: ${id}`);
   return { ...t };
@@ -918,7 +918,7 @@ function holdDecree(id, n) {
 }
 
 test("decree enhancement edits the card in hand and in the master deck", () => {
-  const { useTrick } = require("../game.js");
+  const { useTrick } = require("../tools/load-game.js");
   const state = holdDecree("decree_archbishop", 2);
   const ids = [...state.selected];
   useTrick(0);
@@ -936,7 +936,7 @@ test("decree enhancement edits the card in hand and in the master deck", () => {
 });
 
 test("decree refuses to act with too many or no cards selected", () => {
-  const { useTrick } = require("../game.js");
+  const { useTrick } = require("../tools/load-game.js");
   const state = holdDecree("decree_marriage", 2); // Lovers takes 1
   useTrick(0);
   assert.equal(_getState().tricks.length, 1);
@@ -947,7 +947,7 @@ test("decree refuses to act with too many or no cards selected", () => {
 });
 
 test("suit-changing decree permanently changes suits", () => {
-  const { useTrick } = require("../game.js");
+  const { useTrick } = require("../tools/load-game.js");
   const state = holdDecree("decree_oath_hearts", 3);
   const ids = [...state.selected];
   useTrick(0);
@@ -958,7 +958,7 @@ test("suit-changing decree permanently changes suits", () => {
 });
 
 test("Strength raises rank by one and Ace wraps to 2", () => {
-  const { useTrick } = require("../game.js");
+  const { useTrick } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.hand = [{ suit: "♠", rank: "K", id: "K♠" }, { suit: "♠", rank: "A", id: "A♠" }];
   state.masterDeck = state.hand.map(c => ({ ...c }));
@@ -970,7 +970,7 @@ test("Strength raises rank by one and Ace wraps to 2", () => {
 });
 
 test("The Hanged Man destroys cards for the run and refills the hand", () => {
-  const { useTrick } = require("../game.js");
+  const { useTrick } = require("../tools/load-game.js");
   const state = holdDecree("decree_headsman", 2);
   const ids = [...state.selected];
   useTrick(0);
@@ -995,7 +995,7 @@ test("Bonus, Mult and Glass cards add chips, mult and X2 when scored", () => {
 });
 
 test("a Wild card completes a flush and counts for suit jesters", () => {
-  const { evaluateHand } = require("../game.js");
+  const { evaluateHand } = require("../tools/load-game.js");
   const state = freshRoundState();
   const hand = [
     { suit: "♠", rank: "2", id: "a" }, { suit: "♠", rank: "5", id: "b" },
@@ -1032,7 +1032,7 @@ test("a played Glass card survives when the roll misses", () => {
 });
 
 test("buyDecree respects money and trick slots; decrees can be sold", () => {
-  const { buyDecree, sellTrick, DECREE_POOL } = require("../game.js");
+  const { buyDecree, sellTrick, DECREE_POOL } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.phase = "shop";
   state.money = 10;
@@ -1047,7 +1047,7 @@ test("buyDecree respects money and trick slots; decrees can be sold", () => {
 });
 
 test("decree pack: pick goes to a slot instead of being used, blocked when full", () => {
-  const { buyPack, pickFromPack } = require("../game.js");
+  const { buyPack, pickFromPack } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.phase = "shop";
   state.money = 10;
@@ -1086,7 +1086,7 @@ function shopState(overrides = {}) {
 }
 
 test("buyJester ignores unknown ids, unaffordable offers and a full roster", () => {
-  const { buyJester } = require("../game.js");
+  const { buyJester } = require("../tools/load-game.js");
   const [a, b, c] = JESTER_POOL;
   const state = shopState({ shopOffers: [a, b] });
   buyJester("nope");
@@ -1102,7 +1102,7 @@ test("buyJester ignores unknown ids, unaffordable offers and a full roster", () 
 });
 
 test("sellJester ignores unknown ids and calls after the run is over", () => {
-  const { sellJester } = require("../game.js");
+  const { sellJester } = require("../tools/load-game.js");
   const state = shopState({ jesters: [{ ...JESTER_POOL[0], sellBonus: 0 }] });
   sellJester("nope");
   assert.equal(state.jesters.length, 1);
@@ -1113,7 +1113,7 @@ test("sellJester ignores unknown ids and calls after the run is over", () => {
 });
 
 test("buyTrick and buyDecree ignore unknown ids, unaffordable offers and calls outside the shop", () => {
-  const { buyTrick, buyDecree, TRICK_POOL, DECREE_POOL } = require("../game.js");
+  const { buyTrick, buyDecree, TRICK_POOL, DECREE_POOL } = require("../tools/load-game.js");
   const state = shopState({ shopTricks: [TRICK_POOL[0]], shopDecrees: [DECREE_POOL[0]] });
   buyTrick("nope");
   buyDecree("nope");
@@ -1129,7 +1129,7 @@ test("buyTrick and buyDecree ignore unknown ids, unaffordable offers and calls o
 });
 
 test("sellTrick ignores calls after the run is over and bad indexes", () => {
-  const { sellTrick } = require("../game.js");
+  const { sellTrick } = require("../tools/load-game.js");
   const state = shopState({ tricks: [decreeById("decree_oath_diamonds")] });
   sellTrick(5);
   state.phase = "gameover";
@@ -1139,7 +1139,7 @@ test("sellTrick ignores calls after the run is over and bad indexes", () => {
 });
 
 test("useTrick ignores a bad index and does nothing while a pack is open", () => {
-  const { useTrick, TRICK_POOL } = require("../game.js");
+  const { useTrick, TRICK_POOL } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.tricks.push({ ...TRICK_POOL[0] });
   useTrick(3);
@@ -1150,7 +1150,7 @@ test("useTrick ignores a bad index and does nothing while a pack is open", () =>
 });
 
 test("a decree can't be used from the shop, with a pack open, or in the debug shop", () => {
-  const { useTrick } = require("../game.js");
+  const { useTrick } = require("../tools/load-game.js");
   const state = holdDecree("decree_oath_hearts", 1);
   state.debugShop = true;
   useTrick(0);
@@ -1162,7 +1162,7 @@ test("a decree can't be used from the shop, with a pack open, or in the debug sh
 });
 
 test("buyPack ignores calls outside the shop, a sold-out pack, an open pack and no money", () => {
-  const { buyPack } = require("../game.js");
+  const { buyPack } = require("../tools/load-game.js");
   const state = shopState({ packAvailable: true, decreePackAvailable: false });
   buyPack("decree"); // decree pack already bought
   state.money = 1;
@@ -1179,7 +1179,7 @@ test("buyPack ignores calls outside the shop, a sold-out pack, an open pack and 
 });
 
 test("pickFromPack ignores a missing pack and an id that isn't in it", () => {
-  const { pickFromPack, TRICK_POOL } = require("../game.js");
+  const { pickFromPack, TRICK_POOL } = require("../tools/load-game.js");
   const state = shopState();
   pickFromPack("nope");
   state.pack = [TRICK_POOL[0]];
@@ -1199,7 +1199,7 @@ test("the free reroll from Chaos the Clown costs nothing once per shop visit", (
 });
 
 test("moveJester reorders in place, clamps out-of-range targets and ignores unknown ids", () => {
-  const { moveJester } = require("../game.js");
+  const { moveJester } = require("../tools/load-game.js");
   const [a, b, c] = JESTER_POOL;
   const state = shopState({ jesters: [a, b, c].map(j => ({ ...j, sellBonus: 0 })) });
   const ids = () => state.jesters.map(j => j.id);
@@ -1218,7 +1218,7 @@ test("moveJester reorders in place, clamps out-of-range targets and ignores unkn
 });
 
 test("moveJester keeps each jester's per-run data (sellBonus) with it", () => {
-  const { moveJester } = require("../game.js");
+  const { moveJester } = require("../tools/load-game.js");
   const [a, b] = JESTER_POOL;
   const state = shopState({ jesters: [{ ...a, sellBonus: 3 }, { ...b, sellBonus: 0 }] });
   moveJester(a.id, 1);
@@ -1259,7 +1259,7 @@ test("The Poet Laureate refuses a repeated hand type this round", () => {
 test("The Bishop zeroes the chip value of played face cards", () => {
   const state = freshRoundState();
   state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "bishop");
-  const { scoreSelection } = require("../game.js");
+  const { scoreSelection } = require("../tools/load-game.js");
   const king = scoreSelection([{ suit: "♠", rank: "K", id: "k" }]);
   const five = scoreSelection([{ suit: "♠", rank: "5", id: "f" }]);
   assert.equal(king.chips, 5); // High Card base only
@@ -1268,7 +1268,7 @@ test("The Bishop zeroes the chip value of played face cards", () => {
 
 test("The Spymaster silences the leftmost jester", () => {
   const state = freshRoundState();
-  const { scoreSelection } = require("../game.js");
+  const { scoreSelection } = require("../tools/load-game.js");
   const jolly = JESTER_POOL.find(j => j.id === "greedy_jester" || j.id === "base_jester");
   state.jesters = [{ ...jolly, sellBonus: 0 }];
   const card = [{ suit: "♦", rank: "5", id: "d" }];

@@ -85,5 +85,5 @@ they're listed under their other blockers above.
 ---
 
 When any of the above hooks/systems land, pull the matching jesters from
-this file into `JESTER_POOL` (game.js) and their prompts into
+this file into `JESTER_POOL` (src/jesters.js) and their prompts into
 [prompts.csv](prompts.csv).
