@@ -711,8 +711,52 @@ body {
 }
 
 /* Decree cards and card enhancements */
-.trick.decree { background: linear-gradient(160deg, #2d4a5e, #3a2a66); border-color: var(--accent-2); }
-.trick.decree .trick-glyph, .trick.decree .trick-name { color: var(--accent-2); }
+/* Masks, decrees, props and packs: velvet faces with a fine gilt lattice and an inner frame, the way
+   the deck's back is dressed. Masks are indigo, decrees teal, the prop is gilt foil, and a pack is
+   a little stack of sheets. */
+.trick {
+  position: relative;
+  background:
+    repeating-linear-gradient(45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px),
+    linear-gradient(160deg, #3a2a66, #1c2a5e);
+  border-color: #d9b45c;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+}
+.trick::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(217, 180, 92, 0.5);
+  border-radius: 5px;
+  pointer-events: none;
+}
+#inspect .trick { box-shadow: none; }
+#inspect .trick::before { display: none; }
+.trick-name { font-family: var(--card-font); }
+.trick .card-art { border: 1px solid rgba(217, 180, 92, 0.6); }
+.trick.decree {
+  background:
+    repeating-linear-gradient(45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px),
+    linear-gradient(160deg, #1f5560, #173a52);
+}
+.trick.decree .trick-glyph, .trick.decree .trick-name { color: #bdf1ff; }
+.trick.prop {
+  background: linear-gradient(160deg, #f3dc92, #c99a3a 55%, #e6c46c);
+  border-color: #8a6414;
+}
+.trick.prop::before { border-color: rgba(70, 40, 15, 0.5); }
+.trick.prop .trick-glyph, .trick.prop .trick-name { color: #3a1c00; }
+.trick.prop .trick-hand { color: #6b4a14; }
+.trick.pack {
+  --sheet: #2c2260;
+  box-shadow:
+    3px -3px 0 -1px var(--sheet), 3px -3px 0 0 rgba(217, 180, 92, 0.7),
+    6px -6px 0 -1px var(--sheet), 6px -6px 0 0 rgba(217, 180, 92, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.45);
+}
+.trick.pack.decree { --sheet: #1b4452; }
 
 .card { position: relative; }
 /* Play area: the middle of the three card rows. Reserved at card height so hands played here never shift the layout. */
@@ -817,8 +861,18 @@ body::before {
 /* --- Shop screen -------------------------------------------------------------
    Built for a landscape phone: a bar that never scrolls (money, payout, reroll,
    next round) over two panes that scroll on their own, the stock on the left and
-   what you own on the right. */
+   what you own on the right. The look is a merchant's counter at court: each shelf
+   is a wine-velvet tray with a gilt double frame (the same lattice and frame as the
+   deck's card back) and a plaque for its name, lit from above by a candle. Offers are
+   the ivory-stock cards, with one gilt Buy button carrying the price. */
 #overlay {
+  --foil: #d9b45c;
+  --foil-hi: #f1dda0;
+  --velvet: #4a1522;
+  --velvet-deep: #26090f;
+  --lattice:
+    repeating-linear-gradient(45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px);
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -837,34 +891,79 @@ body::before {
 }
 
 #overlay-bar {
+  position: relative;
+  z-index: 1;
   flex: none;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 6px 12px;
-  background: rgba(42, 26, 56, 0.96);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 14px;
+  background: linear-gradient(180deg, #3a1226, #260b17);
+  border-bottom: 1px solid var(--foil);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+#overlay-bar::after { /* a second, finer rule under the first */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: rgba(217, 180, 92, 0.35);
 }
 #overlay-head { flex: 1 1 auto; min-width: 0; text-align: left; }
-#overlay-title { margin: 0; font-size: 18px; line-height: 1.15; color: var(--accent); }
-#overlay-sub { display: flex; flex-wrap: wrap; gap: 3px 6px; margin: 3px 0 0; font-size: 12px; color: var(--muted); }
-#overlay-sub .chip { padding: 1px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); white-space: nowrap; }
-#overlay-sub .chip.where { background: none; padding-left: 0; }
+#overlay-title {
+  margin: 0;
+  font: italic 700 22px/1.15 var(--card-font);
+  color: var(--foil-hi);
+  text-shadow: 0 0 14px rgba(241, 200, 120, 0.35);
+}
+#overlay-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  margin: 4px 0 0;
+  font: 12px/1.4 var(--card-font);
+  color: var(--muted);
+}
+#overlay-sub .chip {
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(123, 227, 138, 0.35);
+  background: rgba(123, 227, 138, 0.07);
+  color: #a9e9b3;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+#overlay-sub .chip.where { border-color: transparent; background: none; padding-left: 0; color: var(--muted); font-style: italic; }
+
 #shop-money {
   flex: none;
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 1;
-  color: #7be38a;
+  min-width: 84px;
+  padding: 4px 14px 5px;
+  border: 1px solid rgba(217, 180, 92, 0.55);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(0, 0, 0, 0.22);
+  font: 800 28px/1 var(--card-font);
+  text-align: center;
+  color: #9be8a6;
+  text-shadow: 0 0 12px rgba(123, 227, 138, 0.4);
   font-variant-numeric: tabular-nums;
 }
 #shop-money.hidden { display: none; }
+
 #overlay-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 #overlay-actions button { padding: 8px 16px; font-size: 14px; white-space: nowrap; }
-#reroll-btn, #money-btn, #new-run-btn { background: transparent; border: 2px solid var(--muted); color: var(--muted); }
-#money-btn { border-color: var(--accent); color: var(--accent); }
+#reroll-btn, #money-btn, #new-run-btn { background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(217, 180, 92, 0.55); color: var(--foil-hi); }
+#new-run-btn { border-color: rgba(184, 168, 204, 0.4); color: var(--muted); }
 #new-run-btn.confirm { border-color: var(--red); color: var(--red); }
 #reroll-btn.hidden, #money-btn.hidden, #new-run-btn.hidden { display: none; }
+#overlay-btn {
+  background: linear-gradient(180deg, #ffd96e, #f0b733);
+  box-shadow: 0 3px 0 #a97b12, 0 6px 14px rgba(255, 207, 86, 0.25);
+}
+#overlay-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #a97b12; }
 
 #overlay-body { flex: 1 1 auto; min-height: 0; display: flex; }
 
@@ -876,47 +975,94 @@ body::before {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 10px 20px;
-  padding: 8px 12px 16px;
+  gap: 22px 16px;
+  padding: 22px 14px 18px;
 }
 #shop-yours {
   flex: 0 0 calc(var(--card-w) * 2 + 8px + 36px); /* two cards across, plus padding and a scrollbar */
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 8px 10px 16px;
+  padding: 12px 10px 16px;
   text-align: left;
-  background: rgba(0, 0, 0, 0.2);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+  border-left: 1px solid rgba(217, 180, 92, 0.5);
+  box-shadow: inset 6px 0 14px rgba(0, 0, 0, 0.3);
 }
 
-.shelf { min-width: 0; }
+/* A shelf is a velvet tray. Its plaque sits across the top edge. */
+.shelf {
+  position: relative;
+  min-width: 0;
+  padding: 18px 12px 12px;
+  border: 1px solid rgba(217, 180, 92, 0.6);
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 150, 0.2), transparent 70%),
+    var(--lattice),
+    linear-gradient(180deg, var(--velvet), var(--velvet-deep));
+  box-shadow:
+    inset 0 0 0 3px var(--velvet-deep),
+    inset 0 0 0 4px rgba(217, 180, 92, 0.3),
+    inset 0 10px 24px rgba(0, 0, 0, 0.45),
+    0 6px 14px rgba(0, 0, 0, 0.35);
+}
 .shelf:has(> .shelf-row:empty) { display: none; }
-.shelf h3, #shop-yours h3, #pack-section h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
-#shop-yours h3 span { font-weight: 400; margin-left: 4px; }
-.shelf-row { display: flex; gap: 8px; align-items: flex-start; }
+.shelf h3, #pack-section h3 {
+  position: absolute;
+  top: -11px;
+  left: 14px;
+  margin: 0;
+  padding: 1px 13px 2px;
+  border: 1px solid rgba(217, 180, 92, 0.7);
+  border-radius: 999px;
+  background: #2a1230;
+  font: italic 700 13px/1.3 var(--card-font);
+  color: var(--foil-hi);
+  white-space: nowrap;
+}
+.shelf-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
 
 #pack-section {
+  position: relative;
   flex: 1 0 100%;
-  padding: 8px 10px 10px;
-  border: 1px solid var(--accent);
+  padding: 18px 12px 12px;
+  border: 1px solid var(--foil);
   border-radius: 10px;
-  background: rgba(255, 207, 86, 0.07);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 140, 0.3), transparent 75%),
+    var(--lattice),
+    linear-gradient(180deg, #5c1b2c, #2e0c14);
+  box-shadow: inset 0 0 0 3px #2e0c14, inset 0 0 0 4px rgba(217, 180, 92, 0.45), 0 0 26px rgba(255, 200, 100, 0.25);
 }
 #pack-section.hidden { display: none; }
-#pack-section h3 { color: var(--accent); }
-#pack-items { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-#pack-skip-btn { padding: 6px 16px; font-size: 13px; background: transparent; border: 2px solid var(--muted); color: var(--muted); }
+#pack-items { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+#pack-skip-btn { padding: 6px 16px; font-size: 13px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(217, 180, 92, 0.55); color: var(--foil-hi); }
 
-/* A shop offer is a card-sized face (the same size as every other card) with its price and
-   Buy button underneath; the offer's text lives in the tap-to-read tooltip. */
-.shop-item { width: var(--card-w); display: flex; flex-direction: column; gap: 4px; text-align: center; }
-.shop-item .price { color: var(--accent); font-weight: 700; font-size: 14px; }
-.shop-item.unaffordable .price { color: var(--red); }
-.shop-item button, .owned-slot button { width: 100%; padding: 5px 2px; font-size: 12px; }
-.shop-item.unaffordable button { opacity: 0.5; cursor: not-allowed; }
+/* A shop offer is a card-sized face (the same size as every other card) with a single Buy
+   button under it that carries the price; the offer's text lives in the tap-to-read tooltip. */
+.shop-item { width: var(--card-w); display: flex; flex-direction: column; gap: 6px; text-align: center; }
+.shop-item button, .owned-slot button { width: 100%; padding: 5px 2px; font-size: 12px; border-radius: 6px; }
+.shop-item .buy-btn {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #f3d98a, #d9a93c);
+  color: #2a1208;
+  box-shadow: 0 2px 0 #8a6414, 0 3px 6px rgba(0, 0, 0, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+.shop-item .buy-btn b { margin-left: auto; font-weight: 800; }
+.shop-item .buy-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 #8a6414; }
+.shop-item.unaffordable .buy-btn { background: rgba(0, 0, 0, 0.4); color: #bba6c8; box-shadow: none; opacity: 0.85; cursor: not-allowed; }
+.shop-item.unaffordable .buy-btn b { color: #ff8e99; }
 .shop-item.unaffordable > .jester, .shop-item.unaffordable > .trick { filter: saturate(0.55) brightness(0.85); }
-.trick.prop, .trick.pack { border-color: var(--accent); }
-.trick.pack { border-style: dashed; }
+@media (hover: hover) {
+  .shop-item > .jester, .shop-item > .trick { transition: transform 0.14s ease, box-shadow 0.14s ease; }
+  .shop-item:hover > .jester, .shop-item:hover > .trick { transform: translateY(-4px); box-shadow: 0 10px 18px rgba(0, 0, 0, 0.55), 0 0 18px rgba(255, 214, 140, 0.25); }
+}
+
 .trick.prop .trick-glyph, .trick.pack .trick-glyph {
   flex: 1 1 0;
   display: flex;
@@ -925,9 +1071,20 @@ body::before {
   font-size: calc(var(--card-w) * 0.3);
 }
 
-#shop-yours-empty { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+/* What you own: a ledger down the right-hand side, with slots used against slots owned. */
+#shop-yours h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(217, 180, 92, 0.3);
+  font: italic 700 13px/1.2 var(--card-font);
+  color: var(--foil-hi);
+}
+#shop-yours h3 span { font-style: normal; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+#shop-yours-empty { margin: 4px 0 0; font: italic 13px/1.4 var(--card-font); color: var(--muted); }
 #shop-yours-empty.hidden { display: none; }
-#owned-jesters-section, #owned-tricks-section { margin-bottom: 14px; }
+#owned-jesters-section, #owned-tricks-section { margin-bottom: 16px; }
 #owned-jesters-section.hidden, #owned-tricks-section.hidden { display: none; }
 #owned-jesters, #owned-tricks {
   display: grid;
@@ -937,7 +1094,7 @@ body::before {
 .owned-slot { width: var(--card-w); display: flex; flex-direction: column; gap: 3px; }
 .owned-btns { display: flex; gap: 3px; }
 .owned-btns button { flex: 1 1 0; min-width: 0; }
-#owned-props { margin: 0; font-size: 12px; color: var(--muted); }
+#owned-props { margin: 0; font: italic 12px/1.4 var(--card-font); color: var(--muted); }
 #owned-props:empty { display: none; }
 
 /* Payout, then stock: the chips land one by one while the money counts up, and the
@@ -954,14 +1111,26 @@ body::before {
 #owned-jesters .jester.dealt { animation: card-deal 0.32s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards; }
 @media (prefers-reduced-motion: reduce) {
   #overlay-sub.tally .chip, .shop-item.dealt, #owned-jesters .jester.dealt { animation: none; }
+  .shop-item > .jester, .shop-item > .trick { transition: none; }
+}
+
+/* Short landscape screens (phones): tighter bar and trays so more of the stock shows. */
+@media (max-height: 500px) {
+  #overlay-bar { padding: 4px 10px; gap: 10px; }
+  #overlay-title { font-size: 18px; }
+  #overlay-actions button { padding: 6px 12px; font-size: 13px; }
+  #shop-money { min-width: 68px; padding: 3px 10px 4px; font-size: 23px; }
+  #shop-stock { gap: 20px 12px; padding: 18px 10px 12px; }
+  .shelf, #pack-section { padding: 16px 8px 8px; }
 }
 
 /* Game over and win: just the result and one button, centered. */
 #overlay.end #overlay-card { justify-content: center; align-items: center; text-align: center; }
-#overlay.end #overlay-bar { flex-direction: column; gap: 16px; background: none; border: 0; }
+#overlay.end #overlay-bar { flex-direction: column; gap: 16px; background: none; border: 0; box-shadow: none; }
+#overlay.end #overlay-bar::after { display: none; }
 #overlay.end #overlay-head { text-align: center; }
-#overlay.end #overlay-title { font-size: 34px; }
-#overlay.end #overlay-sub { justify-content: center; font-size: 15px; }
+#overlay.end #overlay-title { font-size: 36px; }
+#overlay.end #overlay-sub { justify-content: center; font-size: 16px; font-style: italic; }
 #overlay.end #overlay-body { display: none; }
 
 /* Antique card stock: aged ivory paper, a ruled inner frame, serif indices and
@@ -1115,7 +1284,6 @@ body::before {
 .jester .rarity-common { color: #2c5f8a; }
 .jester .rarity-uncommon { color: #2f6f46; }
 .jester .rarity-rare { color: var(--ink-red); }
-.shop-item.unaffordable:not(.prop):not(.trick) .price { color: var(--ink-red); }
 
 /* The inspect tooltip shows the text only, on its own panel. */
 #inspect .jester { aspect-ratio: auto; box-shadow: none; color: inherit; font-family: inherit; }

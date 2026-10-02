@@ -46,7 +46,7 @@ function renderPayout(el, debug, earnings, animate) {
     el.appendChild(chip);
   };
   el.classList.toggle("tally", animate);
-  if (debug) return add(`Buy and sell freely`);
+  if (debug) return add("Buy and sell freely", "where");
   add(`Ante ${state.ante}, Round ${state.round}`, "where");
   if (!earnings) return;
   add(`+$${earnings.reward} round`);
@@ -75,6 +75,11 @@ function showShopMoney(from) {
     if (k < 1) window.requestAnimationFrame(step); else settle();
   };
   window.requestAnimationFrame(step);
+}
+
+// One Buy button that carries the price, so an offer is just its card and a button.
+function buyHTML(price, canBuy) {
+  return `<button class="buy-btn" ${canBuy ? "" : "disabled"}><span>Buy</span><b>$${price}</b></button>`;
 }
 
 function endScreen(overlay) {
@@ -126,7 +131,7 @@ function renderOverlay() {
       const canBuy = state.money - j.price >= debtFloor() && state.jesters.length < jesterSlots();
       if (!canBuy) div.classList.add("unaffordable");
       div.append(cardFace("jester", jesterFaceHTML(j)));
-      div.insertAdjacentHTML("beforeend", `<div class="price">$${j.price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`);
+      div.insertAdjacentHTML("beforeend", buyHTML(j.price, canBuy));
       div.querySelector("button").addEventListener("click", () => buyJester(j.id));
       shopItems.appendChild(div);
     }
@@ -140,7 +145,7 @@ function renderOverlay() {
       div.className = "shop-item prop" + (canBuy ? "" : " unaffordable");
       dealIn(div, "v:" + prop.id);
       div.append(cardFace("trick prop", `<span class="trick-glyph">★</span><span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
-      div.insertAdjacentHTML("beforeend", `<div class="price">$${PROP_PRICE}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`);
+      div.insertAdjacentHTML("beforeend", buyHTML(PROP_PRICE, canBuy));
       div.querySelector("button").addEventListener("click", buyProp);
       propEl.appendChild(div);
     }
@@ -166,7 +171,7 @@ function renderOverlay() {
         ? `<span class="trick-glyph">${pack === "decree" ? "📜📜📜" : "🎭🎭🎭"}</span><span class="trick-name">${pack === "decree" ? "Decree" : "Mask"} Pack</span><span class="trick-hand">Pack</span><span class="trick-desc">${pack === "decree" ? `Pick 1 of ${PACK_SIZE} decrees, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} masks, used right away.`}</span>`
         : trickCardHTML(t);
       div.append(cardFace("trick" + (pack ? " pack" : "") + (isDecree ? " decree" : ""), face));
-      div.insertAdjacentHTML("beforeend", `<div class="price">$${price}</div><button ${canBuy ? "" : "disabled"}>Buy</button>`);
+      div.insertAdjacentHTML("beforeend", buyHTML(price, canBuy));
       div.querySelector("button").addEventListener("click", pack ? () => buyPack(pack) : buy);
       (pack ? shopPacks : shopTricks).appendChild(div);
     }
@@ -182,7 +187,7 @@ function renderOverlay() {
       dealIn(div, "k:" + t.id);
       const full = t.decree && state.tricks.length >= trickSlots();
       div.append(cardFace("trick" + (t.decree ? " decree" : ""), trickCardHTML(t)));
-      div.insertAdjacentHTML("beforeend", `<button ${full ? "disabled title=\"No free slot\"" : ""}>Take</button>`);
+      div.insertAdjacentHTML("beforeend", `<button class="buy-btn" ${full ? "disabled title=\"No free slot\"" : ""}>Take</button>`);
       div.querySelector("button").addEventListener("click", () => pickFromPack(t.id));
       packItems.appendChild(div);
     }
