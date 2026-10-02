@@ -83,6 +83,7 @@ function dealtState(overrides = {}) {
 test("initial render: HUD, dealt hand, hand reference, and disabled buttons", () => {
   assert.equal(text("venue-val"), "The Scullery");
   assert.equal(text("round-val"), "Act 1 - Small Audience");
+  assert.equal(document.title, "Jester - The Scullery, Act 1");
   assert.equal(text("hands-val"), "4");
   assert.equal(text("discards-val"), "3");
   assert.equal(text("money-val"), "4");
@@ -241,6 +242,7 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
   document.getElementById("overlay-btn").click();
   assert.ok(document.getElementById("overlay").classList.contains("hidden"));
   assert.equal(text("round-val"), "Act 2 - Grand Audience");
+  assert.equal(document.title, "Jester - The Scullery, Act 2");
   await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
 });
 
