@@ -1390,6 +1390,7 @@ body::before {
 #tally-x.bump { animation: x-bump 0.3s ease-out; }
 #score-val.bump { animation: score-glow 0.9s ease-out; }
 
+.card.raised { translate: 0 -20px; transition: translate 0.15s ease-out; z-index: 2; }
 .card.scoring { animation: card-score 0.4s ease-out; z-index: 2; }
 .jester.trigger { animation: jester-trigger 0.45s ease-out; z-index: 2; }
 

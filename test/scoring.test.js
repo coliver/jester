@@ -561,6 +561,16 @@ test("kickers add no chips and don't trigger per-card jesters", () => {
   assert.equal(r.mult, 2 + 3); // Greedy: just the one scoring diamond, the 5
 });
 
+test("a per-card jester fires once for each scoring card, right after that card", () => {
+  const played = [card("K", "♠"), card("Q", "♥"), card("J", "♦"), card("10", "♣"), card("9", "♠")];
+  _setState(baseState({ jesters: [jesterById("smiley_face")], hand: played }));
+  const r = scoreSelection(played);
+  assert.deepEqual(r.steps.map(s => `${s.type}:${s.cardId ?? s.id}`), [
+    "card:K♠", "jester:K♠", "card:Q♥", "jester:Q♥", "card:J♦", "jester:J♦", "card:10♣", "card:9♠",
+  ]);
+  assert.ok(r.steps.filter(s => s.type === "jester").every(s => s.multAdd === 5));
+});
+
 test("every per-card jester ignores kickers", () => {
   // Pair of 8s plus kickers chosen to match each jester's condition. Fibonacci
   // (A, 2, 3, 5, 8), Even Steven (2, 4, 6, 8, 10), Odd Todd, Smiley Face, and the
@@ -569,9 +579,9 @@ test("every per-card jester ignores kickers", () => {
   const expectKickersIgnored = (id, fires) => {
     _setState(baseState({ jesters: [jesterById(id)], hand: played }));
     const r = scoreSelection(played);
-    const jesterStep = r.steps.find(s => s.type === "jester");
-    assert.equal(jesterStep?.index === 0, fires, id);
-    return jesterStep;
+    const jesterSteps = r.steps.filter(s => s.type === "jester");
+    assert.equal(jesterSteps.length > 0, fires, id);
+    return { multAdd: jesterSteps.reduce((sum, s) => sum + s.multAdd, 0) };
   };
   // 8♠ 8♣ score: Fibonacci +8 each, Even Steven +4 each; nothing for A, 3 or K.
   assert.equal(expectKickersIgnored("fibonacci", true).multAdd, 16);

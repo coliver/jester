@@ -130,6 +130,23 @@ function scoreSelection(selected) {
   const hand = evaluateHand(selected);
   const steps = [];
 
+  const selectedIds = new Set(selected.map(c => c.id));
+  const heldHand = state.hand.filter(c => !selectedIds.has(c.id));
+
+  const ctx = {
+    selected,
+    scored: hand.scoringCards,
+    hand,
+    heldHand,
+    discardsLeft: state.discardsLeft,
+    money: state.money,
+    deckSize: state.deck.length,
+    jesters: state.jesters,
+    jesterSlots: jesterSlots(),
+    pareidolia: state.jesters.some(j => j.id === "pareidolia"),
+    jestersSold: state.jestersSold
+  };
+
   for (const c of hand.scoringCards) {
     const chips = cardChipValue(c);
 
@@ -154,24 +171,19 @@ function scoreSelection(selected) {
 
     step.debuffed = step.chips === 0;
     steps.push(step);
+
+    // Jesters that react to a scoring card fire right after it, one card at a time
+    // (a royal flush's three face cards each trigger Smiley Face, not once for +15).
+    if (!step.debuffed) {
+      for (const [i, j] of state.jesters.entries()) {
+        if (!j.onScored || (i === 0 && state.bossModifier?.silenceLeftmost)) continue;
+        const effect = j.onScored(c, ctx, j) || {};
+        const js = { type: "jester", index: i, id: j.id, name: j.name, cardId: c.id,
+          chips: effect.chips || 0, multAdd: effect.multAdd || 0, multMul: effect.multMul || 1, money: effect.money || 0 };
+        if (js.chips || js.multAdd || js.multMul !== 1 || js.money) steps.push(js);
+      }
+    }
   }
-
-  const selectedIds = new Set(selected.map(c => c.id));
-  const heldHand = state.hand.filter(c => !selectedIds.has(c.id));
-
-  const ctx = {
-    selected,
-    scored: hand.scoringCards,
-    hand,
-    heldHand,
-    discardsLeft: state.discardsLeft,
-    money: state.money,
-    deckSize: state.deck.length,
-    jesters: state.jesters,
-    jesterSlots: jesterSlots(),
-    pareidolia: state.jesters.some(j => j.id === "pareidolia"),
-    jestersSold: state.jestersSold
-  };
 
   for (const [i, j] of state.jesters.entries()) {
     const step = {

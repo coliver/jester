@@ -12,22 +12,22 @@ const JESTER_POOL = [
   {
     id: "greedy_jester", name: "Greedy Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Diamond played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♦")).length }),
+    onScored: (c) => ({ multAdd: cardIsSuit(c, "♦") ? 3 : 0 }),
   },
   {
     id: "lusty_jester", name: "Lusty Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Heart played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♥")).length }),
+    onScored: (c) => ({ multAdd: cardIsSuit(c, "♥") ? 3 : 0 }),
   },
   {
     id: "wrathful_jester", name: "Wrathful Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Spade played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♠")).length }),
+    onScored: (c) => ({ multAdd: cardIsSuit(c, "♠") ? 3 : 0 }),
   },
   {
     id: "gluttonous_jester", name: "Gluttonous Jester", price: 5, rarity: "Common",
     desc: "+3 Mult per Club played",
-    apply: (ctx) => ({ multAdd: 3 * ctx.scored.filter(c => cardIsSuit(c, "♣")).length }),
+    onScored: (c) => ({ multAdd: cardIsSuit(c, "♣") ? 3 : 0 }),
   },
   {
     id: "jolly_jester", name: "Jolly Jester", price: 3, rarity: "Common",
@@ -116,12 +116,12 @@ const JESTER_POOL = [
   {
     id: "fibonacci", name: "Fibonacci", price: 8, rarity: "Uncommon",
     desc: "+8 Mult per played Ace, 2, 3, 5, or 8",
-    apply: (ctx) => ({ multAdd: 8 * ctx.scored.filter(c => FIBONACCI_RANKS.has(c.rank)).length }),
+    onScored: (c) => ({ multAdd: FIBONACCI_RANKS.has(c.rank) ? 8 : 0 }),
   },
   {
     id: "scary_face", name: "Scary Face", price: 4, rarity: "Common",
     desc: "+30 Chips per played face card",
-    apply: (ctx) => ({ chips: 30 * ctx.scored.filter(c => isFaceCard(c, ctx)).length }),
+    onScored: (c, ctx) => ({ chips: isFaceCard(c, ctx) ? 30 : 0 }),
   },
   {
     id: "abstract_jester", name: "Abstract Jester", price: 4, rarity: "Common",
@@ -131,29 +131,22 @@ const JESTER_POOL = [
   {
     id: "even_steven", name: "Even Steven", price: 4, rarity: "Common",
     desc: "+4 Mult per played even-rank card (10,8,6,4,2)",
-    apply: (ctx) => ({ multAdd: 4 * ctx.scored.filter(c => EVEN_RANKS.has(c.rank)).length }),
+    onScored: (c) => ({ multAdd: EVEN_RANKS.has(c.rank) ? 4 : 0 }),
   },
   {
     id: "odd_todd", name: "Odd Todd", price: 4, rarity: "Common",
     desc: "+31 Chips per played odd-rank card (A,9,7,5,3)",
-    apply: (ctx) => ({ chips: 31 * ctx.scored.filter(c => ODD_RANKS.has(c.rank)).length }),
+    onScored: (c) => ({ chips: ODD_RANKS.has(c.rank) ? 31 : 0 }),
   },
   {
     id: "scholar", name: "Scholar", price: 4, rarity: "Common",
     desc: "Played Aces give +20 Chips and +4 Mult",
-    apply: (ctx) => {
-      const aces = ctx.scored.filter(c => c.rank === "A").length;
-      return { chips: 20 * aces, multAdd: 4 * aces };
-    },
+    onScored: (c) => c.rank === "A" ? { chips: 20, multAdd: 4 } : {},
   },
   {
     id: "business_card", name: "Letter of Introduction", price: 4, rarity: "Common",
     desc: "Played face cards have a 1 in 2 chance to give $2 when scored",
-    apply: (ctx) => {
-      let money = 0;
-      for (const c of ctx.scored) if (isFaceCard(c, ctx) && Math.random() < 0.5) money += 2;
-      return { money };
-    },
+    onScored: (c, ctx) => ({ money: isFaceCard(c, ctx) && Math.random() < 0.5 ? 2 : 0 }),
   },
   {
     id: "blackboard", name: "Blackboard", price: 6, rarity: "Uncommon",
@@ -173,7 +166,7 @@ const JESTER_POOL = [
   {
     id: "photograph", name: "Royal Portrait", price: 5, rarity: "Common",
     desc: "First played face card gives X2 Mult when scored",
-    apply: (ctx) => ({ multMul: ctx.scored.some(c => isFaceCard(c, ctx)) ? 2 : 1 }),
+    onScored: (c, ctx) => ({ multMul: ctx.scored.find(x => isFaceCard(x, ctx)) === c ? 2 : 1 }),
   },
   {
     id: "reserved_parking", name: "Seat at the High Table", price: 6, rarity: "Common",
@@ -197,15 +190,12 @@ const JESTER_POOL = [
   {
     id: "walkie_talkie", name: "Carrier Pigeon", price: 4, rarity: "Common",
     desc: "Each played 10 or 4 gives +10 Chips and +4 Mult",
-    apply: (ctx) => {
-      const n = ctx.scored.filter(c => c.rank === "10" || c.rank === "4").length;
-      return { chips: 10 * n, multAdd: 4 * n };
-    },
+    onScored: (c) => c.rank === "10" || c.rank === "4" ? { chips: 10, multAdd: 4 } : {},
   },
   {
     id: "smiley_face", name: "Smiley Face", price: 4, rarity: "Common",
     desc: "Played face cards give +5 Mult",
-    apply: (ctx) => ({ multAdd: 5 * ctx.scored.filter(c => isFaceCard(c, ctx)).length }),
+    onScored: (c, ctx) => ({ multAdd: isFaceCard(c, ctx) ? 5 : 0 }),
   },
 
   // --- jesters that needed a small amount of --
@@ -215,9 +205,7 @@ const JESTER_POOL = [
   {
     id: "hack", name: "Hack", price: 6, rarity: "Uncommon",
     desc: "Played 2s, 3s, 4s, and 5s are scored again",
-    apply: (ctx) => ({
-      chips: ctx.scored.filter(c => RETRIGGER_RANKS.has(c.rank)).reduce((sum, c) => sum + cardChipValue(c), 0),
-    }),
+    onScored: (c) => ({ chips: RETRIGGER_RANKS.has(c.rank) ? cardChipValue(c) : 0 }),
   },
   {
     id: "delayed_gratification", name: "Delayed Gratification", price: 4, rarity: "Common",
