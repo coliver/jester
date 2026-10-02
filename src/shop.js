@@ -12,9 +12,14 @@ function finishRoundWin() {
 
   let bonus = 0;
   const destroyed = new Set();
+  const before = [...state.jesters];
+  const fx = []; // what each jester did, for the end-of-act show
   for (const j of state.jesters) {
     if (!j.roundEnd) continue;
+    const status = j.status?.(j);
     const effect = j.roundEnd(roundEndCtx, j) || {};
+    const grew = j.status && j.status(j) !== status;
+    if (effect.money || grew || effect.destroySelf) fx.push({ jester: j, money: effect.money || 0, grew, destroyed: !!effect.destroySelf });
     if (effect.money) bonus += effect.money;
     if (effect.destroySelf) destroyed.add(j.id);
   }
@@ -23,6 +28,7 @@ function finishRoundWin() {
   if (state.round === ROUNDS_PER_VENUE) state.jestersSold = 0; // boss round cleared
 
   state.lastEarnings = { reward, interest, bonus };
+  if (scoring && fx.length) cue(() => startRoundEndShow(before, fx));
 
   if (state.venue >= FINAL_VENUE && state.round >= ROUNDS_PER_VENUE) {
     state.phase = "win";

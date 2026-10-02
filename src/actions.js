@@ -83,14 +83,18 @@ function playHand() {
   state.handTypesPlayed?.add(played);
   state.stats.handCounts[played] = (state.stats.handCounts[played] || 0) + 1;
   state.stats.handsPlayed += 1;
-  for (const j of state.jesters) {
-    if (j.onPlay && j.onPlay().levelUp) levelUpHand(played);
-  }
+  const levelUps = []; // jester index and the hand's new level, for the on-screen callout
+  state.jesters.forEach((j, index) => {
+    if (j.onPlay && j.onPlay().levelUp) {
+      levelUpHand(played);
+      levelUps.push({ index, name: played, level: handLevel(played) });
+    }
+  });
 
   // The hand resolves in the state right away; the screen then plays it out (see runScoring),
   // and anything that should only be seen or heard afterwards goes through cue().
   const result = scoreSelection(selected);
-  if (scoringAnimated()) scoring = beginScoring(selected, result);
+  if (scoringAnimated()) { scoring = beginScoring(selected, result); scoring.levelUps = levelUps; }
   if (!state.stats.bestHand || result.total > state.stats.bestHand.score) state.stats.bestHand = { score: result.total, name: played };
   state.roundScore += result.total;
   state.money += result.money;
@@ -103,7 +107,8 @@ function playHand() {
   clearSelection();
   const shattered = selected.filter(c => c.enh === "glass" && Math.random() < GLASS_BREAK_CHANCE).map(c => c.id);
   if (shattered.length) destroyCards(shattered);
-  const drawn = draw(state.handSize - state.hand.length);
+  const won = state.roundScore >= state.target;
+  const drawn = won ? [] : draw(state.handSize - state.hand.length); // a cleared act doesn't deal a fresh hand
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
   if (drawn.length) cue(() => Sound.dealHand(drawn.length));
@@ -114,7 +119,7 @@ function playHand() {
     state.dealtIds = new Map();
   }
 
-  if (state.roundScore >= state.target) {
+  if (won) {
     finishRoundWin();
   } else if (state.handsLeft <= 0) {
     state.phase = "gameover";
@@ -138,7 +143,8 @@ function discardSelected() {
   state.discarded.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   clearSelection();
-  const drawn = draw(state.handSize - state.hand.length);
+  const won = state.roundScore >= state.target;
+  const drawn = won ? [] : draw(state.handSize - state.hand.length); // a cleared act doesn't deal a fresh hand
   state.hand.push(...drawn);
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
   if (drawn.length) Sound.dealHand(drawn.length);

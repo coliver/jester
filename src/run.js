@@ -12,13 +12,12 @@ function nextRound() {
   render();
 }
 
-// Debug only (?debug): begin each run with 3 distinct random Common jesters,
-// plus one random trick card and one random decree.
-const STARTING_JESTERS = 3;
+// Debug only (?debug): begin each run with the three scaling jesters (Constellation, Egg,
+// Trebuchet), plus one random trick card and one random decree.
+const STARTING_JESTER_IDS = ["constellation", "egg", "rocket"];
 function grantStartingJester() {
   if (!DEBUG_ENABLED) return;
-  const commons = shuffled(JESTER_POOL.filter(j => j.rarity === "Common"));
-  for (const pick of commons.slice(0, STARTING_JESTERS)) state.jesters.push({ ...pick, sellBonus: 0 });
+  for (const id of STARTING_JESTER_IDS) state.jesters.push({ ...JESTER_POOL.find(j => j.id === id), sellBonus: 0 });
   state.tricks.push({ ...shuffled(TRICK_POOL)[0] }, { ...shuffled(DECREE_POOL)[0] });
 }
 
@@ -188,24 +187,33 @@ function persistRun() {
 
 // Abandoning a run takes two clicks: the first arms the button, and it disarms itself after a moment.
 const NEW_RUN_CONFIRM_MS = 3000;
-function initNewRunButton() {
-  const btn = document.getElementById("new-run-btn");
+function armedButton(btn, label, armedLabel, action) {
   let timer = null;
   const disarm = () => {
     clearTimeout(timer);
     timer = null;
-    btn.textContent = "New Run";
+    btn.textContent = label;
     btn.classList.remove("confirm");
   };
   btn.addEventListener("click", () => {
     if (timer === null) {
-      btn.textContent = "Abandon this run?";
+      btn.textContent = armedLabel;
       btn.classList.add("confirm");
       timer = setTimeout(disarm, NEW_RUN_CONFIRM_MS);
       return;
     }
     disarm();
-    restart();
+    action();
+  });
+}
+
+function initNewRunButton() {
+  armedButton(document.getElementById("new-run-btn"), "New Run", "Abandon this run?", () => restart());
+  // Mid-round, ending the run goes to the Off With Your Head screen (and its summary) rather than silently restarting.
+  armedButton(document.getElementById("end-run-btn"), "End Game", "End this game?", () => {
+    if (state.phase !== "playing" || playPending || scoring) return;
+    state.phase = "gameover";
+    render();
   });
 }
 

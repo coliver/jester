@@ -137,6 +137,12 @@ async function runScoring(s) {
     delete preview.dataset.heat;
     await scoringPause(s, 380);
 
+    // A jester that levelled the hand up says which hand and what level it is now.
+    for (const up of s.levelUps || []) {
+      scorePop(jesterElements()[up.index], `${up.name} Lv.${up.level}!`, "level", 0);
+      await scoringPause(s, SCORE_JESTER_MS);
+    }
+
     const bump = (id) => restartClass(document.getElementById(id), "bump");
     const cardEls = new Map(s.cards.map(c => [c.id, document.querySelector(`.card[data-card-id="${c.id}"]`)]));
     for (const step of result.steps) {
@@ -189,6 +195,36 @@ async function runScoring(s) {
     await scoringPause(s, 300);
   } finally {
     finishScoring(s);
+  }
+}
+
+// After the winning hand, the jesters' end-of-act effects play out on the table (money, growth,
+// being destroyed) before the shop opens over them. `before` is the row as it stood, so a jester
+// that is about to be destroyed is still there to be seen.
+function startRoundEndShow(before, fx) {
+  const show = { before, fx };
+  roundEnd = show;
+  runRoundEndShow(show);
+}
+
+async function runRoundEndShow(show) {
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  try {
+    await wait(450);
+    for (const f of show.fx) {
+      const el = jesterElements()[show.before.indexOf(f.jester)];
+      if (!el) continue;
+      restartClass(el, "trigger");
+      let slot = 0;
+      if (f.money) { scorePop(el, `+$${f.money}`, "money", slot++); Sound.coinBuy(); }
+      if (f.grew) scorePop(el, f.jester.grew || f.jester.status(f.jester), "money", slot++);
+      if (f.destroyed) { scorePop(el, "Destroyed!", "mute", slot++); el.classList.add("destroyed"); }
+      await wait(f.destroyed ? 900 : 700);
+    }
+    await wait(250);
+  } finally {
+    if (roundEnd === show) roundEnd = null;
+    render();
   }
 }
 

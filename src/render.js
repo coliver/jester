@@ -30,21 +30,23 @@ function render() {
   }
 
   const jesterRow = document.getElementById("jester-row");
-  const jesterSig = state.jesters.map(j => j.id).join(",") + "/" + jesterSlots();
+  // The status text is in the signature so a growing jester's amount redraws when it changes.
+  const jesterSig = (roundEnd ? roundEnd.before : state.jesters).map(j => j.id + (j.status ? ":" + j.status(j) : "")).join(",") + "/" + jesterSlots();
   if (jesterSig !== lastJesterSig) {
     lastJesterSig = jesterSig;
     jesterRow.innerHTML = "";
-    const slotCount = Math.max(jesterSlots(), state.jesters.length);
+    const shown = roundEnd ? roundEnd.before : state.jesters;
+    const slotCount = Math.max(jesterSlots(), shown.length);
     for (let i = 0; i < slotCount; i++) {
       const slot = document.createElement("div");
       slot.className = "jester-slot";
       jesterRow.appendChild(slot);
-      const j = state.jesters[i];
+      const j = shown[i];
       if (!j) continue;
       const div = document.createElement("div");
       div.className = "jester";
-      div.innerHTML = `${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span>`;
-      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span></div>`,
+      div.innerHTML = `${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}</span>`;
+      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}</span></div>`,
         () => ({ label: `Sell $${sellValue(j)}`, fn: () => sellJester(j.id) }));
       makeJesterDraggable(div, j.id);
       slot.appendChild(div);
@@ -80,15 +82,9 @@ function render() {
   const handCards = allCards.filter(c => !isStaged(c));
   const wantHand = [], wantPlay = [];
   const present = new Set();
-  // Cards that won't score get a red X: any debuffed by the boss, plus selected kickers.
+  // Cards barred from scoring by a rule (e.g. boss debuffs) get a red X, selected or not.
   const idle = new Set();
-  if (!scoring) {
-    for (const c of allCards) if (cardChipValue(c) === 0) idle.add(c.id); // boss debuffs (e.g. spades score no chips), selected or not
-    if (state.selected.size) {
-      const scoringIds = new Set(evaluateHand(getSelectedCards()).scoringCards.map(c => c.id));
-      for (const id of state.selected) if (!scoringIds.has(id)) idle.add(id);
-    }
-  }
+  if (!scoring) for (const c of allCards) if (cardChipValue(c) === 0) idle.add(c.id);
   for (const card of allCards) {
     const staged = isStaged(card);
     let el = handEls.get(card.id);
@@ -146,7 +142,21 @@ function render() {
   document.getElementById("discard-btn").disabled = selected.length === 0 || state.discardsLeft <= 0 || state.phase !== "playing";
 
   renderDeckView();
-  if (!scoring) renderOverlay(); // the shop or game over screen waits for the scoring to finish
+  if (!scoring && !roundEnd) renderOverlay(); // the shop or game over screen waits for the scoring to finish
+  // Any jester whose status text changed (it grew) flashes and floats its gain, on the shop's
+  // owned list when that's what's showing. The first sighting of a jester only records it.
+  if (!scoring) {
+    const els = document.querySelectorAll(state.phase === "shop" ? "#owned-jesters .jester" : "#jester-row .jester");
+    state.jesters.forEach((j, i) => {
+      if (!j.status) return;
+      const now = j.status(j);
+      const was = lastJesterStatus.get(j);
+      lastJesterStatus.set(j, now);
+      if (roundEnd || was === undefined || was === now || !els[i]) return;
+      restartClass(els[i], "trigger");
+      scorePop(els[i], j.grew || now, "money", 0);
+    });
+  }
 }
 
 const DOUBLE_CLICK_MS = 350;

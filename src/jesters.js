@@ -237,6 +237,8 @@ const JESTER_POOL = [
   {
     id: "egg", name: "Egg", price: 4, rarity: "Common",
     desc: "Gains $3 of sell value at the end of every act",
+    grew: "+$3",
+    status: (self) => `Currently +$${self.sellBonus || 0} sell value`,
     roundEnd: (ctx, self) => { self.sellBonus = (self.sellBonus || 0) + 3; return {}; },
   },
   {
@@ -253,6 +255,8 @@ const JESTER_POOL = [
   {
     id: "rocket", name: "Trebuchet", price: 6, rarity: "Uncommon",
     desc: "Earn $1 at act end; the payout rises by $2 each time a boss act is cleared",
+    grew: "+$2",
+    status: (self) => `Currently $${self.rocketPayout || 1}`,
     roundEnd: (ctx, self) => {
       const money = self.rocketPayout || 1;
       if (ctx.isBoss) self.rocketPayout = money + 2;
@@ -350,6 +354,8 @@ const JESTER_POOL = [
   {
     id: "constellation", name: "Constellation", price: 6, rarity: "Uncommon",
     desc: "Gains X0.1 Mult every time a Mask card is used",
+    grew: "+0.1 Mult",
+    status: (self) => `Currently X${(1 + 0.1 * (self.tricksUsed || 0)).toFixed(1)} Mult`,
     apply: (ctx, self) => ({ multMul: 1 + 0.1 * (self.tricksUsed || 0) }),
     onTrickUsed: (self) => { self.tricksUsed = (self.tricksUsed || 0) + 1; },
   },

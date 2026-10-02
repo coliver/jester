@@ -114,8 +114,13 @@ function cardFace(className, html) {
   return face;
 }
 
+// The description, plus the current amount for a jester that grows as the run goes on.
+function jesterDescHTML(j) {
+  return j.status ? `${j.desc}<br><b>${j.status(j)}</b>` : j.desc;
+}
+
 function jesterFaceHTML(j) {
-  return `${jesterHeaderHTML(j)}<span class="jester-desc">${j.desc}</span>`;
+  return `${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}</span>`;
 }
 
 // Held trick cards, with a Use button (and Sell in the shop) on each.

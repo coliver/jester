@@ -254,7 +254,7 @@ test("shop: reroll button is disabled when reroll is unaffordable", () => {
 
 // --- game over overlay ------------------------------------------------------
 
-test("running out of hands opens the Off With Your Head overlay; Restart resets the run", async () => {
+test("running out of hands opens the Off With Your Head overlay; New Game resets the run", async () => {
   dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1, seed: "TESTSEED" }); // one hand left, unreachable target
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
@@ -264,7 +264,7 @@ test("running out of hands opens the Off With Your Head overlay; Restart resets 
   assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
   assert.equal(text("overlay-title"), "Off With Your Head");
   assert.ok(document.getElementById("reroll-btn").classList.contains("hidden"));
-  assert.equal(text("overlay-btn"), "Restart");
+  assert.equal(text("overlay-btn"), "New Game");
 
   // The summary shows the run's stats and seed, and Replay Seed restarts on that seed.
   const seed = gameModule._getState().seed;
@@ -1116,7 +1116,7 @@ test("selecting cards shows the hand's base chips and mult in the counters", () 
   assert.ok(tally.classList.contains("idle"));
 });
 
-test("a scored hand plays out on screen before the score, shop and new cards appear", async () => {
+test("a scored hand plays out on screen before the score and shop appear, with no new cards dealt", async () => {
   await withScoringAnimation(async () => {
     const jester = jesterByName("Jester"); // +4 Mult
     dealtState({ target: 1, jesters: [{ ...jester }] });
@@ -1140,7 +1140,7 @@ test("a scored hand plays out on screen before the score, shop and new cards app
     assert.ok(gameModule._isScoring());
     assert.equal(text("score-val"), `${before} / 1`);
     assert.equal(document.querySelectorAll("#play-area .card").length, 1);
-    assert.equal(document.querySelectorAll("#hand-row .card").length, 7); // the replacement is still to be dealt
+    assert.equal(document.querySelectorAll("#hand-row .card").length, 7); // a cleared act deals no replacement
     assert.ok(document.getElementById("overlay").classList.contains("hidden"));
     assert.equal(text("preview-name").trim(), gameModule.evaluateHand([state.played.at(-1)]).name);
 
@@ -1157,7 +1157,7 @@ test("a scored hand plays out on screen before the score, shop and new cards app
     assert.ok(!gameModule._isScoring());
     assert.equal(text("score-val"), `${state.roundScore} / 1`);
     assert.equal(document.querySelectorAll("#play-area .card").length, 0);
-    assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+    assert.equal(document.querySelectorAll("#hand-row .card").length, 7);
     assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
     assert.ok(document.getElementById("tally").classList.contains("idle"));
     assert.ok(pops.some((p) => /^\+\d+$/.test(p)), `no chips popup in ${pops}`); // the card

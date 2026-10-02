@@ -41,7 +41,15 @@ function renderPayout(el, debug, earnings, animate) {
   const add = (label, cls = "") => {
     const chip = document.createElement("span");
     chip.className = "chip " + cls;
-    chip.textContent = label;
+    const money = /^(\+\$\d+) (.*)$/.exec(label); // a receipt line: label left, amount flush right
+    if (money) {
+      const amt = document.createElement("span");
+      amt.className = "amt";
+      amt.textContent = money[1];
+      chip.append(amt, ` ${money[2]}`); // shown label-first by the stylesheet
+    } else {
+      chip.textContent = label;
+    }
     chip.style.setProperty("--i", el.children.length);
     el.appendChild(chip);
   };
@@ -313,7 +321,7 @@ function renderOverlay() {
     rerollBtn.classList.add("hidden");
     showRunSummary();
     const btn = document.getElementById("overlay-btn");
-    btn.textContent = "Restart";
+    btn.textContent = "New Game";
     btn.onclick = () => restart();
   } else {
     overlay.classList.add("hidden");
