@@ -1166,7 +1166,7 @@ body::before {
 .card .court-half:first-child { border-bottom: 1px solid rgba(70, 40, 15, 0.45); }
 .card .court-half:last-child { transform: rotate(180deg); }
 .card .court-crown { color: var(--gilt); }
-.card .court-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; }
+.card .court-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; }
 /* Narrow enough that the corner indices (rank over suit, and the mirror bottom-right) stay clear of the portrait. */
 .card .court-panel:has(.court-art:not([hidden])) { left: 24%; right: 24%; }
 

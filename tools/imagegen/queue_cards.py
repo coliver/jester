@@ -10,7 +10,7 @@ ComfyUI runs on the Windows host, which WSL cannot reach (refused/timeout), so f
 with Windows Python: COMFY_URL=http://127.0.0.1:8600 python.exe queue_cards.py ... (export_cards.py
 only reads the output folder and works from WSL).
 
-style.txt is the shared style prefix put in front of every prompt (the text
+style.txt is the shared style prefix (style_<kind>.txt replaces it for that kind, placed after the prompt) put in front of every prompt (the text
 baked into the workflow's prompt node is overwritten on each run).
 
 workflow_api.json is the Z-Image Turbo workflow (a copy of ZImageTurbo.json from
@@ -39,6 +39,7 @@ parser.add_argument("--limit", type=int, default=None, help="queue only the firs
 parser.add_argument("--only", default=None, help="comma-separated card ids to queue (default: all)")
 parser.add_argument("--repeat", type=int, default=1, help="queue each card N times with different seeds")
 parser.add_argument("--seed", type=int, default=None, help="use this seed for every card (default: random per card)")
+parser.add_argument("--aspect", default=None, help="resolution node aspect ratio (default: 9:16 for faces, the workflow's 1:1 otherwise)")
 parser.add_argument("--prefix", default="joker_cards", help="ComfyUI output subfolder")
 args = parser.parse_args()
 
@@ -46,8 +47,14 @@ PROMPT_NODE = "6"
 PROMPT_FIELD = "text"
 SEED_NODES = ("52", "60")  # ClownsharKSampler, SeedVarianceEnhancer
 SAVE_NODE = "9"
+RESOLUTION_NODE = "41"  # FluxResolutionNode: aspect ratio at the set megapixels
+# Court portraits fill a tall window on the card (about 0.58 wide to 1 high); everything else is square.
+FACE_ASPECT = "9:16 (Slim Vertical)"
 
-STYLE = (HERE / "style.txt").read_text(encoding="utf-8").strip()
+# A kind can have its own style text (style_<kind>.txt, placed after the prompt); faces need one without
+# the "empty space around it" wording, which shrinks a portrait in a tall frame.
+style_file = HERE / f"style_{args.kind}.txt"
+STYLE = (style_file if style_file.exists() else HERE / "style.txt").read_text(encoding="utf-8").strip()
 
 with open(WORKFLOW_FILE, "r", encoding="utf-8") as f:
     template = json.load(f)
@@ -67,9 +74,14 @@ for index, card in enumerate(cards):
     prompt = card["prompt"].strip()
 
     workflow = copy.deepcopy(template)
+    # A kind's own style file closes the prompt (subject first, as Z-Image Turbo prefers); the shared
+    # style.txt opens it.
     workflow[PROMPT_NODE]["inputs"][PROMPT_FIELD] = (
-        f"{STYLE}, {prompt}"
+        f"{prompt} {STYLE}" if style_file.exists() else f"{STYLE}, {prompt}"
     )
+    aspect = args.aspect or (FACE_ASPECT if args.kind == "faces" else None)
+    if aspect:
+        workflow[RESOLUTION_NODE]["inputs"]["aspect_ratio"] = aspect
     seed = args.seed if args.seed is not None else random.randrange(0, 2**48)
     for node in SEED_NODES:
         workflow[node]["inputs"]["seed"] = seed
