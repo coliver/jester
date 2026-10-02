@@ -210,9 +210,10 @@ function armedButton(btn, label, armedLabel, action) {
 function initNewRunButton() {
   armedButton(document.getElementById("new-run-btn"), "New Run", "Abandon this run?", () => restart());
   // Mid-round, ending the run goes to the Off With Your Head screen (and its summary) rather than silently restarting.
-  armedButton(document.getElementById("end-run-btn"), "End Game", "End this game?", () => {
+  armedButton(document.getElementById("end-run-btn"), "End Run", "End this run?", () => {
     if (state.phase !== "playing" || playPending || scoring) return;
     state.phase = "gameover";
+    setDeckViewOpen(false);
     render();
   });
 }

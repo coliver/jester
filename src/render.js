@@ -68,7 +68,6 @@ function render() {
   }
   document.getElementById("jester-count").textContent = `${state.jesters.length}/${jesterSlots()}`;
   document.getElementById("trick-count").textContent = `${state.tricks.length}/${trickSlots()}`;
-  renderHandReference();
 
   document.getElementById("sort-rank-btn").classList.toggle("active", state.sortMode === "rank");
   document.getElementById("sort-suit-btn").classList.toggle("active", state.sortMode === "suit");
@@ -206,6 +205,15 @@ function renderDeckView() {
   btn.textContent = `Deck (${state.deck.length}/${total})`;
   document.getElementById("deck-count").textContent = `${state.deck.length}/${total}`;
   if (!open) return;
+  const hands = deckViewTab === "hands";
+  document.getElementById("deck-view").classList.toggle("hidden", hands);
+  document.getElementById("hands-view").classList.toggle("hidden", !hands);
+  for (const [id, on] of [["deck-tab", !hands], ["hands-tab", hands]]) {
+    const tab = document.getElementById(id);
+    tab.classList.toggle("active", on);
+    tab.setAttribute("aria-pressed", String(on));
+  }
+  if (hands) { renderHandTable(); return; }
 
   const status = cardStatuses();
   const removed = state.removed || [];
@@ -231,7 +239,16 @@ function renderDeckView() {
   }
 }
 
+// The popup shows either the deck or the hand rankings; opening it always starts on the deck.
+let deckViewTab = "deck";
+
 function setDeckViewOpen(open) {
+  if (open) deckViewTab = "deck";
   document.getElementById("deck-modal").classList.toggle("hidden", !open);
+  renderDeckView();
+}
+
+function setDeckViewTab(tab) {
+  deckViewTab = tab;
   renderDeckView();
 }

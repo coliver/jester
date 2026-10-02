@@ -96,22 +96,31 @@
       <button id="sort-suit-btn" class="sort-btn">Sort by Suit</button>
       <button id="discard-btn">Discard</button>
       <button id="deck-btn" class="sort-btn">Deck</button>
-      <button id="end-run-btn" class="sort-btn">End Game</button>
+      <button id="options-btn" class="sort-btn">Options</button>
       <button id="shop-btn" class="sort-btn hidden">Shop</button>
       <button id="win-btn" class="sort-btn hidden">Win</button>
     </div>
 
-    <details id="hand-reference">
-      <summary>Hand Rankings</summary>
-      <ol id="hand-reference-list"></ol>
-    </details>
-
     <div id="deck-modal" class="hidden" role="dialog" aria-label="Deck contents">
       <div id="deck-card">
-        <h2>Deck</h2>
-        <div id="deck-legend"></div>
-        <div id="deck-grid"></div>
-        <button id="deck-close-btn">Close</button>
+        <div id="deck-tabs" role="group" aria-label="Deck or hand rankings">
+          <button id="deck-tab" class="active" aria-pressed="true">Deck</button>
+          <button id="hands-tab" aria-pressed="false">Hand Rankings</button>
+        </div>
+        <section id="deck-view">
+          <div id="deck-legend"></div>
+          <div id="deck-grid"></div>
+        </section>
+        <section id="hands-view" class="hidden">
+          <table id="hands-table">
+            <thead><tr><th>Hand</th><th>Lvl</th><th>Chips</th><th>Mult</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+        <div id="deck-actions">
+          <button id="end-run-btn">End Run</button>
+          <button id="deck-close-btn">Close</button>
+        </div>
       </div>
     </div>
 

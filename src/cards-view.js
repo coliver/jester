@@ -293,13 +293,18 @@ function syncChildren(container, els) {
   while (container.children.length > els.length) container.lastElementChild.remove();
 }
 
-function renderHandReference() {
-  const items = document.querySelectorAll("#hand-reference-list li");
-  HAND_TYPES.forEach((t, i) => {
+// The hand rankings table in the deck popup: each hand's level and its chips and mult at that level.
+function renderHandTable() {
+  const body = document.querySelector("#hands-table tbody");
+  body.innerHTML = "";
+  for (const t of HAND_TYPES) {
     const b = handBase(t);
-    const lvl = handLevel(t.name);
-    items[i].textContent = `${t.name}${lvl > 1 ? ` (Lv ${lvl})` : ""} — ${b.chips} chips × ${b.mult} mult`;
-  });
+    const row = body.insertRow();
+    row.insertCell().textContent = t.name;
+    row.insertCell().textContent = handLevel(t.name);
+    row.insertCell().textContent = b.chips;
+    row.insertCell().textContent = b.mult;
+  }
 }
 
 // The score readout and the King's mood, which follow `score` (the real round score, or the

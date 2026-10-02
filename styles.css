@@ -338,26 +338,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   border: 2px solid var(--accent-2);
 }
 
-#hand-reference {
-  background: rgba(255,255,255,0.03);
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-#hand-reference summary {
-  cursor: pointer;
-  color: var(--accent-2);
-  font-weight: 700;
-}
-
-#hand-reference ol {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  line-height: 1.6;
-}
-
 .sell-btn {
   margin-top: 6px;
   width: 100%;
@@ -440,11 +420,24 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   border-radius: 16px;
   max-width: 720px;
   width: 95%;
+  max-height: 94vh;
+  overflow-y: auto;
   text-align: center;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-#deck-card h2 { margin: 0 0 8px; color: var(--accent); }
+#deck-actions { display: flex; justify-content: center; gap: 12px; }
+#deck-tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+#deck-tabs button { padding: 6px 16px; background: transparent; border: 1px solid rgba(217, 180, 92, 0.45); color: var(--muted); }
+#deck-tabs button.active { color: var(--accent); border-color: var(--accent); font-weight: 700; }
+#deck-view.hidden, #hands-view.hidden { display: none; }
+#hands-table { width: 100%; margin-bottom: 16px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+#hands-table th { color: var(--accent-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+#hands-table th, #hands-table td { padding: 4px 10px; text-align: right; }
+#hands-table th:first-child, #hands-table td:first-child { text-align: left; }
+#hands-table tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.04); }
+#hands-table td:nth-child(3) { color: #7fb0ff; }
+#hands-table td:nth-child(4) { color: var(--red); }
 
 #deck-legend {
   display: flex;
@@ -530,7 +523,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     flex-direction: column;
     gap: 6px;
   }
-  #side-tools #hand-reference ol { right: auto; width: 280px; bottom: auto; top: 0; left: calc(100% + 6px); }
   #app {
     max-width: 1100px;
     margin: 0 auto;
@@ -561,22 +553,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .hud-label { font-size: 10px; }
   .hud-val { font-size: 16px; }
   #mute-btn { margin: 0; width: 100%; padding: 6px 0; }
-  #hand-reference { position: relative; }
-  #hand-reference ol {
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    max-height: 70vh;
-    overflow-y: auto;
-    margin: 0;
-    padding: 10px 14px 10px 32px;
-    background: var(--panel);
-    border: 1px solid var(--accent-2);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-    z-index: 5;
-  }
   #controls { gap: 8px; flex-wrap: nowrap; }
   #controls button:not(.sort-btn) { font-size: 17px; padding: 10px 30px; min-width: 130px; }
   #deck-btn { display: none; }
@@ -937,7 +913,10 @@ body::before {
 #reroll-btn:disabled { opacity: 0.45; }
 #new-run-btn { order: 9; background: none; border: 0; padding-block: 2px !important; font-size: 12px !important; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 #new-run-btn.confirm { color: var(--red); }
-#end-run-btn.confirm { color: var(--red); border-color: var(--red); }
+/* Destructive: red from the start, and solid red once armed for the second click. */
+#end-run-btn { background: rgba(255, 93, 108, 0.12); color: var(--red); border: 1px solid var(--red); font-weight: 700; }
+#end-run-btn:hover { background: rgba(255, 93, 108, 0.25); }
+#end-run-btn.confirm { background: var(--red); color: #fff; }
 #reroll-btn.hidden, #money-btn.hidden, #new-run-btn.hidden, #replay-btn.hidden { display: none; }
 #overlay-btn {
   background: linear-gradient(180deg, #ffd96e, #f0b733);

@@ -13,6 +13,9 @@ function initApp() {
 
   const deckModal = document.getElementById("deck-modal");
   document.getElementById("deck-btn").addEventListener("click", () => setDeckViewOpen(true));
+  document.getElementById("options-btn").addEventListener("click", () => setDeckViewOpen(true));
+  document.getElementById("deck-tab").addEventListener("click", () => setDeckViewTab("deck"));
+  document.getElementById("hands-tab").addEventListener("click", () => setDeckViewTab("hands"));
   document.getElementById("deck-close-btn").addEventListener("click", () => setDeckViewOpen(false));
   deckModal.addEventListener("click", (e) => { if (e.target === deckModal) setDeckViewOpen(false); });
   const deckPile = document.getElementById("deck-pile");
@@ -48,27 +51,8 @@ function initApp() {
   });
   syncMuteBtn();
 
-  const handReferenceList = document.getElementById("hand-reference-list");
-  for (let i = 0; i < HAND_TYPES.length; i++) {
-    handReferenceList.appendChild(document.createElement("li"));
-  }
   document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
   initNewRunButton();
-
-  // On a landscape phone the hand-rankings panel moves into the left column
-  // (under the HUD) to save vertical space.
-  if (typeof window.matchMedia === "function") {
-    const mq = window.matchMedia("(orientation: landscape)");
-    const sideTools = document.getElementById("side-tools");
-    const handRef = document.getElementById("hand-reference");
-    const controls = document.getElementById("controls");
-    const placeTools = () => {
-      if (mq.matches) sideTools.append(handRef);
-      else controls.after(handRef);
-    };
-    placeTools();
-    mq.addEventListener("change", placeTools);
-  }
 
   // A shared ?seed= link starts a new run on that seed, unless that run is already the saved one.
   let saved = loadRun();

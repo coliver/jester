@@ -88,7 +88,13 @@ test("initial render: HUD, dealt hand, hand reference, and disabled buttons", ()
   assert.equal(text("money-val"), "4");
 
   assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
-  assert.equal(document.querySelectorAll("#hand-reference-list li").length, gameModule.HAND_TYPES.length);
+  document.getElementById("deck-btn").click();
+  document.getElementById("hands-tab").click();
+  assert.equal(document.querySelectorAll("#hands-table tbody tr").length, gameModule.HAND_TYPES.length);
+  assert.ok(document.getElementById("deck-view").classList.contains("hidden"));
+  document.getElementById("deck-tab").click();
+  assert.ok(document.getElementById("hands-view").classList.contains("hidden"));
+  document.getElementById("deck-close-btn").click();
 
   assert.equal(document.getElementById("play-btn").disabled, true);
   assert.equal(document.getElementById("discard-btn").disabled, true);
