@@ -6,7 +6,7 @@ function finishRoundWin() {
   const interest = interestOn(state.money);
   const roundEndCtx = {
     money: state.money, discardsLeft: state.discardsLeft, discardsUsed: state.discardsUsed,
-    jesters: state.jesters, isBoss: state.round === ROUNDS_PER_ANTE, deck: freshDeck(),
+    jesters: state.jesters, isBoss: state.round === ROUNDS_PER_VENUE, deck: freshDeck(),
   };
   state.money += reward + interest;
 
@@ -20,11 +20,11 @@ function finishRoundWin() {
   }
   if (bonus) state.money += bonus;
   if (destroyed.size) state.jesters = state.jesters.filter(j => !destroyed.has(j.id));
-  if (state.round === ROUNDS_PER_ANTE) state.jestersSold = 0; // boss round cleared
+  if (state.round === ROUNDS_PER_VENUE) state.jestersSold = 0; // boss round cleared
 
   state.lastEarnings = { reward, interest, bonus };
 
-  if (state.ante >= FINAL_ANTE && state.round >= ROUNDS_PER_ANTE) {
+  if (state.venue >= FINAL_VENUE && state.round >= ROUNDS_PER_VENUE) {
     state.phase = "win";
     cue(() => Sound.gameWin());
     return;
@@ -42,7 +42,7 @@ function finishRoundWin() {
   if (state.round === 1) {
     const have = new Set(state.props.map(v => v.id));
     const left = PROP_POOL.filter(v => !have.has(v.id));
-    state.shopProp = left.length ? left[Math.floor(rngFor(`prop:${state.ante}`)() * left.length)] : null;
+    state.shopProp = left.length ? left[Math.floor(rngFor(`prop:${state.venue}`)() * left.length)] : null;
   }
 }
 
@@ -51,6 +51,7 @@ function debtFloor() {
 }
 
 function buyJester(id) {
+  if (state.pack) return;
   if (state.jesters.length >= jesterSlots()) return;
   const idx = state.shopOffers.findIndex(j => j.id === id);
   if (idx === -1) return;
@@ -69,7 +70,7 @@ function rollShopOffers() {
 }
 
 function shopRollLabel(kind) {
-  return `shop-${kind}:${state.ante}:${state.round}:${state.shopRolls}`;
+  return `shop-${kind}:${state.venue}:${state.round}:${state.shopRolls}`;
 }
 
 function shuffled(list, rand = Math.random) {
@@ -122,7 +123,7 @@ function addDebugMoney(amount = 1000) {
 }
 
 function sellJester(id) {
-  if (!canAct()) return;
+  if (!canAct() || state.pack) return;
   const idx = state.jesters.findIndex(j => j.id === id);
   if (idx === -1) return;
   const [jester] = state.jesters.splice(idx, 1);
@@ -133,7 +134,7 @@ function sellJester(id) {
 }
 
 function rerollShop() {
-  if (!inShop()) return;
+  if (!inShop() || state.pack) return;
   const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
   const cost = freeReroll ? 0 : state.rerollCost;
   if (state.money - cost < debtFloor()) return;
@@ -153,7 +154,7 @@ function canAct() {
 
 function buyProp() {
   const v = state.shopProp;
-  if (!inShop() || !v || state.money - PROP_PRICE < debtFloor()) return;
+  if (!inShop() || state.pack || !v || state.money - PROP_PRICE < debtFloor()) return;
   state.money -= PROP_PRICE;
   state.props.push(v);
   state.shopProp = null;

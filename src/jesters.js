@@ -221,38 +221,38 @@ const JESTER_POOL = [
   },
   {
     id: "delayed_gratification", name: "Delayed Gratification", price: 4, rarity: "Common",
-    desc: "Earn $2 per discard if no discards are used by round end",
+    desc: "Earn $2 per discard if no discards are used by act end",
     roundEnd: (ctx) => (ctx.discardsUsed === 0 ? { money: 2 * ctx.discardsLeft } : {}),
   },
   {
     id: "to_the_moon", name: "To the Moon", price: 5, rarity: "Uncommon",
-    desc: "Earn an extra $1 of interest per $5 held (up to $5) at round end",
+    desc: "Earn an extra $1 of interest per $5 held (up to $5) at act end",
     roundEnd: (ctx) => ({ money: interestOn(ctx.money) }),
   },
   {
     id: "golden_jester", name: "Golden Jester", price: 6, rarity: "Common",
-    desc: "Earn $4 at the end of the round",
+    desc: "Earn $4 at the end of the act",
     roundEnd: () => ({ money: 4 }),
   },
   {
     id: "egg", name: "Egg", price: 4, rarity: "Common",
-    desc: "Gains $3 of sell value at the end of every round",
+    desc: "Gains $3 of sell value at the end of every act",
     roundEnd: (ctx, self) => { self.sellBonus = (self.sellBonus || 0) + 3; return {}; },
   },
   {
     id: "gros_michel", name: "Gros Michel", price: 5, rarity: "Common",
-    desc: "+15 Mult, 1 in 6 chance to be destroyed at round end",
+    desc: "+15 Mult, 1 in 6 chance to be destroyed at act end",
     apply: () => ({ multAdd: 15 }),
     roundEnd: () => (Math.random() < 1 / 6 ? { destroySelf: true } : {}),
   },
   {
     id: "cloud_9", name: "Cloud 9", price: 7, rarity: "Uncommon",
-    desc: "Earn $1 at round end for each 9 in your deck",
+    desc: "Earn $1 at act end for each 9 in your deck",
     roundEnd: (ctx) => ({ money: ctx.deck.filter(c => c.rank === "9").length }),
   },
   {
     id: "rocket", name: "Trebuchet", price: 6, rarity: "Uncommon",
-    desc: "Earn $1 at round end; the payout rises by $2 each time a boss round is cleared",
+    desc: "Earn $1 at act end; the payout rises by $2 each time a boss act is cleared",
     roundEnd: (ctx, self) => {
       const money = self.rocketPayout || 1;
       if (ctx.isBoss) self.rocketPayout = money + 2;
@@ -261,7 +261,7 @@ const JESTER_POOL = [
   },
   {
     id: "gift_card", name: "Gift Card", price: 6, rarity: "Uncommon",
-    desc: "Adds $1 of sell value to every owned Jester at the end of every round",
+    desc: "Adds $1 of sell value to every owned Jester at the end of every act",
     roundEnd: (ctx) => {
       for (const j of ctx.jesters) j.sellBonus = (j.sellBonus || 0) + 1;
       return {};
@@ -269,7 +269,7 @@ const JESTER_POOL = [
   },
   {
     id: "cavendish", name: "Cavendish", price: 4, rarity: "Common",
-    desc: "X3 Mult, 1 in 1000 chance to be destroyed at round end",
+    desc: "X3 Mult, 1 in 1000 chance to be destroyed at act end",
     apply: () => ({ multMul: 3 }),
     roundEnd: () => (Math.random() < 0.001 ? { destroySelf: true } : {}),
   },
@@ -280,7 +280,7 @@ const JESTER_POOL = [
   },
   {
     id: "drunkard", name: "Drunkard", price: 4, rarity: "Common",
-    desc: "+1 discard each round",
+    desc: "+1 discard each act",
     discardsDelta: 1,
   },
   {
@@ -335,7 +335,7 @@ const JESTER_POOL = [
   },
   {
     id: "campfire", name: "Campfire", price: 9, rarity: "Rare",
-    desc: "X0.25 Mult per Jester sold this run; resets when a boss round is cleared",
+    desc: "X0.25 Mult per Jester sold this run; resets when a boss act is cleared",
     apply: (ctx) => ({ multMul: 1 + 0.25 * ctx.jestersSold }),
   },
   {

@@ -1,25 +1,25 @@
 // --- Court -------------------------------------------------------------
 // Boss modifiers, venues and audiences, and the king's mood.
 
-// Boss rounds: the last round of every ante (round === ROUNDS_PER_ANTE) picks
+// Boss rounds: the last round of every venue (round === ROUNDS_PER_VENUE) picks
 // one of these at random and applies it for that round only, forcing a
 // different line of play instead of just a bigger number to hit.
 const BOSS_MODIFIERS = [
   {
     id: "wall", name: "The Seneschal",
-    desc: "Round target is 50% higher",
+    desc: "Act target is 50% higher",
     quip: "The steward has counted the candles, and finds you wanting.",
     targetMult: 1.5,
   },
   {
     id: "needle", name: "The Executioner",
-    desc: "Only 1 hand allowed this round",
+    desc: "Only 1 hand allowed this act",
     quip: "One swing is all he permits.",
     handsOverride: 1,
   },
   {
     id: "water", name: "The Censor",
-    desc: "No discards this round",
+    desc: "No discards this act",
     quip: "What is said at court cannot be unsaid.",
     discardsOverride: 0,
   },
@@ -67,7 +67,7 @@ const BOSS_MODIFIERS = [
   },
 ];
 
-// The last round of the last ante is always the King, never a random draw.
+// The last round of the last venue is always the King, never a random draw.
 const KING_BOSS = {
   id: "king", name: "The King",
   desc: "Target 25% higher and only 3 hands",
@@ -77,13 +77,13 @@ const KING_BOSS = {
 };
 const BOSS_POOL = [...BOSS_MODIFIERS, KING_BOSS];
 
-// Court dressing: each ante is a venue and each round an audience.
+// Court dressing: each venue number maps to a named room and each round to an audience.
 const VENUES = [
   "The Scullery", "The Stables", "The Great Kitchen", "The Banquet Hall",
   "The Gilded Salon", "The Queen's Solar", "The War Council", "The Throne Room",
 ];
 const AUDIENCES = ["Small Audience", "Grand Audience", "Royal Command"];
-function venueName(ante) { return VENUES[Math.min(ante, VENUES.length) - 1]; }
+function venueName(venue) { return VENUES[Math.min(venue, VENUES.length) - 1]; }
 function audienceName(round) { return AUDIENCES[round - 1] || AUDIENCES[AUDIENCES.length - 1]; }
 
 // The king's mood tracks how the round is going: score progress toward the

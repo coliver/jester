@@ -1,5 +1,5 @@
 // Integration tests that drive the game's state machine end-to-end (play,
-// discard, shop buy/sell/reroll, round/ante transitions, win/game-over) —
+// discard, shop buy/sell/reroll, round/venue transitions, win/game-over) —
 // not just the pure scoring functions. Runs under Node's built-in test
 // runner: `node --test` (or `npm test`) from repo root.
 "use strict";
@@ -184,10 +184,10 @@ test("interest caps at $5 regardless of how much money is saved", () => {
   assert.equal(_getState().lastEarnings.interest, 5);
 });
 
-test("clearing round 3 of the final ante wins the run", () => {
+test("clearing round 3 of the final venue wins the run", () => {
   const state = freshRoundState();
-  state.ante = 8; // FINAL_ANTE
-  state.round = 3; // ROUNDS_PER_ANTE
+  state.venue = 8; // FINAL_VENUE
+  state.round = 3; // ROUNDS_PER_VENUE
   state.target = 1;
   const id = state.hand[0].id;
   toggleCard(id);
@@ -211,7 +211,7 @@ test("selling a jester increments the run's jestersSold counter", () => {
 
 test("jestersSold resets to 0 when a boss round (round 3) is cleared", () => {
   const state = freshRoundState();
-  state.round = 3; // ROUNDS_PER_ANTE
+  state.round = 3; // ROUNDS_PER_VENUE
   state.target = 1;
   state.jestersSold = 4;
   const id = state.hand[0].id;
@@ -371,22 +371,22 @@ test("shop: reroll is blocked without enough money", () => {
   assert.equal(_getState().shopOffers, offersBefore);
 });
 
-test("nextRound advances round, then wraps into the next ante", () => {
+test("nextRound advances round, then wraps into the next venue", () => {
   const state = freshRoundState();
   state.round = 1;
-  state.ante = 1;
+  state.venue = 1;
 
   nextRound();
   assert.equal(_getState().round, 2);
-  assert.equal(_getState().ante, 1);
+  assert.equal(_getState().venue, 1);
 
   nextRound();
   assert.equal(_getState().round, 3);
-  assert.equal(_getState().ante, 1);
+  assert.equal(_getState().venue, 1);
 
-  nextRound(); // round 3 -> wraps to round 1, ante 2
+  nextRound(); // round 3 -> wraps to round 1, venue 2
   assert.equal(_getState().round, 1);
-  assert.equal(_getState().ante, 2);
+  assert.equal(_getState().venue, 2);
 });
 
 test("nextRound resets hands, discards, score, and deals a fresh 8-card hand", () => {
@@ -622,7 +622,7 @@ test("rounds 1 and 2 never get a boss modifier", () => {
 
 test("round 3 always picks a boss modifier", () => {
   _setState(newState());
-  _getState().round = 3; // ROUNDS_PER_ANTE
+  _getState().round = 3; // ROUNDS_PER_VENUE
   startRound();
   const modifier = _getState().bossModifier;
   assert.ok(modifier);
@@ -656,7 +656,7 @@ test("The Manacle deals one fewer card for the boss round", () => {
 test("The Wall raises the boss round's target by 50%", () => {
   _setState(newState());
   _getState().round = 3;
-  _getState().ante = 1;
+  _getState().venue = 1;
   withBossModifier("wall", startRound);
   // targetForRound(1, 3) is 510; *1.5 rounded to the nearest 10 is 770.
   assert.equal(_getState().target, 770);
@@ -668,7 +668,7 @@ test("boss round clears back to no modifier once the round ends", () => {
   withBossModifier("needle", startRound);
   assert.ok(_getState().bossModifier);
 
-  nextRound(); // wraps to round 1 of the next ante
+  nextRound(); // wraps to round 1 of the next venue
   assert.equal(_getState().round, 1);
   assert.equal(_getState().bossModifier, null);
   assert.equal(_getState().handSize, 8);
@@ -1278,9 +1278,9 @@ test("The Spymaster silences the leftmost jester", () => {
   assert.ok(before > after);
 });
 
-test("the last round of the last ante is always The King", () => {
+test("the last round of the last venue is always The King", () => {
   _setState(newState());
-  _getState().ante = 8;
+  _getState().venue = 8;
   _getState().round = 3;
   startRound();
   assert.equal(_getState().bossModifier, KING_BOSS);
@@ -1314,7 +1314,7 @@ test("a shop save restores the run, offers, and owned cards", () => {
   assert.equal(before.phase, "shop");
   const after = roundTrip(before);
   assert.equal(after.phase, "shop");
-  for (const key of ["ante", "round", "money", "target", "rerollCost", "jestersSold", "packAvailable", "handLevels"]) {
+  for (const key of ["venue", "round", "money", "target", "rerollCost", "jestersSold", "packAvailable", "handLevels"]) {
     assert.deepEqual(after[key], before[key], key);
   }
   assert.deepEqual(after.jesters.map(j => [j.id, j.sellBonus]), before.jesters.map(j => [j.id, j.sellBonus]));

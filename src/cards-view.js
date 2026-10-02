@@ -131,7 +131,7 @@ function fillTrickList(container, withSell) {
     useBtn.className = "use-btn";
     useBtn.textContent = "Use";
     useBtn.disabled = useButtonDisabled(t);
-    if (t.decree) useBtn.title = `Select 1-${t.max} card${t.max > 1 ? "s" : ""} in hand during a round`;
+    if (t.decree) useBtn.title = `Select 1-${t.max} card${t.max > 1 ? "s" : ""} in hand during an act`;
     useBtn.addEventListener("click", () => useTrick(i));
     if (withSell) {
       // Shop list: the buttons sit under the card so it keeps the common card size.

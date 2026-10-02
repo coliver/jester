@@ -460,27 +460,27 @@ test("Master of Revels gives +4 Mult per different rarity among owned Jesters", 
 
 // --- targetForRound scaling -----------------------------------------------
 
-test("targetForRound: ante 1 round 1 is the base target", () => {
+test("targetForRound: venue 1 round 1 is the base target", () => {
   assert.equal(targetForRound(1, 1), 300);
 });
 
-test("targetForRound scales up within an ante as round increases", () => {
+test("targetForRound scales up within an venue as round increases", () => {
   const r1 = targetForRound(2, 1);
   const r2 = targetForRound(2, 2);
   const r3 = targetForRound(2, 3);
   assert.ok(r1 < r2 && r2 < r3, `expected strictly increasing targets, got ${r1}, ${r2}, ${r3}`);
 });
 
-test("targetForRound scales up across antes", () => {
+test("targetForRound scales up across venues", () => {
   const a1 = targetForRound(1, 1);
   const a8 = targetForRound(8, 1);
-  assert.ok(a8 > a1 * 5, `expected ante 8 target to dwarf ante 1, got ${a1} vs ${a8}`);
+  assert.ok(a8 > a1 * 5, `expected venue 8 target to dwarf venue 1, got ${a1} vs ${a8}`);
 });
 
 test("targetForRound is always rounded to the nearest 10", () => {
-  for (let ante = 1; ante <= 8; ante++) {
+  for (let venue = 1; venue <= 8; venue++) {
     for (let round = 1; round <= 3; round++) {
-      assert.equal(targetForRound(ante, round) % 10, 0);
+      assert.equal(targetForRound(venue, round) % 10, 0);
     }
   }
 });

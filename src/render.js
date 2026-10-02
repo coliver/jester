@@ -4,10 +4,8 @@
 function render() {
   if (typeof document === "undefined") return;
   persistRun();
-  document.getElementById("ante-val").textContent = state.ante;
-  document.getElementById("venue-val").textContent = venueName(state.ante);
-  document.getElementById("round-val").textContent = state.round;
-  document.getElementById("audience-val").textContent = audienceName(state.round);
+  document.getElementById("venue-val").textContent = venueName(state.venue);
+  document.getElementById("round-val").textContent = `Act ${state.round} - ${audienceName(state.round)}`;
   renderScoreHud(scoring ? scoring.shownScore : state.roundScore);
   document.getElementById("money-val").textContent = scoring ? scoring.money : state.money;
   document.getElementById("hands-val").textContent = state.handsLeft;

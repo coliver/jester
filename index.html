@@ -16,15 +16,9 @@
   <div id="app">
     <div id="side">
     <header id="hud">
-      <div class="hud-block">
-        <span class="hud-label">Ante</span>
-        <span id="ante-val" class="hud-val">1</span>
-        <span id="venue-val" class="hud-sub"></span>
-      </div>
-      <div class="hud-block">
-        <span class="hud-label">Round</span>
-        <span id="round-val" class="hud-val">1</span>
-        <span id="audience-val" class="hud-sub"></span>
+      <div class="hud-block hud-place">
+        <span id="venue-val" class="hud-val">The Scullery</span>
+        <span id="round-val" class="hud-sub">Act 1 - Small Audience</span>
       </div>
       <div class="hud-block wide">
         <span class="hud-label">Score / Target</span>
@@ -141,11 +135,6 @@
         </header>
         <div id="overlay-body">
           <div id="shop-stock">
-            <section id="pack-section" class="hidden">
-              <h3 id="pack-title">Mask Pack: pick one</h3>
-              <div id="pack-items"></div>
-              <button id="pack-skip-btn">Skip</button>
-            </section>
             <section class="shelf" id="jesters-shelf">
               <h3>Jesters</h3>
               <div id="shop-items" class="shelf-row"></div>
@@ -176,6 +165,13 @@
             <p id="owned-props"></p>
           </aside>
         </div>
+      </div>
+      <div id="pack-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pack-title">
+        <section id="pack-section">
+          <h3 id="pack-title">Mask Pack: pick one</h3>
+          <div id="pack-items"></div>
+          <button id="pack-skip-btn">Skip</button>
+        </section>
       </div>
     </div>
   </div>

@@ -2,11 +2,11 @@
 // Starting rounds and runs, and saving and resuming a run.
 
 function nextRound() {
-  state.pack = null; // an unpicked pack is forfeited
+  if (state.pack) return; // pick a card or skip the pack first
   state.round += 1;
-  if (state.round > ROUNDS_PER_ANTE) {
+  if (state.round > ROUNDS_PER_VENUE) {
     state.round = 1;
-    state.ante += 1;
+    state.venue += 1;
   }
   startRound();
   render();
@@ -42,7 +42,7 @@ function restart(seed) {
 const SAVE_KEY = DEBUG_ENABLED ? "jester-run-debug" : "jester-run";
 const SAVE_VERSION = 1;
 const SAVED_SCALARS = {
-  ante: "number", round: "number", target: "number", roundScore: "number", money: "number",
+  venue: "number", round: "number", target: "number", roundScore: "number", money: "number",
   handsLeft: "number", discardsLeft: "number", handSize: "number", rerollCost: "number",
   jestersSold: "number", freeRerollUsed: "boolean", packAvailable: "boolean",
   decreePackAvailable: "boolean", sortMode: "string", packKind: "string",
@@ -93,6 +93,8 @@ function restoreRun(data) {
     });
   };
   try {
+    // Saves from before ante was renamed venue.
+    if (data && data.venue === undefined && typeof data.ante === "number") data.venue = data.ante;
     if (!data || data.v !== SAVE_VERSION || (data.phase !== "shop" && data.phase !== "playing")) return null;
     const s = newState();
     for (const [key, type] of Object.entries(SAVED_SCALARS)) {

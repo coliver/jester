@@ -96,6 +96,10 @@ body {
   color: var(--accent);
 }
 
+.hud-place { flex: 1 1 100%; text-align: center; }
+.hud-place .hud-val { font-size: 15px; line-height: 1.2; white-space: nowrap; }
+.hud-place .hud-sub { font-size: 12px; }
+
 #boss-banner {
   text-align: center;
   padding: 8px;
@@ -553,7 +557,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     padding: 8px;
   }
   .hud-block, .hud-block.wide { min-width: 0; }
-  .hud-block.wide { grid-column: 1 / -1; }
+  .hud-block.wide, .hud-place { grid-column: 1 / -1; }
   .hud-label { font-size: 10px; }
   .hud-val { font-size: 16px; }
   #mute-btn { margin: 0; width: 100%; padding: 6px 0; }
@@ -853,23 +857,21 @@ body::before {
 /* --- Shop screen -------------------------------------------------------------
    Built for a landscape phone: a bar that never scrolls (money, payout, reroll,
    next round) over two panes that scroll on their own, the stock on the left and
-   what you own on the right. The look is a merchant's counter at court: each shelf
-   is a wine-velvet tray with a gilt double frame (the same lattice and frame as the
-   deck's card back) and a plaque for its name, lit from above by a candle. Offers are
-   the ivory-stock cards, with one gilt Buy button carrying the price. */
+   what you own on the right. One calm wine-dark surface: each shelf is just a name over a
+   fine gilt rule, so the ivory cards are the only thing that stands out. Gilt fill is saved
+   for the one primary action (Next Audience); everything else is outlined. */
 #overlay {
   --foil: #d9b45c;
   --foil-hi: #f1dda0;
-  --velvet: #4a1522;
-  --velvet-deep: #26090f;
-  --lattice:
-    repeating-linear-gradient(45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px),
-    repeating-linear-gradient(-45deg, rgba(217, 180, 92, 0.08) 0 1px, transparent 1px 6px);
+  /* Cards here share the screen with the rail and the owned column, so they are sized to fit
+     both: the stock grid needs about six cards across, the owned column two. */
+  --card-w: min(130px, calc((100vw - 290px) / 8), calc((100dvh - 126px) / 4.2));
+  --card-h: calc(var(--card-w) * 1.4);
   position: fixed;
   inset: 0;
   z-index: 10;
   display: flex;
-  background: radial-gradient(ellipse at 50% 0%, rgba(58, 35, 80, 0.94), rgba(14, 7, 20, 0.97) 80%);
+  background: linear-gradient(180deg, #2a0e1a, #1a0912 70%);
 }
 #overlay.hidden { display: none; }
 
@@ -878,97 +880,88 @@ body::before {
   height: 100vh;
   height: 100dvh;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   min-width: 0;
 }
 
+/* The shop's controls live in a rail down the left: what happened, the money, then the buttons. */
 #overlay-bar {
   position: relative;
   z-index: 1;
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 6px 14px;
-  background: linear-gradient(180deg, #3a1226, #260b17);
-  border-bottom: 1px solid var(--foil);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: 150px;
+  padding: 14px 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border-right: 1px solid rgba(217, 180, 92, 0.45);
+  overflow-y: auto;
 }
-#overlay-bar::after { /* a second, finer rule under the first */
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -4px;
-  height: 1px;
-  background: rgba(217, 180, 92, 0.35);
-}
-#overlay-head { flex: 1 1 auto; min-width: 0; text-align: left; }
+#overlay-head { flex: none; min-width: 0; text-align: left; }
 #overlay-title {
   margin: 0;
-  font: italic 700 22px/1.15 var(--card-font);
+  font: italic 700 20px/1.15 var(--card-font);
   color: var(--foil-hi);
-  text-shadow: 0 0 14px rgba(241, 200, 120, 0.35);
 }
 #overlay-sub {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px 6px;
-  margin: 4px 0 0;
+  flex-direction: column;
+  gap: 1px;
+  margin: 6px 0 0;
   font: 12px/1.4 var(--card-font);
   color: var(--muted);
 }
-#overlay-sub .chip {
-  padding: 0 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(123, 227, 138, 0.35);
-  background: rgba(123, 227, 138, 0.07);
-  color: #a9e9b3;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-#overlay-sub .chip.where { border-color: transparent; background: none; padding-left: 0; color: var(--muted); font-style: italic; }
+#overlay-sub .chip { color: #a9e9b3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#overlay-sub .chip.where { color: var(--muted); font-style: italic; }
 
 #shop-money {
   flex: none;
-  min-width: 84px;
-  padding: 4px 14px 5px;
-  border: 1px solid rgba(217, 180, 92, 0.55);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.38);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(0, 0, 0, 0.22);
-  font: 800 28px/1 var(--card-font);
+  padding: 8px 0 10px;
+  border-block: 1px solid rgba(217, 180, 92, 0.3);
+  font: 800 34px/1 var(--card-font);
   text-align: center;
   color: #9be8a6;
-  text-shadow: 0 0 12px rgba(123, 227, 138, 0.4);
   font-variant-numeric: tabular-nums;
 }
 #shop-money.hidden { display: none; }
 
-#overlay-actions { flex: none; display: flex; align-items: center; gap: 8px; }
-#overlay-actions button { padding: 8px 16px; font-size: 14px; white-space: nowrap; }
-#reroll-btn, #money-btn, #new-run-btn, #replay-btn { background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(217, 180, 92, 0.55); color: var(--foil-hi); }
-#new-run-btn { border-color: rgba(184, 168, 204, 0.4); color: var(--muted); }
-#new-run-btn.confirm { border-color: var(--red); color: var(--red); }
+#overlay-actions { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+#overlay-actions button { padding: 9px 10px; font-size: 14px; white-space: nowrap; }
+#reroll-btn, #money-btn, #replay-btn { background: transparent; border: 1px solid rgba(217, 180, 92, 0.55); color: var(--foil-hi); }
+#reroll-btn:disabled { opacity: 0.45; }
+#new-run-btn { order: 9; background: none; border: 0; padding-block: 2px !important; font-size: 12px !important; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+#new-run-btn.confirm { color: var(--red); }
 #reroll-btn.hidden, #money-btn.hidden, #new-run-btn.hidden, #replay-btn.hidden { display: none; }
 #overlay-btn {
   background: linear-gradient(180deg, #ffd96e, #f0b733);
-  box-shadow: 0 3px 0 #a97b12, 0 6px 14px rgba(255, 207, 86, 0.25);
+  box-shadow: 0 3px 0 #a97b12;
 }
 #overlay-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #a97b12; }
 
-#overlay-body { flex: 1 1 auto; min-height: 0; display: flex; }
+#overlay-body { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; }
 
 #shop-stock {
   flex: 1 1 0;
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 22px 16px;
-  padding: 22px 14px 18px;
+  display: grid;
+  grid-template-columns: max-content max-content;
+  grid-template-areas: "jesters prop" "tricks packs";
+  justify-content: start;
+  align-content: start;
+  gap: 24px 32px;
+  padding: 20px 16px 24px;
+}
+#jesters-shelf { grid-area: jesters; }
+#prop-shelf { grid-area: prop; }
+#tricks-shelf { grid-area: tricks; }
+#packs-shelf { grid-area: packs; }
+/* Too narrow for two columns: the shelves wrap, and a small one can sit beside a big one. */
+@media (max-width: 780px) {
+  #shop-stock { display: flex; flex-wrap: wrap; gap: 20px 24px; }
 }
 #shop-yours {
   flex: 0 0 calc(var(--card-w) * 2 + 8px + 36px); /* two cards across, plus padding and a scrollbar */
@@ -976,79 +969,69 @@ body::before {
   overscroll-behavior: contain;
   padding: 12px 10px 16px;
   text-align: left;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
-  border-left: 1px solid rgba(217, 180, 92, 0.5);
-  box-shadow: inset 6px 0 14px rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.22);
+  border-left: 1px solid rgba(217, 180, 92, 0.3);
 }
 
-/* A shelf is a velvet tray. Its plaque sits across the top edge. */
-.shelf {
-  position: relative;
-  min-width: 0;
-  padding: 18px 12px 12px;
-  border: 1px solid rgba(217, 180, 92, 0.6);
-  border-radius: 10px;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 150, 0.2), transparent 70%),
-    var(--lattice),
-    linear-gradient(180deg, var(--velvet), var(--velvet-deep));
-  box-shadow:
-    inset 0 0 0 3px var(--velvet-deep),
-    inset 0 0 0 4px rgba(217, 180, 92, 0.3),
-    inset 0 10px 24px rgba(0, 0, 0, 0.45),
-    0 6px 14px rgba(0, 0, 0, 0.35);
-}
+/* A shelf is a name over a fine gilt rule; the rule is as wide as the cards beneath it. */
+.shelf { min-width: 0; }
 .shelf:has(> .shelf-row:empty) { display: none; }
 .shelf h3, #pack-section h3 {
-  position: absolute;
-  top: -11px;
-  left: 14px;
-  margin: 0;
-  padding: 1px 13px 2px;
-  border: 1px solid rgba(217, 180, 92, 0.7);
-  border-radius: 999px;
-  background: #2a1230;
-  font: italic 700 13px/1.3 var(--card-font);
+  margin: 0 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(217, 180, 92, 0.35);
+  font: italic 700 14px/1.2 var(--card-font);
   color: var(--foil-hi);
-  white-space: nowrap;
 }
 .shelf-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
 
+/* An open pack is a modal: a backdrop over the shop with the picker centered, until you pick or skip. */
+#pack-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 3, 8, 0.78);
+}
+#pack-modal.hidden { display: none; }
 #pack-section {
-  position: relative;
-  flex: 1 0 100%;
-  padding: 18px 12px 12px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 16px 20px 18px;
   border: 1px solid var(--foil);
   border-radius: 10px;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 140, 0.3), transparent 75%),
-    var(--lattice),
-    linear-gradient(180deg, #5c1b2c, #2e0c14);
-  box-shadow: inset 0 0 0 3px #2e0c14, inset 0 0 0 4px rgba(217, 180, 92, 0.45), 0 0 26px rgba(255, 200, 100, 0.25);
+  background: #2a0e1a;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
 }
-#pack-section.hidden { display: none; }
-#pack-items { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-#pack-skip-btn { padding: 6px 16px; font-size: 13px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(217, 180, 92, 0.55); color: var(--foil-hi); }
+#pack-section h3 { border-bottom: 0; padding-bottom: 0; }
+#pack-items { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+#pack-skip-btn { padding: 6px 16px; font-size: 13px; background: transparent; border: 1px solid rgba(217, 180, 92, 0.55); color: var(--foil-hi); }
 
 /* A shop offer is a card-sized face (the same size as every other card) with a single Buy
    button under it that carries the price; the offer's text lives in the tap-to-read tooltip. */
 .shop-item { width: var(--card-w); display: flex; flex-direction: column; gap: 6px; text-align: center; }
 .shop-item button, .owned-slot button { width: 100%; padding: 5px 2px; font-size: 12px; border-radius: 6px; }
 .shop-item .buy-btn {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: linear-gradient(180deg, #f3d98a, #d9a93c);
-  color: #2a1208;
-  box-shadow: 0 2px 0 #8a6414, 0 3px 6px rgba(0, 0, 0, 0.4);
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid rgba(217, 180, 92, 0.7);
+  border-radius: 999px;
+  color: var(--foil-hi);
+  font-size: 13px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.shop-item .buy-btn b { margin-left: auto; font-weight: 800; }
-.shop-item .buy-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 #8a6414; }
-.shop-item.unaffordable .buy-btn { background: rgba(0, 0, 0, 0.4); color: #bba6c8; box-shadow: none; opacity: 0.85; cursor: not-allowed; }
-.shop-item.unaffordable .buy-btn b { color: #ff8e99; }
+@media (hover: hover) {
+  .shop-item .buy-btn:hover:not(:disabled) { background: rgba(217, 180, 92, 0.18); border-color: var(--foil-hi); }
+}
+.shop-item .buy-btn:active:not(:disabled) { transform: translateY(1px); }
+.shop-item.unaffordable .buy-btn { border-color: rgba(184, 168, 204, 0.25); color: #9b8aae; cursor: not-allowed; }
+.shop-item.unaffordable .buy-btn { color: #ff8e99; }
 .shop-item.unaffordable > .jester, .shop-item.unaffordable > .trick { filter: saturate(0.55) brightness(0.85); }
 @media (hover: hover) {
   .shop-item > .jester, .shop-item > .trick { transition: transform 0.14s ease, box-shadow 0.14s ease; }
@@ -1067,10 +1050,10 @@ body::before {
 #shop-yours h3 {
   display: flex;
   justify-content: space-between;
-  margin: 0 0 8px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid rgba(217, 180, 92, 0.3);
-  font: italic 700 13px/1.2 var(--card-font);
+  margin: 0 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(217, 180, 92, 0.35);
+  font: italic 700 14px/1.2 var(--card-font);
   color: var(--foil-hi);
 }
 #shop-yours h3 span { font-style: normal; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -1086,6 +1069,7 @@ body::before {
 .owned-slot { width: var(--card-w); display: flex; flex-direction: column; gap: 3px; }
 .owned-btns { display: flex; gap: 3px; }
 .owned-btns button { flex: 1 1 0; min-width: 0; }
+.owned-slot .sell-btn { margin-top: 0; padding: 4px 2px; background: transparent; border-color: rgba(255, 93, 108, 0.45); color: #ff8e99; }
 #owned-props { margin: 0; font: italic 12px/1.4 var(--card-font); color: var(--muted); }
 #owned-props:empty { display: none; }
 
@@ -1108,17 +1092,18 @@ body::before {
 
 /* Short landscape screens (phones): tighter bar and trays so more of the stock shows. */
 @media (max-height: 500px) {
-  #overlay-bar { padding: 4px 10px; gap: 10px; }
-  #overlay-title { font-size: 18px; }
-  #overlay-actions button { padding: 6px 12px; font-size: 13px; }
-  #shop-money { min-width: 68px; padding: 3px 10px 4px; font-size: 23px; }
-  #shop-stock { gap: 20px 12px; padding: 18px 10px 12px; }
-  .shelf, #pack-section { padding: 16px 8px 8px; }
+  #overlay-bar { width: 136px; padding: 8px 10px; gap: 8px; }
+  #overlay-title { font-size: 17px; }
+  #overlay-actions button { padding: 7px 8px; font-size: 13px; }
+  #shop-money { padding: 5px 0 7px; font-size: 28px; }
+  #shop-stock { gap: 16px 28px; padding: 14px 12px 16px; }
+  .shelf h3, #pack-section h3 { margin-bottom: 8px; }
 }
 
 /* Game over and win: just the result and one button, centered. */
-#overlay.end #overlay-card { justify-content: center; align-items: center; text-align: center; }
-#overlay.end #overlay-bar { flex-direction: column; gap: 16px; background: none; border: 0; box-shadow: none; }
+#overlay.end #overlay-card { flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+#overlay.end #overlay-bar { width: auto; align-items: center; gap: 16px; padding: 8px 16px; background: none; border: 0; overflow: visible; }
+#overlay.end #overlay-actions { flex: none; flex-direction: row; justify-content: center; }
 #overlay.end #overlay-bar::after { display: none; }
 #overlay.end #overlay-head { text-align: center; }
 #overlay.end #overlay-title { font-size: 36px; }
@@ -1469,25 +1454,6 @@ body::before {
   40% { transform: scale(1.14) rotate(6deg); }
   60% { transform: scale(1.08) rotate(-3deg); }
   100% { transform: scale(1) rotate(0deg); }
-
-/* A selected card that won't score (a kicker): red X over its face. */
-.card.no-score::after {
-  content: "✕";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3.2em;
-  font-weight: 900;
-  line-height: 1;
-  color: #e5262b;
-  text-shadow: 0 0 3px #fff, 0 0 6px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 3;
-}
 }
 @keyframes score-pop {
   0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }
@@ -1508,7 +1474,6 @@ body::before {
 /* Short landscape screens (phones): the left column (scoreboard, hand preview, the King, hand rankings)
    is taller than the viewport, so trim it until it fits beside the table. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .hud-sub { display: none; }
   #hud { padding: 6px 8px; gap: 4px 4px; }
   #app > #side { gap: 4px; }
   #side-tools { gap: 4px; }
@@ -1519,4 +1484,23 @@ body::before {
   #amusement-label { min-height: 2.4em; }
   /* The boss banner takes a row of its own, so the cards give up a little to make room. */
   :root:has(#boss-banner:not(.hidden)) { --chrome: 160px; }
+}
+
+/* A selected card that won't score (a kicker): red X over its face. */
+.card.no-score::after {
+  content: "✕";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.2em;
+  font-weight: 900;
+  line-height: 1;
+  color: #e5262b;
+  text-shadow: 0 0 3px #fff, 0 0 6px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
 }

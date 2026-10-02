@@ -15,7 +15,7 @@ function trickSellValue(trick) {
 }
 
 function buyTrick(id) {
-  if (!inShop() || state.tricks.length >= trickSlots()) return;
+  if (!inShop() || state.pack || state.tricks.length >= trickSlots()) return;
   const idx = state.shopTricks.findIndex(t => t.id === id);
   if (idx === -1) return;
   const trick = state.shopTricks[idx];
@@ -28,7 +28,7 @@ function buyTrick(id) {
 }
 
 function buyDecree(id) {
-  if (!inShop() || state.tricks.length >= trickSlots()) return;
+  if (!inShop() || state.pack || state.tricks.length >= trickSlots()) return;
   const idx = state.shopDecrees.findIndex(t => t.id === id);
   if (idx === -1) return;
   const decree = state.shopDecrees[idx];
@@ -104,7 +104,7 @@ function useDecree(index) {
 }
 
 function sellTrick(index) {
-  if (!canAct()) return;
+  if (!canAct() || state.pack) return;
   const [trick] = state.tricks.splice(index, 1);
   if (!trick) return;
   state.money += trickSellValue(trick);

@@ -22,8 +22,8 @@ const TRICK_PRICE = 3;
 const DECREE_PRICE = 3;
 const PACK_PRICE = 4;
 const PACK_SIZE = 3;
-const ROUNDS_PER_ANTE = 3;
-const FINAL_ANTE = 8;
+const ROUNDS_PER_VENUE = 3;
+const FINAL_VENUE = 8;
 const REROLL_BASE_COST = 2;
 const INTEREST_UNIT = 5;
 const INTEREST_CAP = 5;
@@ -39,12 +39,12 @@ const GLASS_BREAK_CHANCE = 0.25;
 const DEBUG_ENABLED = typeof location !== "undefined"
   && new URLSearchParams(location.search).has("debug");
 
-// Permanent upgrades, one offered per ante (in the shop after its first
+// Permanent upgrades, one offered per venue (in the shop after its first
 // round) and bought once per run. Each sets numeric deltas read by the
 // helpers below.
 const PROP_POOL = [
-  { id: "extra_hand", name: "Extra Hand", desc: "+1 hand each round.", handsDelta: 1 },
-  { id: "extra_discard", name: "Extra Discard", desc: "+1 discard each round.", discardsDelta: 1 },
+  { id: "extra_hand", name: "Extra Hand", desc: "+1 hand each act.", handsDelta: 1 },
+  { id: "extra_discard", name: "Extra Discard", desc: "+1 discard each act.", discardsDelta: 1 },
   { id: "big_hand", name: "Big Hand", desc: "+1 hand size.", handSizeDelta: 1 },
   { id: "haggler", name: "Haggler", desc: "Shop rerolls start $1 cheaper.", rerollDelta: -1 },
   { id: "wide_stage", name: "Wide Stage", desc: "+1 jester slot.", jesterSlotsDelta: 1 },

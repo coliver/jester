@@ -53,7 +53,7 @@ function newState(seed = null) {
     seed,
     stats: newStats(),
     shopRolls: 0, // shop rolls this round, so each reroll under a seed is its own roll
-    ante: 1,
+    venue: 1,
     round: 1,
     target: 300,
     roundScore: 0,
@@ -108,7 +108,7 @@ function baseDeck() {
 // A shuffled copy of the run's deck (decree edits included).
 function freshDeck() {
   const deck = (state?.masterDeck || baseDeck()).map(c => ({ ...c }));
-  const rand = rngFor(`deck:${state?.ante}:${state?.round}`);
+  const rand = rngFor(`deck:${state?.venue}:${state?.round}`);
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -125,8 +125,8 @@ function draw(n) {
   return drawn;
 }
 
-function targetForRound(ante, round) {
-  const base = 300 * Math.pow(1.5, ante - 1);
+function targetForRound(venue, round) {
+  const base = 300 * Math.pow(1.5, venue - 1);
   return Math.round(base * (1 + 0.35 * (round - 1)) / 10) * 10;
 }
 
@@ -146,15 +146,15 @@ function startRound(boss) {
   clearSelection();
   state.roundScore = 0;
   state.handTypesPlayed = new Set();
-  state.bossModifier = state.round === ROUNDS_PER_ANTE
-    ? (boss || (state.ante >= FINAL_ANTE ? KING_BOSS : BOSS_MODIFIERS[Math.floor(rngFor(`boss:${state.ante}`)() * BOSS_MODIFIERS.length)]))
+  state.bossModifier = state.round === ROUNDS_PER_VENUE
+    ? (boss || (state.venue >= FINAL_VENUE ? KING_BOSS : BOSS_MODIFIERS[Math.floor(rngFor(`boss:${state.venue}`)() * BOSS_MODIFIERS.length)]))
     : null;
   const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0) + propSum("handSizeDelta");
   const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0) + propSum("discardsDelta");
   state.handSize = HAND_SIZE + (state.bossModifier?.handSizeDelta || 0) + jesterHandSizeDelta;
   state.handsLeft = (state.bossModifier?.handsOverride ?? START_HANDS) + propSum("handsDelta");
   state.discardsLeft = (state.bossModifier?.discardsOverride ?? START_DISCARDS) + jesterDiscardsDelta;
-  state.target = targetForRound(state.ante, state.round);
+  state.target = targetForRound(state.venue, state.round);
   if (state.bossModifier?.targetMult) {
     state.target = Math.round(state.target * state.bossModifier.targetMult / 10) * 10;
   }

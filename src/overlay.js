@@ -47,10 +47,9 @@ function renderPayout(el, debug, earnings, animate) {
   };
   el.classList.toggle("tally", animate);
   if (debug) return add("Buy and sell freely", "where");
-  add(`Ante ${state.ante}, Round ${state.round}`, "where");
-  if (state.seed) add(`Seed ${state.seed}`, "where");
+  add(`${venueName(state.venue)}, Act ${state.round}`, "where");
   if (!earnings) return;
-  add(`+$${earnings.reward} round`);
+  add(`+$${earnings.reward} act`);
   if (earnings.interest) add(`+$${earnings.interest} interest`);
   if (earnings.bonus) add(`+$${earnings.bonus} jesters`);
 }
@@ -78,9 +77,9 @@ function showShopMoney(from) {
   window.requestAnimationFrame(step);
 }
 
-// One Buy button that carries the price, so an offer is just its card and a button.
+// The price tag under an offer is its Buy button, so an offer is just its card and its price.
 function buyHTML(price, canBuy) {
-  return `<button class="buy-btn" ${canBuy ? "" : "disabled"}><span>Buy</span><b>$${price}</b></button>`;
+  return `<button class="buy-btn" aria-label="Buy for $${price}" ${canBuy ? "" : "disabled"}>$${price}</button>`;
 }
 
 function endScreen(overlay) {
@@ -96,7 +95,7 @@ function runSummaryRows(s) {
   const { stats } = s;
   const favourite = Object.entries(stats.handCounts).sort((a, b) => b[1] - a[1])[0];
   const rows = [
-    ["Reached", `${venueName(s.ante)}, Ante ${s.ante}, ${audienceName(s.round)}`],
+    ["Reached", `${venueName(s.venue)}, ${audienceName(s.round)}`],
     ["Hands played", stats.handsPlayed],
     ["Discards used", stats.discards],
     ["Best hand", stats.bestHand ? `${stats.bestHand.score.toLocaleString()} (${stats.bestHand.name})` : "none"],
@@ -167,7 +166,7 @@ function renderOverlay() {
   document.getElementById("new-run-btn").classList.toggle("hidden", state.phase !== "shop");
   if (state.phase === "shop" || debug) {
     overlay.classList.remove("hidden", "end");
-    document.getElementById("overlay-title").textContent = debug ? "Debug Shop" : "Round Cleared!";
+    document.getElementById("overlay-title").textContent = debug ? "Debug Shop" : "Act Cleared!";
     const earnings = state.lastEarnings;
     const intro = !debug && !!earnings && earnings !== shopIntroFor;
     if (intro) {
@@ -243,8 +242,7 @@ function renderOverlay() {
       (pack ? shopPacks : shopTricks).appendChild(div);
     }
 
-    const packSection = document.getElementById("pack-section");
-    packSection.classList.toggle("hidden", !state.pack);
+    document.getElementById("pack-modal").classList.toggle("hidden", !state.pack);
     document.getElementById("pack-title").textContent = `${state.packKind === "decree" ? "Decree" : "Mask"} Pack: pick one`;
     const packItems = document.getElementById("pack-items");
     packItems.innerHTML = "";
@@ -300,7 +298,7 @@ function renderOverlay() {
   } else if (state.phase === "win") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "The Court Is Amused";
-    document.getElementById("overlay-sub").textContent = `You cleared ${venueName(FINAL_ANTE)} with ${state.jesters.length} jester(s) in tow. You may keep your head.`;
+    document.getElementById("overlay-sub").textContent = `You cleared ${venueName(FINAL_VENUE)} with ${state.jesters.length} jester(s) in tow. You may keep your head.`;
     endScreen(overlay);
     rerollBtn.classList.add("hidden");
     showRunSummary();
@@ -310,7 +308,7 @@ function renderOverlay() {
   } else if (state.phase === "gameover") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "Off With Your Head";
-    document.getElementById("overlay-sub").textContent = `The court lost interest in ${venueName(state.ante)}: Ante ${state.ante}, ${audienceName(state.round)}.`;
+    document.getElementById("overlay-sub").textContent = `The court lost interest in ${venueName(state.venue)}, ${audienceName(state.round)}.`;
     endScreen(overlay);
     rerollBtn.classList.add("hidden");
     showRunSummary();

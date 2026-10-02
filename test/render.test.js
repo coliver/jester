@@ -81,8 +81,8 @@ function dealtState(overrides = {}) {
 // --- initial render (from the real require()-time init) -------------------
 
 test("initial render: HUD, dealt hand, hand reference, and disabled buttons", () => {
-  assert.equal(text("ante-val"), "1");
-  assert.equal(text("round-val"), "1");
+  assert.equal(text("venue-val"), "The Scullery");
+  assert.equal(text("round-val"), "Act 1 - Small Audience");
   assert.equal(text("hands-val"), "4");
   assert.equal(text("discards-val"), "3");
   assert.equal(text("money-val"), "4");
@@ -194,7 +194,7 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
 
   assert.equal(gameModule._getState().phase, "shop");
   assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
-  assert.equal(text("overlay-title"), "Round Cleared!");
+  assert.equal(text("overlay-title"), "Act Cleared!");
   assert.equal(document.querySelectorAll("#shop-items .shop-item").length, 3);
   assert.ok(!document.getElementById("reroll-btn").classList.contains("hidden"));
   assert.equal(text("reroll-btn"), "Reroll ($2)");
@@ -234,7 +234,7 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
   // and round number here.
   document.getElementById("overlay-btn").click();
   assert.ok(document.getElementById("overlay").classList.contains("hidden"));
-  assert.equal(text("round-val"), "2");
+  assert.equal(text("round-val"), "Act 2 - Grand Audience");
   await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
 });
 
@@ -282,7 +282,7 @@ test("running out of hands opens the Off With Your Head overlay; Restart resets 
 
   document.getElementById("overlay-btn").click(); // -> restart() -> startRound() (animated)
   assert.equal(gameModule._getState().phase, "playing");
-  assert.equal(gameModule._getState().ante, 1);
+  assert.equal(gameModule._getState().venue, 1);
   assert.equal(gameModule._getState().handsLeft, 4);
   assert.ok(document.getElementById("overlay").classList.contains("hidden"));
   await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
@@ -290,8 +290,8 @@ test("running out of hands opens the Off With Your Head overlay; Restart resets 
 
 // --- win overlay -------------------------------------------------------------
 
-test("clearing the final ante opens the Court Is Amused overlay", async () => {
-  dealtState({ ante: 8, round: 3, target: 1 }); // FINAL_ANTE, ROUNDS_PER_ANTE
+test("clearing the final venue opens the Court Is Amused overlay", async () => {
+  dealtState({ venue: 8, round: 3, target: 1 }); // FINAL_VENUE, ROUNDS_PER_VENUE
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
   await sleep(PLAY_WAIT_MS);
@@ -645,7 +645,7 @@ test("shop bar shows money and one payout chip per earnings line; owned panes sh
   gameModule.render();
   assert.equal(text("shop-money-val"), "12");
   const chips = [...document.querySelectorAll("#overlay-sub .chip")].map((c) => c.textContent);
-  assert.deepEqual(chips.slice(1), ["+$4 round", "+$2 jesters"]);
+  assert.deepEqual(chips.slice(1), ["+$4 act", "+$2 jesters"]);
   assert.ok(!document.getElementById("shop-yours-empty").classList.contains("hidden"));
   const [a] = gameModule.JESTER_POOL;
   gameModule._getState().jesters = [{ ...a, sellBonus: 0 }];
@@ -775,7 +775,7 @@ test("the HUD names the venue and audience, and the preview names the poker hand
   dealtState();
   gameModule.render();
   assert.equal(text("venue-val"), "The Scullery");
-  assert.equal(text("audience-val"), "Small Audience");
+  assert.equal(text("round-val"), "Act 1 - Small Audience");
   document.querySelector("#hand-row .card").click();
   assert.match(text("preview-name"), /^High Card/);
 });
@@ -1304,7 +1304,7 @@ test("shop: New Run needs a second click, then starts a fresh run and saves it",
   await sleep(DEAL_ANIMATION_MS);
   const state = gameModule._getState();
   assert.equal(state.phase, "playing");
-  assert.equal(state.ante, 1);
+  assert.equal(state.venue, 1);
   assert.equal(state.money, 4);
   assert.equal(savedRun().phase, "playing");
   assert.ok(btn.classList.contains("hidden"));
