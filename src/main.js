@@ -70,7 +70,20 @@ function initApp() {
     mq.addEventListener("change", placeTools);
   }
 
-  const saved = loadRun();
+  // A shared ?seed= link starts a new run on that seed, unless that run is already the saved one.
+  let saved = loadRun();
+  const linked = seedFromUrl();
+  if (linked) {
+    if (saved?.seed !== linked) {
+      state = newState(linked);
+      grantStartingJester();
+      startRound();
+      render();
+      dropSeedParam();
+      return;
+    }
+    dropSeedParam();
+  }
   if (saved?.phase === "shop") {
     state = saved;
     shopIntroFor = saved.lastEarnings; // no payout count-up for a shop that was already opened
@@ -79,7 +92,7 @@ function initApp() {
     state = saved; // resume mid-round exactly as it was
     render();
   } else {
-    state = saved || newState();
+    state = saved || newState(randomSeed());
     if (!saved) grantStartingJester();
     startRound(saved?.bossModifier);
     render();
@@ -143,6 +156,9 @@ const testHooks = {
   debugWinRound,
   nextRound,
   restart,
+  normalizeSeed,
+  seededRandom,
+  randomSeed,
   render,
   serializeRun,
   restoreRun,

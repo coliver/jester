@@ -34,6 +34,7 @@ function finishRoundWin() {
   state.phase = "shop";
   state.rerollCost = rerollBaseCost();
   state.freeRerollUsed = false;
+  state.shopRolls = 0;
   rollShopOffers();
   rollTrickOffers();
   state.packAvailable = true;
@@ -41,7 +42,7 @@ function finishRoundWin() {
   if (state.round === 1) {
     const have = new Set(state.props.map(v => v.id));
     const left = PROP_POOL.filter(v => !have.has(v.id));
-    state.shopProp = left.length ? left[Math.floor(Math.random() * left.length)] : null;
+    state.shopProp = left.length ? left[Math.floor(rngFor(`prop:${state.ante}`)() * left.length)] : null;
   }
 }
 
@@ -64,13 +65,17 @@ function buyJester(id) {
 
 function rollShopOffers() {
   const owned = new Set(state.jesters.map(j => j.id));
-  state.shopOffers = shuffled(JESTER_POOL.filter(j => !owned.has(j.id))).slice(0, 3);
+  state.shopOffers = shuffled(JESTER_POOL.filter(j => !owned.has(j.id)), rngFor(shopRollLabel("jesters"))).slice(0, 3);
 }
 
-function shuffled(list) {
+function shopRollLabel(kind) {
+  return `shop-${kind}:${state.ante}:${state.round}:${state.shopRolls}`;
+}
+
+function shuffled(list, rand = Math.random) {
   const pool = [...list];
   for (let i = pool.length - 1; i > 0; i--) {
-    const r = Math.floor(Math.random() * (i + 1));
+    const r = Math.floor(rand() * (i + 1));
     [pool[i], pool[r]] = [pool[r], pool[i]];
   }
   return pool;
@@ -78,8 +83,8 @@ function shuffled(list) {
 
 // Two random trick cards and two decrees for sale (duplicates of owned ones are fine).
 function rollTrickOffers() {
-  state.shopTricks = shuffled(TRICK_POOL).slice(0, 2);
-  state.shopDecrees = shuffled(DECREE_POOL).slice(0, 2);
+  state.shopTricks = shuffled(TRICK_POOL, rngFor(shopRollLabel("tricks"))).slice(0, 2);
+  state.shopDecrees = shuffled(DECREE_POOL, rngFor(shopRollLabel("decrees"))).slice(0, 2);
 }
 
 function inShop() {
@@ -136,6 +141,7 @@ function rerollShop() {
   if (freeReroll) state.freeRerollUsed = true;
   else state.rerollCost += 1;
   Sound.shuffle();
+  state.shopRolls += 1;
   rollShopOffers();
   rollTrickOffers();
   render();

@@ -255,7 +255,7 @@ test("shop: reroll button is disabled when reroll is unaffordable", () => {
 // --- game over overlay ------------------------------------------------------
 
 test("running out of hands opens the Off With Your Head overlay; Restart resets the run", async () => {
-  dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1 }); // one hand left, unreachable target
+  dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1, seed: "TESTSEED" }); // one hand left, unreachable target
   document.querySelector("#hand-row .card").click();
   document.getElementById("play-btn").click();
   await sleep(PLAY_WAIT_MS);
@@ -265,6 +265,20 @@ test("running out of hands opens the Off With Your Head overlay; Restart resets 
   assert.equal(text("overlay-title"), "Off With Your Head");
   assert.ok(document.getElementById("reroll-btn").classList.contains("hidden"));
   assert.equal(text("overlay-btn"), "Restart");
+
+  // The summary shows the run's stats and seed, and Replay Seed restarts on that seed.
+  const seed = gameModule._getState().seed;
+  assert.equal(seed, "TESTSEED");
+  assert.ok(!document.getElementById("run-summary").classList.contains("hidden"));
+  assert.match(text("run-summary"), /Hands played1/);
+  assert.match(text("run-summary"), new RegExp(`Seed ${seed}`));
+  document.getElementById("replay-btn").click();
+  assert.equal(gameModule._getState().seed, seed);
+  assert.equal(gameModule._getState().phase, "playing");
+  assert.ok(document.getElementById("run-summary").classList.contains("hidden"));
+  await sleep(DEAL_ANIMATION_MS);
+  gameModule._getState().phase = "gameover";
+  gameModule.render();
 
   document.getElementById("overlay-btn").click(); // -> restart() -> startRound() (animated)
   assert.equal(gameModule._getState().phase, "playing");

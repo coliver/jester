@@ -1405,3 +1405,63 @@ test("a bad round state is rejected", () => {
   assert.equal(bad({ handTypesPlayed: "Pair" }), null);
   assert.equal(restoreRun({ ...good, phase: "shop" }), null);
 });
+
+// --- seeds and run stats ---------------------------------------------------
+
+test("the same seed deals the same deck and shop; a different seed does not", () => {
+  const { restart } = require("../tools/load-game.js");
+  const deckFor = (seed) => {
+    restart(seed);
+    return _getState().deck.map(c => c.id).join();
+  };
+  _setState(newState("AAAA1111"));
+  startRound();
+  const first = _getState().deck.map(c => c.id).join();
+  _setState(newState("AAAA1111"));
+  startRound();
+  assert.equal(_getState().deck.map(c => c.id).join(), first);
+  _setState(newState("BBBB2222"));
+  startRound();
+  assert.notEqual(_getState().deck.map(c => c.id).join(), first);
+  assert.equal(deckFor("zz-99"), deckFor("ZZ99"), "seeds are normalised");
+});
+
+test("a seeded shop is reproducible, and each reroll is its own roll", () => {
+  const shopFor = (rerolls) => {
+    _setState(newState("SHOPSEED"));
+    startRound();
+    const s = _getState();
+    s.roundScore = s.target;
+    finishRoundWin();
+    s.money = 100;
+    for (let i = 0; i < rerolls; i++) rerollShop();
+    return s.shopOffers.map(j => j.id).join();
+  };
+  assert.equal(shopFor(0), shopFor(0));
+  assert.equal(shopFor(1), shopFor(1));
+  assert.notEqual(shopFor(0), shopFor(1));
+});
+
+test("stats count hands, discards and the best hand, and survive a save", () => {
+  const s = freshRoundState();
+  toggleCard(s.hand[0].id);
+  discardSelected();
+  toggleCard(s.hand[0].id);
+  playHand();
+  assert.equal(s.stats.handsPlayed, 1);
+  assert.equal(s.stats.discards, 1);
+  assert.equal(s.stats.bestHand.name, "High Card");
+  const restored = restoreRun(JSON.parse(JSON.stringify(serializeRun(s))));
+  assert.deepEqual(restored.stats, s.stats);
+  assert.equal(restored.seed, s.seed);
+});
+
+test("a save from before seeds existed restores unseeded", () => {
+  const s = freshRoundState();
+  const data = JSON.parse(JSON.stringify(serializeRun(s)));
+  delete data.seed;
+  delete data.stats;
+  const restored = restoreRun(data);
+  assert.equal(restored.seed, null);
+  assert.equal(restored.stats.handsPlayed, 0);
+});

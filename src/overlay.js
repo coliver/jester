@@ -48,6 +48,7 @@ function renderPayout(el, debug, earnings, animate) {
   el.classList.toggle("tally", animate);
   if (debug) return add("Buy and sell freely", "where");
   add(`Ante ${state.ante}, Round ${state.round}`, "where");
+  if (state.seed) add(`Seed ${state.seed}`, "where");
   if (!earnings) return;
   add(`+$${earnings.reward} round`);
   if (earnings.interest) add(`+$${earnings.interest} interest`);
@@ -90,6 +91,68 @@ function endScreen(overlay) {
   shopIntroFor = null;
 }
 
+// The end-of-run summary: how far the run got, its stats, and its seed (to copy or replay).
+function runSummaryRows(s) {
+  const { stats } = s;
+  const favourite = Object.entries(stats.handCounts).sort((a, b) => b[1] - a[1])[0];
+  const rows = [
+    ["Reached", `${venueName(s.ante)}, Ante ${s.ante}, ${audienceName(s.round)}`],
+    ["Hands played", stats.handsPlayed],
+    ["Discards used", stats.discards],
+    ["Best hand", stats.bestHand ? `${stats.bestHand.score.toLocaleString()} (${stats.bestHand.name})` : "none"],
+    ["Favourite hand", favourite ? `${favourite[0]} (${favourite[1]}×)` : "none"],
+    ["Money", `$${s.money}`],
+    ["Jesters", s.jesters.length ? s.jesters.map(j => j.name).join(", ") : "none"],
+  ];
+  return rows;
+}
+
+function showRunSummary() {
+  const box = document.getElementById("run-summary");
+  box.innerHTML = "";
+  const dl = document.createElement("dl");
+  for (const [label, value] of runSummaryRows(state)) {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    dl.append(dt, dd);
+  }
+  box.appendChild(dl);
+  const replay = document.getElementById("replay-btn");
+  if (state.seed) {
+    const seedLine = document.createElement("p");
+    seedLine.className = "seed-line";
+    seedLine.append("Seed ");
+    const code = document.createElement("code");
+    code.textContent = state.seed;
+    const copy = document.createElement("button");
+    copy.className = "seed-copy";
+    copy.textContent = "Copy link";
+    copy.addEventListener("click", () => copySeedLink(state.seed, copy));
+    seedLine.append(code, copy);
+    box.appendChild(seedLine);
+    replay.classList.remove("hidden");
+    replay.onclick = () => restart(state.seed);
+  } else {
+    replay.classList.add("hidden");
+  }
+  box.classList.remove("hidden");
+}
+
+function copySeedLink(seed, btn) {
+  const url = new URL(location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("seed", seed);
+  const done = () => { btn.textContent = "Copied"; setTimeout(() => { btn.textContent = "Copy link"; }, 1500); };
+  try {
+    navigator.clipboard.writeText(url.toString()).then(done, () => { btn.textContent = url.toString(); });
+  } catch {
+    btn.textContent = url.toString();
+  }
+}
+
 function renderOverlay() {
   const overlay = document.getElementById("overlay");
   const rerollBtn = document.getElementById("reroll-btn");
@@ -97,6 +160,10 @@ function renderOverlay() {
   const moneyBtn = document.getElementById("money-btn");
   const debug = state.phase === "playing" && state.debugShop;
   moneyBtn.classList.toggle("hidden", !debug);
+  if (state.phase !== "win" && state.phase !== "gameover") {
+    document.getElementById("run-summary").classList.add("hidden");
+    document.getElementById("replay-btn").classList.add("hidden");
+  }
   document.getElementById("new-run-btn").classList.toggle("hidden", state.phase !== "shop");
   if (state.phase === "shop" || debug) {
     overlay.classList.remove("hidden", "end");
@@ -236,18 +303,20 @@ function renderOverlay() {
     document.getElementById("overlay-sub").textContent = `You cleared ${venueName(FINAL_ANTE)} with ${state.jesters.length} jester(s) in tow. You may keep your head.`;
     endScreen(overlay);
     rerollBtn.classList.add("hidden");
+    showRunSummary();
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Play Again";
-    btn.onclick = restart;
+    btn.onclick = () => restart();
   } else if (state.phase === "gameover") {
     overlay.classList.remove("hidden");
     document.getElementById("overlay-title").textContent = "Off With Your Head";
     document.getElementById("overlay-sub").textContent = `The court lost interest in ${venueName(state.ante)}: Ante ${state.ante}, ${audienceName(state.round)}.`;
     endScreen(overlay);
     rerollBtn.classList.add("hidden");
+    showRunSummary();
     const btn = document.getElementById("overlay-btn");
     btn.textContent = "Restart";
-    btn.onclick = restart;
+    btn.onclick = () => restart();
   } else {
     overlay.classList.add("hidden");
   }

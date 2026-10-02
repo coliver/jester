@@ -5,8 +5,54 @@ let lastJesterSig = null;
 let lastTricks = null; // the tricks the play row was last built from
 let lastTrickSlots = 0;
 
-function newState() {
+// --- Seeds --------------------------------------------------------------
+// A run's seed fixes its deck order each round, its boss choices and its shop offers
+// (including each reroll), so the same seed deals the same cards and stocks the same
+// shelves. In-hand chance (glass breaking, jester procs) stays unseeded. A state with
+// no seed (tests, old saves) falls back to Math.random.
+
+const SEED_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const SEED_LENGTH = 8;
+
+function randomSeed() {
+  let seed = "";
+  for (let i = 0; i < SEED_LENGTH; i++) seed += SEED_ALPHABET[Math.floor(Math.random() * SEED_ALPHABET.length)];
+  return seed;
+}
+
+// Uppercases and drops anything that isn't a letter or digit; null if nothing is left.
+function normalizeSeed(text) {
+  const seed = String(text ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
+  return seed || null;
+}
+
+// FNV-1a over the text, then mulberry32 seeded from that.
+function seededRandom(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  let a = h >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// The random source for one named event of the run (e.g. "deck:2:1").
+function rngFor(label) {
+  return state?.seed ? seededRandom(state.seed + "|" + label) : Math.random;
+}
+
+function newStats() {
+  return { handsPlayed: 0, discards: 0, bestHand: null, handCounts: {} };
+}
+
+function newState(seed = null) {
   return {
+    seed,
+    stats: newStats(),
+    shopRolls: 0, // shop rolls this round, so each reroll under a seed is its own roll
     ante: 1,
     round: 1,
     target: 300,
@@ -62,8 +108,9 @@ function baseDeck() {
 // A shuffled copy of the run's deck (decree edits included).
 function freshDeck() {
   const deck = (state?.masterDeck || baseDeck()).map(c => ({ ...c }));
+  const rand = rngFor(`deck:${state?.ante}:${state?.round}`);
   for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
   return deck;
@@ -100,7 +147,7 @@ function startRound(boss) {
   state.roundScore = 0;
   state.handTypesPlayed = new Set();
   state.bossModifier = state.round === ROUNDS_PER_ANTE
-    ? (boss || (state.ante >= FINAL_ANTE ? KING_BOSS : BOSS_MODIFIERS[Math.floor(Math.random() * BOSS_MODIFIERS.length)]))
+    ? (boss || (state.ante >= FINAL_ANTE ? KING_BOSS : BOSS_MODIFIERS[Math.floor(rngFor(`boss:${state.ante}`)() * BOSS_MODIFIERS.length)]))
     : null;
   const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0) + propSum("handSizeDelta");
   const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0) + propSum("discardsDelta");

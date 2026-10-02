@@ -1131,6 +1131,14 @@ body::before {
 #overlay.end #overlay-head { text-align: center; }
 #overlay.end #overlay-title { font-size: 36px; }
 #overlay.end #overlay-sub { justify-content: center; font-size: 16px; font-style: italic; }
+#run-summary { display: none; margin-top: 18px; text-align: left; }
+#overlay.end #run-summary { display: block; }
+#run-summary.hidden { display: none; }
+#run-summary dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 18px; margin: 0; font-size: 15px; }
+#run-summary dt { color: var(--muted); }
+#run-summary dd { margin: 0; }
+#run-summary .seed-line { margin: 14px 0 0; text-align: center; color: var(--muted); }
+#run-summary code { margin: 0 10px; font-size: 18px; letter-spacing: 0.12em; color: inherit; }
 #overlay.end #overlay-body { display: none; }
 
 /* Antique card stock: aged ivory paper, a ruled inner frame, serif indices and

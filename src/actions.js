@@ -81,6 +81,8 @@ function playHand() {
   const played = evaluateHand(selected).name;
   if (handBlocked(played)) return;
   state.handTypesPlayed?.add(played);
+  state.stats.handCounts[played] = (state.stats.handCounts[played] || 0) + 1;
+  state.stats.handsPlayed += 1;
   for (const j of state.jesters) {
     if (j.onPlay && j.onPlay().levelUp) levelUpHand(played);
   }
@@ -89,6 +91,7 @@ function playHand() {
   // and anything that should only be seen or heard afterwards goes through cue().
   const result = scoreSelection(selected);
   if (scoringAnimated()) scoring = beginScoring(selected, result);
+  if (!state.stats.bestHand || result.total > state.stats.bestHand.score) state.stats.bestHand = { score: result.total, name: played };
   state.roundScore += result.total;
   state.money += result.money;
   if (state.bossModifier?.handTax && state.money > 0) state.money -= state.bossModifier.handTax;
@@ -126,6 +129,7 @@ function discardSelected() {
   if (playPending || scoring || selected.length === 0 || state.discardsLeft <= 0) return;
   state.discardsLeft -= 1;
   state.discardsUsed += 1;
+  state.stats.discards += 1;
   Sound.discard(selected.length);
   const faceCount = selected.filter(c => isFaceCard(c, { pareidolia: state.jesters.some(j => j.id === "pareidolia") })).length;
   if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_jester")) {

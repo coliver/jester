@@ -22,8 +22,9 @@ function grantStartingJester() {
   state.tricks.push({ ...shuffled(TRICK_POOL)[0] }, { ...shuffled(DECREE_POOL)[0] });
 }
 
-function restart() {
-  state = newState();
+// A new run; `seed` replays a given seed, otherwise a fresh one is rolled.
+function restart(seed) {
+  state = newState(normalizeSeed(seed) || randomSeed());
   grantStartingJester();
   startRound();
   render();
@@ -66,6 +67,9 @@ function serializeRun(s) {
   data.masterDeck = s.masterDeck;
   data.removed = s.removed;
   data.lastEarnings = s.lastEarnings;
+  data.seed = s.seed;
+  data.shopRolls = s.shopRolls;
+  data.stats = s.stats;
   data.boss = s.bossModifier?.id ?? null;
   // A round that hasn't dealt yet has nothing more to save: resuming it just starts the round.
   data.roundState = s.phase === "playing" && (s.hand.length || s.played.length) ? {
@@ -114,6 +118,10 @@ function restoreRun(data) {
     s.masterDeck = data.masterDeck.map(c => ({ ...c }));
     s.removed = data.removed.map(c => ({ ...c }));
     s.lastEarnings = data.lastEarnings || null;
+    // Saves from before seeds and stats existed lack these; the run just continues unseeded.
+    s.seed = normalizeSeed(data.seed);
+    s.shopRolls = Number(data.shopRolls) || 0;
+    s.stats = restoreStats(data.stats);
     s.bossModifier = data.boss ? list([data.boss], BOSS_POOL)[0] : null;
     if (data.roundState) {
       if (data.phase !== "playing" || typeof data.roundState.discardsUsed !== "number") return null;
@@ -131,6 +139,30 @@ function restoreRun(data) {
   } catch {
     return null;
   }
+}
+
+function restoreStats(raw) {
+  const stats = newStats();
+  if (!raw || typeof raw !== "object") return stats;
+  stats.handsPlayed = Number(raw.handsPlayed) || 0;
+  stats.discards = Number(raw.discards) || 0;
+  const best = raw.bestHand;
+  if (best && typeof best.score === "number" && HAND_TYPES.some(t => t.name === best.name)) stats.bestHand = { score: best.score, name: best.name };
+  for (const [name, n] of Object.entries(raw.handCounts || {})) {
+    if (HAND_TYPES.some(t => t.name === name) && typeof n === "number") stats.handCounts[name] = n;
+  }
+  return stats;
+}
+
+// The ?seed=XXXX the page was opened with, if any.
+function seedFromUrl() {
+  try { return normalizeSeed(new URLSearchParams(location.search).get("seed")); } catch { return null; }
+}
+
+function dropSeedParam() {
+  const url = new URL(location.href);
+  url.searchParams.delete("seed");
+  history.replaceState(null, "", url.pathname + url.search + url.hash);
 }
 
 // Saves whenever the screen is drawn in a round or the shop, and forgets the run once it
