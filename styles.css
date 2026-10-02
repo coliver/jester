@@ -505,12 +505,19 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Landscape layout (phone-first, used on desktop too): HUD in a left column, everything else
    stacked on the right so all eight cards fit at a comfortable size. */
+/* The visible height. On a phone, 100vh is the page with the browser's toolbars hidden, which is taller than
+   what you can see, so cards sized from it overflow; 100dvh follows the toolbars. */
+:root { --vh: 100vh; }
+@supports (height: 100dvh) {
+  :root { --vh: 100dvh; }
+}
+
 @media (orientation: landscape) {
   :root {
     /* Three card rows (jesters, play area, hand) plus the controls, banner and padding must fit the
        viewport height, so the card height is (viewport - --chrome) / 3. */
     --chrome: 164px;
-    --card-w: min(130px, calc((100vw - 150px) / 8), calc((100vh - var(--chrome)) / 4.2));
+    --card-w: min(130px, calc((100vw - 150px) / 8), calc((var(--vh) - var(--chrome)) / 4.2));
     --card-h: calc(var(--card-w) * 1.4);
   }
   body { padding: 8px; min-height: 0; }
@@ -1308,4 +1315,20 @@ body::before {
   45% { transform: translate(-4px, -2px); }
   60% { transform: translate(4px, 3px); }
   80% { transform: translate(-2px, 1px); }
+}
+
+/* Short landscape screens (phones): the left column (scoreboard, hand preview, the King, hand rankings)
+   is taller than the viewport, so trim it until it fits beside the table. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud-sub { display: none; }
+  #hud { padding: 6px 8px; gap: 4px 4px; }
+  #app > #side { gap: 4px; }
+  #side-tools { gap: 4px; }
+  #preview { height: 54px; gap: 4px; }
+  #amusement { height: 52px; padding: 4px 6px; gap: 6px; }
+  #amusement-art { width: 40px; height: 40px; }
+  .amusement-body { gap: 3px; font-size: 11px; }
+  #amusement-label { min-height: 2.4em; }
+  /* The boss banner takes a row of its own, so the cards give up a little to make room. */
+  :root:has(#boss-banner:not(.hidden)) { --chrome: 160px; }
 }
