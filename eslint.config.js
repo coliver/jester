@@ -87,6 +87,19 @@ module.exports = [
     },
   },
   {
+    // Mixes Node code with functions that run inside the page (document, innerWidth, ...).
+    files: ["tools/layout-sweep.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      ecmaVersion: 2022,
+      globals: {
+        ...nodeGlobals, process: "readonly", document: "readonly", window: "readonly",
+        localStorage: "readonly", innerWidth: "readonly", innerHeight: "readonly", getComputedStyle: "readonly",
+        draw: "readonly", BOSS_MODIFIERS: "readonly",
+      },
+    },
+  },
+  {
     files: ["eslint.config.js", "tools/*.js"],
     languageOptions: {
       sourceType: "commonjs",

@@ -113,6 +113,7 @@ function render() {
       handEls.delete(id);
     }
   }
+  handRow.style.setProperty("--n", wantHand.length); // the landscape CSS squeezes the overlap to fit this many cards
   syncChildren(handRow, wantHand);
   syncChildren(playArea, scoring ? scoring.cards.map(c => handEls.get(c.id)).filter(Boolean) : wantPlay); // played cards stay up while they score
 

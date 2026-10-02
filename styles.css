@@ -27,7 +27,7 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: var(--vh);
   background: radial-gradient(circle at top, #3a2350, var(--bg) 70%);
   color: var(--text);
   font-family: "Segoe UI", system-ui, sans-serif;
@@ -237,7 +237,7 @@ body {
 
 #hand-row {
   display: flex;
-  justify-content: center;
+  justify-content: safe center; /* a hand wider than the row overflows to the right, not off both edges */
   flex-wrap: wrap;
   gap: 10px;
   min-height: calc(var(--card-h) + 20px);
@@ -370,10 +370,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 #trick-row {
   display: flex;
   gap: 8px;
-  justify-content: center;
+  justify-content: safe center;
   flex-wrap: wrap;
+  padding: 6px;
+  min-height: 64px;
 }
-#trick-row { padding: 6px; min-height: 64px; }
 #trick-row .trick-slot {
   width: var(--card-w); /* the same size as a playing card */
   flex: 0 0 auto;
@@ -399,23 +400,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .trick-name { color: var(--accent); font-weight: 700; }
 .trick-hand { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 2px; }
 .trick button { width: 100%; margin-top: 4px; padding: 4px; font-size: 12px; }
-
-@media (max-width: 480px) {
-  :root { --card-w: calc((100vw - 48px) / 8); --card-h: calc(var(--card-w) * 1.4); }
-  .hud-block { min-width: 56px; }
-  .hud-val { font-size: 16px; }
-
-  body { padding: 10px; }
-  #app { gap: 10px; }
-  .card { padding: 3px; flex: 0 0 auto; border-radius: 3px; }
-  #hud { padding: 8px 12px; gap: 6px 10px; }
-  /* No overflow-x scroll: cards are touch-action:none (draggable), so a scrolling row couldn't be swiped. Slots shrink and cards overlap instead. */
-  #jester-row { flex-wrap: nowrap; min-height: 0; padding: 6px; gap: 6px; }
-  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; aspect-ratio: auto; min-height: 126px; } /* slots shrink in width, so hold the card height instead */
-  #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
-  #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
-  #hand-row { flex-wrap: nowrap; gap: 4px; min-height: 0; padding: 6px 0 12px; }
-}
 
 #deck-modal {
   position: fixed;
@@ -503,6 +487,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #deck-grid { grid-template-columns: repeat(7, 1fr); }
 }
 
+/* LAYOUT CONTRACT. Landscape is the game: a 150px HUD column plus the table, in a container capped at
+   1100px, with cards sized by --card-w = min(130px, width share, height share) and every card face derived
+   from it. Big screens are deliberately an island at that size (no growth past the caps), and portrait
+   tablets keep the stacked 74px layout. Portrait phones get the rotate prompt. Rows that run out of room
+   overlap their cards (the hand's overlap adapts to its count) instead of wrapping or scrolling. Supported
+   floor: about 640x360 landscape; tools/layout-sweep.js checks the spread of sizes. */
 /* Landscape layout (phone-first, used on desktop too): HUD in a left column, everything else
    stacked on the right so all eight cards fit at a comfortable size. */
 /* The visible height. On a phone, 100vh is the page with the browser's toolbars hidden, which is taller than
@@ -530,6 +520,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     align-self: start;
     height: 0; /* left column floats; it must not add implicit rows or height */
   }
+  #app > #side > * { flex: none; } /* the column has height 0, so nothing in it may shrink (an overflow:hidden child would collapse) */
   #side-tools {
     display: flex;
     flex-direction: column;
@@ -597,10 +588,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #jester-row, #trick-row { flex-wrap: nowrap; min-height: 84px; padding: 4px 4px 4px 8px; gap: 0; }
   #jester-row { gap: 6px; }
   /* Slots shrink (and the cards overflow into overlap) only when the row runs out of room. */
-  #jester-row .jester-slot { width: 90px; flex: 0 1 auto; min-width: 36px; aspect-ratio: auto; min-height: 126px; } /* slots shrink in width, so hold the card height instead */
-  #jester-row .jester { width: 84px; padding: 4px; font-size: 10px; }
+  #jester-row .jester-slot { flex: 0 1 auto; min-width: 36px; aspect-ratio: auto; } /* slots shrink in width; the later card-size rule holds their height */
   #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
-  #jester-row .jester-art { width: 34px; margin: 0 auto 2px; }
   #trick-row { gap: 6px; }
   #trick-row .trick-slot { width: var(--card-w); }
   #trick-row .trick { padding: 4px; }
@@ -609,10 +598,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #trick-row .card-art { width: calc(var(--card-w) * 0.62); height: calc(var(--card-w) * 0.62); margin-bottom: 2px; }
   #trick-row .trick-hand { margin-bottom: 0; }
   #trick-row .trick button { margin-top: 3px; padding: 2px; font-size: 11px; }
-  #preview { min-height: 18px; font-size: 12px; line-height: 1.1; text-align: left; padding: 0 4px; }
+  #preview { min-height: 18px; font-size: 12px; line-height: 1.1; padding: 0 4px; }
   #hand-row { flex-wrap: nowrap; gap: 0; min-height: 0; padding: 10px 0 4px; }
   .card { flex: 0 0 auto; padding: 5px; }
-  .card + .card { margin-left: calc(var(--card-w) * -0.2); } /* overlap scales with the card, so small phone cards stay readable */
+  /* The overlap scales with the card, so small phone cards stay readable, and grows when the hand is
+     too wide for the row (--n cards, set in render.js; 100cqw is the row's own width). */
+  #hand-row { container-type: inline-size; }
+  .card + .card { margin-left: min(calc(var(--card-w) * -0.2), calc((100cqw - var(--n, 8) * var(--card-w)) / (var(--n, 8) - 1))); }
   /* A slight fan (rotate about the bottom edge, ends dip) lets the cards overlap more. */
   .card {
     --tilt: calc(var(--fan, 0) * 5deg);
@@ -819,8 +811,8 @@ body {
 #court {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: -1;
   opacity: 0.6;
   pointer-events: none;
@@ -1221,7 +1213,7 @@ body::before {
 
 /* The landscape side column has height 0, so flex items there can shrink; keep
    the hand name at its full height so it can't be painted over. */
-#preview { flex: none; height: 36px; min-height: 0; overflow: hidden; } /* fixed box: title + poker name + "already played" fit, and nothing below shifts when a hand is picked */
+#preview { flex: none; min-height: 0; overflow: hidden; } /* fixed height (set with the tally below): nothing under it shifts when a hand is picked */
 #preview-name { font-size: 1.1em; }
 #amusement { flex: none; height: 74px; overflow: hidden; } /* fixed so a longer mood label can't push the panels below it */
 #amusement-label { line-height: 1.2; min-height: 2.4em; }
