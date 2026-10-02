@@ -76,10 +76,11 @@ static (it's also set up for GitHub Pages).
   card clips plus synthesized stings) with a mute button that remembers its
   setting. Layout is landscape-first: a wide desktop layout with a fanned
   hand, a compact landscape phone layout, and a rotate prompt in portrait.
-- Run persistence: the run is saved to localStorage when a round starts and whenever the
-  shop changes, and resumes on reload. Reloading mid-round restarts that round with the same
-  boss; a finished run (win or loss) clears the save. The shop has a New Run button (two
-  clicks to confirm) to abandon a run. Not saved under `?debug`.
+- Run persistence: the run is saved to localStorage as you play and resumes on reload,
+  in the shop (with its offers) or mid-round (deck order, hand, score, hands and discards
+  left). The card selection and any scoring animation in progress aren't saved. A finished
+  run (win or loss) clears the save, and the shop has a New Run button (two clicks to
+  confirm) to abandon one. `?debug` runs save to their own slot, separate from normal play.
 - Add `?debug` to the URL for a debug shop, a Win button that instantly clears the current round into the real shop, and a starting hand of jesters.
 - A Deck button that opens a grid of all
   52 cards showing which are still in the draw pile, in hand, played, or

@@ -1365,3 +1365,43 @@ test("a bad save is rejected rather than half restored", () => {
   assert.equal(bad({ masterDeck: [{ id: "x", suit: "?", rank: "2" }] }), null);
   assert.equal(bad({ boss: "no_such_boss" }), null);
 });
+
+test("a round in progress resumes with the same deck, hand, score and plays left", () => {
+  const state = freshRoundState();
+  state.target = Number.MAX_SAFE_INTEGER;
+  state.hand.slice(0, 3).forEach(c => toggleCard(c.id));
+  playHand();
+  state.hand.slice(0, 2).forEach(c => toggleCard(c.id));
+  discardSelected();
+  state.money = 9;
+
+  const after = roundTrip(state);
+  assert.equal(after.phase, "playing");
+  for (const key of ["deck", "hand", "played", "discarded", "roundScore", "handsLeft", "discardsLeft", "money", "target", "discardsUsed"]) {
+    assert.deepEqual(after[key], state[key], key);
+  }
+  assert.deepEqual([...after.handTypesPlayed], [...state.handTypesPlayed]);
+  assert.equal(after.played.length, 3);
+  assert.equal(after.discarded.length, 2);
+  assert.equal(after.deck.length + after.hand.length + after.played.length + after.discarded.length, 52);
+  assert.equal(after.selected.size, 0);
+});
+
+test("a round that hasn't dealt yet saves no round state", () => {
+  const state = freshRoundState();
+  state.hand = [];
+  assert.equal(serializeRun(state).roundState, null);
+});
+
+test("a bad round state is rejected", () => {
+  const state = freshRoundState();
+  const good = JSON.parse(JSON.stringify(serializeRun(state)));
+  assert.ok(restoreRun(good));
+  const bad = (patch) => restoreRun({ ...good, roundState: { ...good.roundState, ...patch } });
+  assert.equal(bad({ hand: [{ id: "x", suit: "?", rank: "2" }] }), null);
+  assert.equal(bad({ deck: "nope" }), null);
+  assert.equal(bad({ discardsUsed: "many" }), null);
+  assert.equal(bad({ handTypesPlayed: ["Royal Marmalade"] }), null);
+  assert.equal(bad({ handTypesPlayed: "Pair" }), null);
+  assert.equal(restoreRun({ ...good, phase: "shop" }), null);
+});

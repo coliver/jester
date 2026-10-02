@@ -713,7 +713,7 @@ function startRound(boss) {
   state.phase = "playing";
   state.dealtIds = new Map();
   state.discardsUsed = 0;
-  persistRun(true);
+  persistRun();
 
   const deal = () => {
     state.hand = draw(state.handSize);
@@ -1840,13 +1840,14 @@ function restart() {
 
 // --- Run persistence ---------------------------------------------------------
 //
-// A run is saved to localStorage at round boundaries only: when a round starts
-// and whenever the shop changes. Mid-hand state (deck order, hand, selection,
-// score) is not saved, so reloading mid-round restarts that round, with the
-// same boss. Jesters, masks, decrees, props and offers are saved by id and
-// rebuilt from their pools; the only per-instance jester state is sellBonus.
+// A run is saved to localStorage whenever the screen is drawn during a round or in the
+// shop, so a reload resumes where you were: the shop with its offers, or the round with
+// its deck order, hand, score and hands/discards left. Not saved: the selection, cards
+// staged in the play area, and any scoring animation in progress. Jesters, masks,
+// decrees, props and offers are saved by id and rebuilt from their pools; the only
+// per-instance jester state is sellBonus.
 
-const SAVE_KEY = "jester-run";
+const SAVE_KEY = DEBUG_ENABLED ? "jester-run-debug" : "jester-run";
 const SAVE_VERSION = 1;
 const SAVED_SCALARS = {
   ante: "number", round: "number", target: "number", roundScore: "number", money: "number",
@@ -1875,6 +1876,11 @@ function serializeRun(s) {
   data.removed = s.removed;
   data.lastEarnings = s.lastEarnings;
   data.boss = s.bossModifier?.id ?? null;
+  // A round that hasn't dealt yet has nothing more to save: resuming it just starts the round.
+  data.roundState = s.phase === "playing" && (s.hand.length || s.played.length) ? {
+    deck: s.deck, hand: s.hand, played: s.played, discarded: s.discarded,
+    discardsUsed: s.discardsUsed, handTypesPlayed: [...s.handTypesPlayed],
+  } : null;
   return data;
 }
 
@@ -1918,21 +1924,32 @@ function restoreRun(data) {
     s.removed = data.removed.map(c => ({ ...c }));
     s.lastEarnings = data.lastEarnings || null;
     s.bossModifier = data.boss ? list([data.boss], BOSS_POOL)[0] : null;
+    if (data.roundState) {
+      if (data.phase !== "playing" || typeof data.roundState.discardsUsed !== "number") return null;
+      for (const key of ["deck", "hand", "played", "discarded"]) {
+        const cards = data.roundState[key];
+        if (!Array.isArray(cards) || !cards.every(cardOk)) return null;
+        s[key] = cards.map(c => ({ ...c }));
+      }
+      s.discardsUsed = data.roundState.discardsUsed;
+      const played = data.roundState.handTypesPlayed;
+      if (!Array.isArray(played) || !played.every(name => HAND_TYPES.some(t => t.name === name))) return null;
+      s.handTypesPlayed = new Set(played);
+    }
     return s;
   } catch {
     return null;
   }
 }
 
-// Saves at the start of a round (startRound passes roundStart) and whenever the
-// shop is drawn, and forgets the run once it ends. Anything else, such as a
-// hand in progress, is deliberately not saved.
-function persistRun(roundStart = false) {
+// Saves whenever the screen is drawn in a round or the shop, and forgets the run once it
+// ends. startRound() also saves explicitly, before its deal animation has drawn anything.
+function persistRun() {
   const storage = runStorage();
-  if (!storage || DEBUG_ENABLED || !state) return;
+  if (!storage || !state) return;
   try {
     if (state.phase === "gameover" || state.phase === "win") storage.removeItem(SAVE_KEY);
-    else if (state.phase === "shop" || (state.phase === "playing" && roundStart)) {
+    else if (state.phase === "shop" || (state.phase === "playing" && !state.debugShop)) {
       storage.setItem(SAVE_KEY, JSON.stringify(serializeRun(state)));
     }
   } catch { /* storage full or blocked: the run just isn't saved */ }
@@ -1963,7 +1980,7 @@ function initNewRunButton() {
 
 function loadRun() {
   const storage = runStorage();
-  if (!storage || DEBUG_ENABLED) return null;
+  if (!storage) return null;
   try {
     const raw = storage.getItem(SAVE_KEY);
     return raw ? restoreRun(JSON.parse(raw)) : null;
@@ -2829,6 +2846,9 @@ function initApp() {
   if (saved?.phase === "shop") {
     state = saved;
     shopIntroFor = saved.lastEarnings; // no payout count-up for a shop that was already opened
+    render();
+  } else if (saved && (saved.hand.length || saved.played.length)) {
+    state = saved; // resume mid-round exactly as it was
     render();
   } else {
     state = saved || newState();

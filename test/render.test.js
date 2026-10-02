@@ -1229,9 +1229,11 @@ test("persistence: the shop is saved on render, buying updates the save, and a l
   assert.equal(loaded.phase, "shop");
   assert.deepEqual(loaded.jesters.map((j) => j.id), gameModule._getState().jesters.map((j) => j.id));
 
-  const state = dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1 });
-  assert.ok(window.localStorage.getItem(gameModule.SAVE_KEY)); // a half-played round is not what's saved
-  assert.equal(savedRun().phase, "shop");
+  // A round in progress is saved too, with its hand and score.
+  const state = dealtState({ target: Number.MAX_SAFE_INTEGER, handsLeft: 1, roundScore: 42 });
+  assert.equal(savedRun().phase, "playing");
+  assert.equal(savedRun().roundScore, 42);
+  assert.equal(savedRun().roundState.hand.length, 8);
   state.phase = "gameover";
   gameModule.render();
   assert.equal(window.localStorage.getItem(gameModule.SAVE_KEY), null);
