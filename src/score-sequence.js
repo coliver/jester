@@ -158,7 +158,8 @@ async function runScoring(s) {
 
       for (const [i, [text, kind]] of facets.entries()) {
         scorePop(el, text, kind, i);
-        if (kind === "chips") { chips += step.chips; bump("tally-chips"); Sound.scoreChip(ticks++); }
+        if (kind === "mute") Sound.scoreMute();
+        else if (kind === "chips") { chips += step.chips; bump("tally-chips"); Sound.scoreChip(ticks++); }
         else if (kind === "mult") { mult += step.multAdd; bump("tally-mult"); Sound.scoreMult(ticks++); }
         else if (kind === "xmult") { xmult *= step.multMul; bump("tally-x"); Sound.scoreXMult(ticks++); }
         else if (kind === "money") {

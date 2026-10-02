@@ -149,6 +149,12 @@ const Sound = (() => {
     tone({ delay: 0.06, freq: f * 1.5, duration: 0.28, type: "triangle", gain: 0.1 });
   }
 
+  // A card barred from scoring: a dull, falling thud that doesn't climb the ladder.
+  function scoreMute() {
+    noiseBurst({ duration: 0.07, filterType: "lowpass", freq: 500, q: 0.7, gain: 0.14 });
+    tone({ freq: 220, glideTo: 110, duration: 0.18, type: "sawtooth", gain: 0.08 });
+  }
+
   // The chips and mult colliding into the hand's total; bigger hands (tier 1, 2) get a longer flourish.
   function scoreTotal(tier = 0) {
     noiseBurst({ duration: 0.16, freq: 1400, q: 0.5, gain: 0.25 });
@@ -210,7 +216,7 @@ const Sound = (() => {
 
   return {
     cardFlip, dealHand, cardSelect, cardDeselect, discard, playHandResolve,
-    scoreChip, scoreMult, scoreXMult, scoreTotal, scoreRoll,
+    scoreChip, scoreMult, scoreXMult, scoreMute, scoreTotal, scoreRoll,
     coinBuy, coinSell, shuffle, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
   };
