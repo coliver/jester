@@ -243,14 +243,16 @@ function buildCardEl(card, i) {
     const last = lastHandClick;
     const again = e.detail >= 2 && last.state === state && last.id === id && e.timeStamp - last.time < DOUBLE_CLICK_MS;
     const from = cardRects([id]);
-    if (staged) { // back to the hand; a quick second click on it must not select it again
+    if (staged && last.parked && last.id === id && e.timeStamp - last.time < DOUBLE_CLICK_MS) {
+      return; // a stray click right after parking (touch taps can deliver one) must not send it back
+    } else if (staged) { // back to the hand; a quick second click on it must not select it again
       lastHandClick = { state, id, time: e.timeStamp, returned: true };
       toggleCard(id);
       flipCards(from);
     } else if (again && last.returned) {
       lastHandClick = { state: null };
     } else if (again) {
-      lastHandClick = { state: null };
+      lastHandClick = { state, id, time: e.timeStamp, parked: true };
       parkCard(id, from);
     } else {
       lastHandClick = { state, id, time: e.timeStamp };

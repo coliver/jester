@@ -1008,16 +1008,26 @@ test("two quick clicks on neighbouring cards select both; double clicking one th
   assert.deepEqual([...document.querySelectorAll("#play-area .card")].map((el) => el.dataset.cardId), [a.dataset.cardId]);
 });
 
-test("double clicking a card in the play area sends it back instead of re-parking it", () => {
+test("double clicking a card in the play area sends it back instead of re-parking it", async () => {
   dealtState();
   const card = document.querySelector("#hand-row .card");
   doubleClick(card);
   assert.equal(gameModule._getState().staged.size, 1);
+  await new Promise((r) => setTimeout(r, 400));
   doubleClick(document.querySelector("#play-area .card"));
   const st = gameModule._getState();
   assert.equal(st.staged.size, 0);
   assert.equal(st.selected.size, 0);
   assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+});
+
+test("a stray click right after parking a card does not send it back", () => {
+  dealtState();
+  const card = document.querySelector("#hand-row .card");
+  doubleClick(card);
+  const parked = document.querySelector("#play-area .card");
+  parked.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true, detail: 3 }));
+  assert.equal(gameModule._getState().staged.size, 1);
 });
 
 test("stageCard and unstageCard refuse outside the playing phase or for unknown cards", () => {
