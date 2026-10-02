@@ -1469,6 +1469,25 @@ body::before {
   40% { transform: scale(1.14) rotate(6deg); }
   60% { transform: scale(1.08) rotate(-3deg); }
   100% { transform: scale(1) rotate(0deg); }
+
+/* A selected card that won't score (a kicker): red X over its face. */
+.card.no-score::after {
+  content: "✕";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.2em;
+  font-weight: 900;
+  line-height: 1;
+  color: #e5262b;
+  text-shadow: 0 0 3px #fff, 0 0 6px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+}
 }
 @keyframes score-pop {
   0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }

@@ -82,6 +82,15 @@ function render() {
   const handCards = allCards.filter(c => !isStaged(c));
   const wantHand = [], wantPlay = [];
   const present = new Set();
+  // Cards that won't score get a red X: any debuffed by the boss, plus selected kickers.
+  const idle = new Set();
+  if (!scoring) {
+    for (const c of allCards) if (cardChipValue(c) === 0) idle.add(c.id); // boss debuffs (e.g. spades score no chips), selected or not
+    if (state.selected.size) {
+      const scoringIds = new Set(evaluateHand(getSelectedCards()).scoringCards.map(c => c.id));
+      for (const id of state.selected) if (!scoringIds.has(id)) idle.add(id);
+    }
+  }
   for (const card of allCards) {
     const staged = isStaged(card);
     let el = handEls.get(card.id);
@@ -97,6 +106,7 @@ function render() {
     const isSelected = state.selected.has(card.id);
     el.classList.toggle("selected", isSelected);
     el.setAttribute("aria-pressed", String(isSelected));
+    el.classList.toggle("no-score", idle.has(card.id));
     // Fan position, -1 (leftmost) .. 1 (rightmost); CSS decides whether to use it.
     const i = handCards.indexOf(card);
     el.style.setProperty("--fan", !staged && handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
