@@ -25,7 +25,7 @@ const Curtain = (function () {
   const CLOSE = 2.6; // seconds, the same names as the timings the caller schedules around
   const HOLD = 0.8;
   const OPEN = 2.8;
-  const FADE = 0.6;
+  const SLIDE = 0.8; // once open, the bunched curtain draws on off the edge of the screen
   const LEAD = CLOSE + HOLD + 0.9; // when the ledger may begin: the curtain is on its way open
 
   let canvas = null;
@@ -147,6 +147,7 @@ const Curtain = (function () {
       time: 0,
     };
     h.lead = h.openLead;
+    h.shift = 0;
     pinRail(h);
     for (let j = 0; j < ROWS; j++) {
       for (let k = 0; k < COLS; k++) {
@@ -169,6 +170,7 @@ const Curtain = (function () {
     const x = h.railX;
     x[COLS - 1] = h.lead;
     for (let k = COLS - 2; k >= 0; k--) x[k] = Math.max(h.outer + k * h.smin, x[k + 1] - h.smax);
+    for (let k = 0; k < COLS; k++) x[k] -= h.shift;
     for (let k = 0; k < COLS; k++) {
       const a = k > 0 ? x[k] - x[k - 1] : x[1] - x[0];
       const b = k < COLS - 1 ? x[k + 1] - x[k] : a;
@@ -354,6 +356,7 @@ const Curtain = (function () {
       const t = r.t - n * 0.07;
       const open = r.t < CLOSE + HOLD ? 1 - ease(t / CLOSE) : ease((t - CLOSE - HOLD) / OPEN);
       h.lead = h.openLead + (h.closedLead - h.openLead) * (1 - open);
+      h.shift = (h.openLead - h.outer + 0.03 * h.W) * ease((r.t - CLOSE - HOLD - OPEN) / SLIDE);
     });
     r.sim = Math.max(r.sim, r.t - 8 * STEP);
     while (r.sim + STEP <= r.t) {
@@ -363,9 +366,7 @@ const Curtain = (function () {
     if (!r.shut && r.t >= CLOSE + 0.35) { r.shut = true; r.onShut(); }
     if (r.t >= CLOSE + HOLD) canvas.style.pointerEvents = "none";
     draw(r);
-    const gone = r.t - CLOSE - HOLD - OPEN;
-    canvas.style.opacity = gone > 0 ? String(Math.max(0, 1 - gone / FADE)) : "1";
-    if (gone > FADE) finish(true);
+    if (r.t > CLOSE + HOLD + OPEN + SLIDE) finish(true);
   }
 
   function finish(complete) {
@@ -393,7 +394,6 @@ const Curtain = (function () {
     buildGl(r);
     run = r;
     canvas.style.display = "block";
-    canvas.style.opacity = "1";
     canvas.style.pointerEvents = "auto";
     if (!canvas.parentNode) document.body.appendChild(canvas);
     r.raf = window.requestAnimationFrame(frame);
