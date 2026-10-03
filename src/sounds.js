@@ -23,6 +23,8 @@ const Sound = (() => {
     place: clip("assets/sound/placing-playing-card.mp3"),
     shuffleDeck: clip("assets/sound/shuffling-deck-of-cards.mp3"),
     applause: clip("assets/sound/clapping.wav"),
+    glassBreak: clip("assets/sound/bottle_breaking.mp3"),
+    swoosh: clip("assets/sound/swoosh.mp3"),
   };
 
   function playClip(base, { delay = 0, volume = 0.5, rate = 1 } = {}) {
@@ -243,6 +245,16 @@ const Sound = (() => {
     tone({ freq: 200, glideTo: 100, duration: 0.14, type: "sawtooth", gain: 0.08 });
   }
 
+  // A jester destroyed at act end.
+  function jesterDestroy() {
+    playClip(clips.glassBreak, { volume: 0.6 });
+  }
+
+  // The shop's offers dealing onto the shelf.
+  function shopDeal() {
+    playClip(clips.swoosh, { volume: 0.45 });
+  }
+
   function coinSell() {
     tone({ freq: 900, duration: 0.05, type: "square", gain: 0.09 });
     tone({ delay: 0.04, freq: 600, duration: 0.1, type: "square", gain: 0.07 });
@@ -288,7 +300,7 @@ const Sound = (() => {
   return {
     cardFlip, dealHand, cardSelect, cardDeselect, discard, playHandResolve,
     scoreChip, scoreMult, scoreXMult, scoreMute, scoreTotal, scoreRoll,
-    coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, shuffle, applause, roundWin, gameOver, gameWin, click,
+    coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
   };
 })();

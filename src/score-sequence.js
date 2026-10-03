@@ -227,7 +227,7 @@ async function runRoundEndShow(show) {
       let slot = 0;
       if (f.money) { scorePop(el, `+$${f.money}`, "money", slot++); Sound.coinBuy(); }
       if (f.grew) scorePop(el, f.jester.grew || f.jester.status(f.jester), "money", slot++);
-      if (f.destroyed) { scorePop(el, "Destroyed!", "mute", slot++); el.classList.add("destroyed"); }
+      if (f.destroyed) { scorePop(el, "Destroyed!", "mute", slot++); el.classList.add("destroyed"); Sound.jesterDestroy(); }
       await wait(f.destroyed ? 900 : 700);
     }
     await wait(250);

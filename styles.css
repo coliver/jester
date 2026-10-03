@@ -984,6 +984,13 @@ body::before {
    scoped inside #overlay) or the jesters would float above the picker instead of behind it. */
 body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #top-row { position: relative; z-index: 11; }
 #shop-main { padding-top: calc(var(--top-bottom, 0px) + 6px); }
+/* The shelves stay dark under the ledger's count-up, then light back up the moment the
+   offers deal in (see --d in renderOverlay); the ledger itself (in #overlay-bar) stays lit. */
+#shop-main { transition: filter 0.5s ease; }
+#shop-main.dim { filter: brightness(0.3) saturate(0.7); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  #shop-main { transition: none; }
+}
 
 #shop-stock {
   flex: 1 1 0;

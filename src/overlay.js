@@ -96,6 +96,7 @@ function startIntro(overlay) {
 // money total below it (see showShopMoney), so the sum is worked out in front of you.
 const LEDGER_FIRST = 0.15; // seconds until the first line lands
 const LEDGER_STEP = 0.65; // seconds from one line to the next
+const FLIGHT = 0.5; // seconds a ledger amount takes to fly into the total
 
 function renderPayout(el, debug, earnings, animate, before) {
   el.innerHTML = "";
@@ -144,7 +145,6 @@ function showShopMoney(from, gains = []) {
   }
   let shown = from;
   val.textContent = shown;
-  const FLIGHT = 0.5;
   // A tick as each line is written, including the Purse line that has nothing to fly.
   const lines = [...document.querySelectorAll("#overlay-sub .chip:not(.where)")];
   lines.forEach((line) => {
@@ -338,10 +338,22 @@ function renderOverlay() {
       startIntro(overlay);
       Sound.applause(); // the house applauds the won round as the audience leaves
     }
-    overlay.style.setProperty("--d", intro ? `${introLead + 0.8}s` : "0s");
     if (intro) shopStartMoney = state.money - (earnings.reward + earnings.interest + earnings.bonus);
     const gains = renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro, shopStartMoney);
     showShopMoney(intro ? shopStartMoney : null, gains);
+
+    // The shelves stay dark under the ledger while the money counts up, then deal in, swoosh,
+    // and light up together once the last coin has landed (lineCount includes the Purse line).
+    const shopMain = document.getElementById("shop-main");
+    const lineCount = 1 + gains.length;
+    const shelfDelay = intro ? introLead + LEDGER_FIRST + (lineCount - 1) * LEDGER_STEP + 0.3 + FLIGHT + 0.3 : 0;
+    overlay.style.setProperty("--d", `${shelfDelay}s`);
+    if (intro) {
+      shopMain.classList.add("dim");
+      introLater(() => { shopMain.classList.remove("dim"); Sound.shopDeal(); }, shelfDelay * 1000);
+    } else {
+      shopMain.classList.remove("dim");
+    }
 
     // Offers not shown before (fresh shop, or after a reroll) deal in; a
     // re-render after a purchase leaves the rest of the shelf still.

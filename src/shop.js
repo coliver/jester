@@ -128,6 +128,18 @@ function addDebugMoney(amount = 1000) {
   render();
 }
 
+// Destroys the first owned jester through the normal round-end show (crack sound, "Destroyed!"
+// pop, fades it out), to preview that without waiting on the real roundEnd odds.
+function debugDestroyJester() {
+  if (!DEBUG_ENABLED) return;
+  if (state.phase !== "playing" || !state.jesters.length) return;
+  const jester = state.jesters[0];
+  const before = [...state.jesters];
+  state.jesters = state.jesters.filter(j => j.id !== jester.id);
+  cue(() => startRoundEndShow(before, [{ jester, money: 0, grew: false, destroyed: true }]));
+  render();
+}
+
 function sellJester(id) {
   if (!canAct() || state.pack) return;
   const idx = state.jesters.findIndex(j => j.id === id);
@@ -148,6 +160,7 @@ function rerollShop() {
   if (freeReroll) state.freeRerollUsed = true;
   else state.rerollCost += 1;
   Sound.shuffle();
+  Sound.shopDeal();
   state.shopRolls += 1;
   rollShopOffers();
   rollTrickOffers();
