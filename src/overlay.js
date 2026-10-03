@@ -40,29 +40,6 @@ function flipCards(from) {
 // money total below it (see showShopMoney), so the sum is worked out in front of you.
 const LEDGER_FIRST = 0.15; // seconds until the first line lands
 const LEDGER_STEP = 0.65; // seconds from one line to the next
-let curtainLead = 0; // extra seconds before the ledger starts, while the curtain is still across the stage
-const ledgerFirst = () => LEDGER_FIRST + curtainLead;
-
-// The curtain closes over the play screen, the shop is swapped in behind it, and it opens on
-// Backstage. Returns the seconds the shop's own animations should wait, 0 with no curtain.
-function drawCurtain(overlay) {
-  if (typeof Curtain === "undefined") return 0;
-  overlay.style.visibility = "hidden";
-  const reveal = () => { overlay.style.visibility = ""; };
-  if (!Curtain.play({ onShut: reveal, onDone: reveal })) { reveal(); return 0; }
-  return Curtain.LEAD;
-}
-
-function cancelCurtain() {
-  if (typeof Curtain === "undefined") return;
-  Curtain.cancel();
-  document.getElementById("overlay").style.visibility = "";
-}
-
-// Debug: the curtain on its own, over whatever is on screen.
-function debugCurtain() {
-  if (DEBUG_ENABLED && typeof Curtain !== "undefined") Curtain.play();
-}
 
 function renderPayout(el, debug, earnings, animate, before) {
   el.innerHTML = "";
@@ -85,7 +62,7 @@ function renderPayout(el, debug, earnings, animate, before) {
     return chip;
   };
   el.classList.toggle("tally", animate);
-  el.style.setProperty("--ledger-first", `${ledgerFirst()}s`);
+  el.style.setProperty("--ledger-first", `${LEDGER_FIRST}s`);
   el.style.setProperty("--ledger-step", `${LEDGER_STEP}s`);
   if (debug) { add("Buy and sell freely", undefined, "where"); return gains; }
   if (!earnings) return gains;
@@ -115,10 +92,10 @@ function showShopMoney(from, gains = []) {
   // A tick as each line is written, including the Purse line that has nothing to fly.
   const lines = [...document.querySelectorAll("#overlay-sub .chip:not(.where)")];
   lines.forEach((line) => {
-    setTimeout(() => { if (tick === moneyTick) Sound.ledgerLine(); }, (ledgerFirst() + Number(line.style.getPropertyValue("--i")) * LEDGER_STEP) * 1000);
+    setTimeout(() => { if (tick === moneyTick) Sound.ledgerLine(); }, (LEDGER_FIRST + Number(line.style.getPropertyValue("--i")) * LEDGER_STEP) * 1000);
   });
   gains.forEach(({ chip, amount, index }, n) => {
-    const land = (ledgerFirst() + index * LEDGER_STEP + 0.3) * 1000; // after the line has landed
+    const land = (LEDGER_FIRST + index * LEDGER_STEP + 0.3) * 1000; // after the line has landed
     setTimeout(() => {
       if (tick !== moneyTick) return;
       const src = chip.querySelector(".amt").getBoundingClientRect();
@@ -156,7 +133,6 @@ function showShopMoney(from, gains = []) {
 // payout or a made-up one, starting the total from what it would have been before it.
 function debugReplayPayout() {
   if (!DEBUG_ENABLED || !inShop()) return;
-  curtainLead = 0;
   const earnings = state.lastEarnings || { reward: 5, interest: 2, bonus: 3 };
   const from = Math.max(0, state.money - (earnings.reward + earnings.interest + earnings.bonus));
   const gains = renderPayout(document.getElementById("overlay-sub"), false, earnings, true, from);
@@ -291,7 +267,6 @@ function renderOverlay() {
     document.getElementById("replay-btn").classList.add("hidden");
   }
   document.getElementById("new-run-btn").classList.toggle("hidden", state.phase !== "shop");
-  if (curtainLead && state.phase !== "shop" && !debug) { curtainLead = 0; cancelCurtain(); }
   if (state.phase === "shop" || debug) {
     overlay.classList.remove("hidden", "end");
     document.getElementById("overlay-title").textContent = debug ? "Debug shop" : "Backstage";
@@ -301,11 +276,8 @@ function renderOverlay() {
       shopIntroFor = earnings;
       shopSeen.clear();
     }
-    if (intro) {
-      Sound.applause(); // the house applauds the won round as the audience leaves
-      curtainLead = drawCurtain(overlay);
-    }
-    overlay.style.setProperty("--d", intro ? `${curtainLead + 0.8}s` : "0s");
+    if (intro) Sound.applause(); // the house applauds the won round as the audience leaves
+    overlay.style.setProperty("--d", intro ? "0.8s" : "0s");
     if (intro) shopStartMoney = state.money - (earnings.reward + earnings.interest + earnings.bonus);
     const gains = renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro, shopStartMoney);
     showShopMoney(intro ? shopStartMoney : null, gains);

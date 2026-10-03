@@ -7,8 +7,6 @@ function initApp() {
   document.getElementById("shop-btn").addEventListener("click", () => setDebugShop(true));
   document.getElementById("win-btn").classList.toggle("hidden", !DEBUG_ENABLED);
   document.getElementById("win-btn").addEventListener("click", debugWinRound);
-  document.getElementById("curtain-btn").classList.toggle("hidden", !DEBUG_ENABLED);
-  document.getElementById("curtain-btn").addEventListener("click", () => debugCurtain());
   document.getElementById("money-btn").addEventListener("click", () => addDebugMoney());
   window.addEventListener("resize", () => { if (inShop()) syncShopTop(); });
   document.getElementById("payout-btn").addEventListener("click", () => debugReplayPayout());
