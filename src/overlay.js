@@ -3,8 +3,8 @@
 // What the shop has already dealt in, so a re-render after a purchase only
 // animates cards that are actually new; and which payout the count-up last ran for.
 const shopSeen = new Set();
-let ownedSeen = new Set();
 let shopIntroFor = null;
+let shopStartMoney = null; // the purse before this shop's payout, for its ledger; null when unknown (a reloaded shop)
 let moneyTick = 0;
 
 function prefersReducedMotion() {
@@ -35,67 +35,162 @@ function flipCards(from) {
   }
 }
 
-// The round's payout, one chip per line so each can land in turn.
-function renderPayout(el, debug, earnings, animate) {
+// The round's payout as a ledger, one line per source: the label, dotted leaders, and the
+// amount flush right. On the first showing the lines arrive one at a time, each paying into the
+// money total below it (see showShopMoney), so the sum is worked out in front of you.
+const LEDGER_FIRST = 0.15; // seconds until the first line lands
+const LEDGER_STEP = 0.65; // seconds from one line to the next
+
+function renderPayout(el, debug, earnings, animate, before) {
   el.innerHTML = "";
-  const add = (label, cls = "") => {
+  const gains = [];
+  const add = (label, amount, cls = "") => {
     const chip = document.createElement("span");
     chip.className = "chip " + cls;
-    const money = /^(\+\$\d+) (.*)$/.exec(label); // a receipt line: label left, amount flush right
-    if (money) {
+    if (amount === undefined) {
+      chip.textContent = label;
+    } else {
       const amt = document.createElement("span");
       amt.className = "amt";
-      amt.textContent = money[1];
-      chip.append(amt, ` ${money[2]}`); // shown label-first by the stylesheet
-    } else {
-      chip.textContent = label;
+      amt.textContent = amount;
+      const lead = document.createElement("span");
+      lead.className = "lead";
+      chip.append(label, lead, amt);
     }
     chip.style.setProperty("--i", el.children.length);
     el.appendChild(chip);
+    return chip;
   };
   el.classList.toggle("tally", animate);
-  if (debug) return add("Buy and sell freely", "where");
-  add(`${venueName(state.venue)}, Act ${state.round}`, "where");
-  if (!earnings) return;
-  add(`+$${earnings.reward} act`);
-  if (earnings.interest) add(`+$${earnings.interest} interest`);
-  if (earnings.bonus) add(`+$${earnings.bonus} jesters`);
+  el.style.setProperty("--ledger-first", `${LEDGER_FIRST}s`);
+  el.style.setProperty("--ledger-step", `${LEDGER_STEP}s`);
+  if (debug) { add("Buy and sell freely", undefined, "where"); return gains; }
+  if (!earnings) return gains;
+  if (before !== null) add("Purse", `$${before}`, "purse");
+  const gain = (label, n) => gains.push({ chip: add(label, `+$${n}`, "gain"), amount: n, index: el.children.length - 1 });
+  gain("Reward", earnings.reward);
+  if (earnings.interest) gain("Interest", earnings.interest);
+  if (earnings.bonus) gain("Jesters", earnings.bonus);
+  return gains;
 }
 
-// Shows the money total in the shop bar. With `from`, counts up from there to
-// the current total after the payout chips have landed.
-function showShopMoney(from) {
+// Shows the money total in the shop rail. With `from`, it starts there and each ledger line in
+// `gains` flies its amount down into the total in turn, which ticks up as each one lands.
+function showShopMoney(from, gains = []) {
   const box = document.getElementById("shop-money");
   const val = document.getElementById("shop-money-val");
   box.classList.remove("hidden");
   const tick = ++moneyTick;
   const settle = () => { if (tick === moneyTick) val.textContent = state.money; };
-  if (from === null || from === state.money || prefersReducedMotion() || typeof window.requestAnimationFrame !== "function") {
+  if (from === null || from === state.money || prefersReducedMotion() || typeof box.animate !== "function") {
     settle();
     return;
   }
-  val.textContent = from;
-  const delay = 700, span = 700, t0 = performance.now();
-  const step = (now) => {
-    if (tick !== moneyTick) return;
-    const k = Math.min(1, Math.max(0, (now - t0 - delay) / span));
-    val.textContent = Math.round(from + (state.money - from) * k);
-    if (k < 1) window.requestAnimationFrame(step); else settle();
-  };
-  window.requestAnimationFrame(step);
+  let shown = from;
+  val.textContent = shown;
+  const FLIGHT = 0.5;
+  // A tick as each line is written, including the Purse line that has nothing to fly.
+  const lines = [...document.querySelectorAll("#overlay-sub .chip:not(.where)")];
+  lines.forEach((line) => {
+    setTimeout(() => { if (tick === moneyTick) Sound.ledgerLine(); }, (LEDGER_FIRST + Number(line.style.getPropertyValue("--i")) * LEDGER_STEP) * 1000);
+  });
+  gains.forEach(({ chip, amount, index }, n) => {
+    const land = (LEDGER_FIRST + index * LEDGER_STEP + 0.3) * 1000; // after the line has landed
+    setTimeout(() => {
+      if (tick !== moneyTick) return;
+      const src = chip.querySelector(".amt").getBoundingClientRect();
+      const dst = val.getBoundingClientRect();
+      const flier = document.createElement("span");
+      flier.className = "ledger-flier";
+      flier.textContent = `+$${amount}`;
+      flier.style.left = `${src.left}px`;
+      flier.style.top = `${src.top}px`;
+      document.body.appendChild(flier);
+      Sound.ledgerFly();
+      const dx = dst.left + dst.width / 2 - src.left - src.width / 2, dy = dst.top - src.top;
+      flier.animate(
+        [{ transform: "none", opacity: 1 }, { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 14}px) scale(1.25)`, opacity: 1, offset: 0.55 }, { transform: `translate(${dx}px, ${dy}px) scale(0.8)`, opacity: 0 }],
+        { duration: FLIGHT * 1000, easing: "cubic-bezier(0.4, 0, 0.7, 1)", fill: "forwards" },
+      ).onfinish = () => {
+        flier.remove();
+        if (tick !== moneyTick) return;
+        shown += amount;
+        val.textContent = n === gains.length - 1 ? state.money : shown;
+        box.classList.remove("bump");
+        void box.offsetWidth;
+        box.classList.add("bump");
+        const landed = val.getBoundingClientRect();
+        coinBurst(landed.right - 6, landed.top + landed.height / 2, n === gains.length - 1 ? 22 : 10);
+        Sound.coinTally(n, n === gains.length - 1);
+        if (n === gains.length - 1) Sound.ledgerDone();
+      };
+    }, land);
+  });
+  if (!gains.length) settle();
+}
+
+// Debug: replays the ledger and fly-out sequence in the open shop (Backstage or the debug shop), with the last real
+// payout or a made-up one, starting the total from what it would have been before it.
+function debugReplayPayout() {
+  if (!DEBUG_ENABLED || !inShop()) return;
+  const earnings = state.lastEarnings || { reward: 5, interest: 2, bonus: 3 };
+  const from = Math.max(0, state.money - (earnings.reward + earnings.interest + earnings.bonus));
+  const gains = renderPayout(document.getElementById("overlay-sub"), false, earnings, true, from);
+  showShopMoney(from, gains);
+}
+
+// The shop starts below the play screen's top row, wherever the layout puts it.
+function syncShopTop() {
+  const row = document.getElementById("top-row");
+  document.getElementById("overlay").style.setProperty("--top-bottom", `${Math.ceil(row.getBoundingClientRect().bottom)}px`);
+}
+
+// A tap on a "Full" tag: the count of slots used shakes, with a knock.
+function denyFull(countId) {
+  const el = document.getElementById(countId);
+  Sound.deny();
+  if (prefersReducedMotion()) return;
+  el.classList.remove("shake");
+  void el.offsetWidth;
+  el.classList.add("shake");
+}
+
+// A burst of gold coins and glints thrown from a point, which fall under a little gravity.
+function coinBurst(x, y, count) {
+  if (typeof document.body.animate !== "function") return;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("span");
+    p.className = "coin-particle" + (i % 3 === 0 ? " glint" : "");
+    p.style.left = `${x}px`;
+    p.style.top = `${y}px`;
+    document.body.appendChild(p);
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.4; // mostly upward
+    const speed = 40 + Math.random() * 70;
+    const dx = Math.cos(angle) * speed, dy = Math.sin(angle) * speed;
+    p.animate(
+      [
+        { transform: "translate(0, 0) scale(1)", opacity: 1 },
+        { transform: `translate(${dx * 0.6}px, ${dy * 0.6}px) scale(1)`, opacity: 1, offset: 0.4 },
+        { transform: `translate(${dx}px, ${dy + 70}px) scale(0.4)`, opacity: 0 },
+      ],
+      { duration: 550 + Math.random() * 300, easing: "ease-out", fill: "forwards" },
+    ).onfinish = () => p.remove();
+  }
 }
 
 // The price tag under an offer is its Buy button, so an offer is just its card and its price.
-function buyHTML(price, canBuy) {
-  return `<button class="buy-btn" aria-label="Buy for $${price}" ${canBuy ? "" : "disabled"}>$${price}</button>`;
+// When the only thing stopping the purchase is a full slot row, the tag says "Full" instead of a red price.
+function buyHTML(price, canBuy, full = false) {
+  // A full tag stays clickable: pressing it shakes the slot count, which says why it can't be bought.
+  return `<button class="buy-btn${full ? " full" : ""}" aria-label="${full ? "No free slot" : `Buy for $${price}`}" ${canBuy || full ? "" : "disabled"}>${full ? "Full" : `$${price}`}</button>`;
 }
 
 function endScreen(overlay) {
   overlay.classList.add("end");
   document.getElementById("shop-money").classList.add("hidden");
   shopSeen.clear();
-  ownedSeen = new Set();
   shopIntroFor = null;
+  shopStartMoney = null;
 }
 
 // The end-of-run summary: how far the run got, its stats, and its seed (to copy or replay).
@@ -163,10 +258,10 @@ function copySeedLink(seed, btn) {
 function renderOverlay() {
   const overlay = document.getElementById("overlay");
   const rerollBtn = document.getElementById("reroll-btn");
-  const ownedSection = document.getElementById("owned-jesters-section");
   const moneyBtn = document.getElementById("money-btn");
   const debug = state.phase === "playing" && state.debugShop;
   moneyBtn.classList.toggle("hidden", !debug);
+  document.getElementById("payout-btn").classList.toggle("hidden", !(DEBUG_ENABLED && (debug || state.phase === "shop")));
   if (state.phase !== "win" && state.phase !== "gameover") {
     document.getElementById("run-summary").classList.add("hidden");
     document.getElementById("replay-btn").classList.add("hidden");
@@ -174,17 +269,18 @@ function renderOverlay() {
   document.getElementById("new-run-btn").classList.toggle("hidden", state.phase !== "shop");
   if (state.phase === "shop" || debug) {
     overlay.classList.remove("hidden", "end");
-    document.getElementById("overlay-title").textContent = debug ? "Debug Shop" : "Act Cleared!";
+    document.getElementById("overlay-title").textContent = debug ? "Debug shop" : "Backstage";
     const earnings = state.lastEarnings;
     const intro = !debug && !!earnings && earnings !== shopIntroFor;
     if (intro) {
       shopIntroFor = earnings;
       shopSeen.clear();
-      ownedSeen = new Set(state.jesters.map(j => j.id));
     }
+    if (intro) Sound.applause(); // the house applauds the won round as the audience leaves
     overlay.style.setProperty("--d", intro ? "0.8s" : "0s");
-    renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro);
-    showShopMoney(intro ? state.money - (earnings.reward + earnings.interest + earnings.bonus) : null);
+    if (intro) shopStartMoney = state.money - (earnings.reward + earnings.interest + earnings.bonus);
+    const gains = renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro, shopStartMoney);
+    showShopMoney(intro ? shopStartMoney : null, gains);
 
     // Offers not shown before (fresh shop, or after a reroll) deal in; a
     // re-render after a purchase leaves the rest of the shelf still.
@@ -205,8 +301,9 @@ function renderOverlay() {
       const canBuy = state.money - j.price >= debtFloor() && state.jesters.length < jesterSlots();
       if (!canBuy) div.classList.add("unaffordable");
       div.append(cardFace("jester", jesterFaceHTML(j)));
-      div.insertAdjacentHTML("beforeend", buyHTML(j.price, canBuy));
-      div.querySelector("button").addEventListener("click", () => buyJester(j.id));
+      div.insertAdjacentHTML("beforeend", buyHTML(j.price, canBuy, state.jesters.length >= jesterSlots()));
+      const jesterFull = state.jesters.length >= jesterSlots();
+      div.querySelector("button").addEventListener("click", () => jesterFull ? denyFull("jester-count") : buyJester(j.id));
       shopItems.appendChild(div);
     }
 
@@ -218,7 +315,7 @@ function renderOverlay() {
       const div = document.createElement("div");
       div.className = "shop-item prop" + (canBuy ? "" : " unaffordable");
       dealIn(div, "v:" + prop.id);
-      div.append(cardFace("trick prop", `<span class="trick-glyph">★</span><span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
+      div.append(cardFace("trick prop", `<span class="trick-glyph prop-initial">${prop.name[0]}</span><span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
       div.insertAdjacentHTML("beforeend", buyHTML(PROP_PRICE, canBuy));
       div.querySelector("button").addEventListener("click", buyProp);
       propEl.appendChild(div);
@@ -242,11 +339,12 @@ function renderOverlay() {
       div.className = "shop-item" + (pack ? " pack" : "") + (isDecree ? " decree" : "") + (canBuy ? "" : " unaffordable");
       dealIn(div, pack ? "p:" + pack : "t:" + t.id);
       const face = pack
-        ? `<span class="trick-glyph">${pack === "decree" ? "📜📜📜" : "🎭🎭🎭"}</span><span class="trick-name">${pack === "decree" ? "Decree" : "Mask"} Pack</span><span class="trick-hand">Pack</span><span class="trick-desc">${pack === "decree" ? `Pick 1 of ${PACK_SIZE} decrees, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} masks, used right away.`}</span>`
+        ? `<span class="pack-cartouche"><span class="trick-name">${pack === "decree" ? "Decree" : "Mask"} Pack</span><span class="trick-hand">Pick 1 of ${PACK_SIZE}</span></span><span class="trick-desc">${pack === "decree" ? `Pick 1 of ${PACK_SIZE} decrees, kept to use on a hand.` : `Pick 1 of ${PACK_SIZE} masks, used right away.`}</span>`
         : trickCardHTML(t);
       div.append(cardFace("trick" + (pack ? " pack" : "") + (isDecree ? " decree" : ""), face));
-      div.insertAdjacentHTML("beforeend", buyHTML(price, canBuy));
-      div.querySelector("button").addEventListener("click", pack ? () => buyPack(pack) : buy);
+      div.insertAdjacentHTML("beforeend", buyHTML(price, canBuy, !pack && state.tricks.length >= trickSlots()));
+      const trickFull = !pack && state.tricks.length >= trickSlots();
+      div.querySelector("button").addEventListener("click", trickFull ? () => denyFull("trick-count") : pack ? () => buyPack(pack) : buy);
       (pack ? shopPacks : shopTricks).appendChild(div);
     }
 
@@ -265,39 +363,18 @@ function renderOverlay() {
       packItems.appendChild(div);
     }
 
-    const ownedTricksSection = document.getElementById("owned-tricks-section");
-    ownedTricksSection.classList.toggle("hidden", state.tricks.length === 0);
-    document.getElementById("owned-tricks-count").textContent = `${state.tricks.length}/${trickSlots()}`;
-    fillTrickList(document.getElementById("owned-tricks"), true);
+    // A decree pick needs a free slot: when they are all taken, the picker lists your cards to use or sell.
+    const packFull = Boolean(state.pack) && state.packKind === "decree" && state.tricks.length >= trickSlots();
+    document.getElementById("pack-owned").classList.toggle("hidden", !packFull);
+    if (packFull) fillTrickList(document.getElementById("pack-owned-tricks"), true);
 
-    const ownedList = document.getElementById("owned-jesters");
-    ownedList.innerHTML = "";
-    document.getElementById("owned-jesters-count").textContent = `${state.jesters.length}/${jesterSlots()}`;
-    document.getElementById("shop-yours-empty").classList.toggle("hidden", state.jesters.length > 0 || state.tricks.length > 0);
-    if (state.jesters.length > 0) {
-      ownedSection.classList.remove("hidden");
-      state.jesters.forEach((j) => {
-        // The slot wraps the card and its Sell button, so dragging reorders them together.
-        const slot = document.createElement("div");
-        slot.className = "jester-slot owned-slot";
-        const div = cardFace("jester", jesterFaceHTML(j));
-        if (!ownedSeen.has(j.id)) div.classList.add("dealt");
-        makeJesterDraggable(div, j.id);
-        const sellBtn = document.createElement("button");
-        sellBtn.className = "sell-btn";
-        sellBtn.textContent = `Sell $${sellValue(j)}`;
-        sellBtn.addEventListener("click", () => sellJester(j.id));
-        slot.append(div, sellBtn);
-        ownedList.appendChild(slot);
-      });
-    } else {
-      ownedSection.classList.add("hidden");
-    }
-    ownedSeen = new Set(state.jesters.map(j => j.id));
+    // Your jesters and cards are the play screen's own top row, lifted above the shop (see styles.css),
+    // so the shop only has to leave room for it.
+    syncShopTop();
 
     const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
     rerollBtn.classList.remove("hidden");
-    rerollBtn.textContent = freeReroll ? "Reroll (Free)" : `Reroll ($${state.rerollCost})`;
+    rerollBtn.textContent = freeReroll ? "Reroll free" : `Reroll for $${state.rerollCost}`;
     rerollBtn.disabled = state.money - (freeReroll ? 0 : state.rerollCost) < debtFloor();
     rerollBtn.onclick = rerollShop;
     const btn = document.getElementById("overlay-btn");

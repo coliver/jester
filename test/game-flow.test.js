@@ -1138,15 +1138,20 @@ test("sellTrick ignores calls after the run is over and bad indexes", () => {
   assert.equal(state.money, 20);
 });
 
-test("useTrick ignores a bad index and does nothing while a pack is open", () => {
-  const { useTrick, TRICK_POOL } = require("../tools/load-game.js");
+test("useTrick ignores a bad index; with a pack open you can still use a mask or sell a card, but not use a decree", () => {
+  const { useTrick, sellTrick, TRICK_POOL, DECREE_POOL } = require("../tools/load-game.js");
   const state = freshRoundState();
-  state.tricks.push({ ...TRICK_POOL[0] });
-  useTrick(3);
+  state.tricks.push({ ...TRICK_POOL[0] }, { ...DECREE_POOL[0] });
+  useTrick(7);
+  assert.equal(state.tricks.length, 2);
   state.pack = [TRICK_POOL[1]];
-  useTrick(0);
+  useTrick(1); // a decree can't be used while a pack is open
+  assert.equal(state.tricks.length, 2);
+  sellTrick(1); // selling frees a slot for the pack's pick
   assert.equal(state.tricks.length, 1);
-  assert.equal(state.handLevels[TRICK_POOL[0].hand], undefined);
+  useTrick(0);
+  assert.equal(state.tricks.length, 0);
+  assert.equal(state.handLevels[TRICK_POOL[0].hand], 2);
 });
 
 test("a decree can't be used from the shop, with a pack open, or in the debug shop", () => {

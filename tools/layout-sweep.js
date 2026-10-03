@@ -78,7 +78,7 @@ function inspect({ kind, MIN_CARD_W, TOL }) {
   };
 
   if (kind === "shop") {
-    for (const sel of ["#overlay-bar", "#overlay-btn", "#reroll-btn", "#shop-money", "#shop-stock", "#shop-yours"]) within(sel, box(sel));
+    for (const sel of ["#overlay-bar", "#overlay-btn", "#reroll-btn", "#shop-money", "#shop-stock"]) within(sel, box(sel));
     const bar = document.querySelector("#overlay-bar");
     if (bar && bar.scrollWidth > bar.clientWidth + 1) out.push("shop bar content wider than the bar");
     const stock = document.querySelector("#shop-stock");

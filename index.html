@@ -134,9 +134,10 @@
             <p id="overlay-sub"></p>
             <div id="run-summary" class="hidden"></div>
           </div>
-          <div id="shop-money" class="hidden" aria-label="Money">$<span id="shop-money-val"></span></div>
+          <div id="shop-money" class="hidden" aria-label="Money"><span class="cur">$</span><span id="shop-money-val"></span></div>
           <div id="overlay-actions">
             <button id="money-btn" class="hidden">+$1000</button>
+            <button id="payout-btn" class="hidden">Replay payout</button>
             <button id="reroll-btn" class="hidden"></button>
             <button id="new-run-btn" class="hidden">New Run</button>
             <button id="replay-btn" class="hidden">Replay Seed</button>
@@ -144,42 +145,37 @@
           </div>
         </header>
         <div id="overlay-body">
-          <div id="shop-stock">
-            <section class="shelf" id="jesters-shelf">
-              <h3>Jesters</h3>
-              <div id="shop-items" class="shelf-row"></div>
-            </section>
-            <section class="shelf" id="prop-shelf">
-              <h3>Prop</h3>
-              <div id="shop-prop" class="shelf-row"></div>
-            </section>
-            <section class="shelf" id="tricks-shelf">
-              <h3>Masks and decrees</h3>
-              <div id="shop-tricks" class="shelf-row"></div>
-            </section>
-            <section class="shelf" id="packs-shelf">
-              <h3>Packs</h3>
-              <div id="shop-packs" class="shelf-row"></div>
-            </section>
-          </div>
-          <aside id="shop-yours" aria-label="What you own">
-            <p id="shop-yours-empty" class="hidden">Jesters and cards you buy show up here.</p>
-            <section id="owned-jesters-section" class="hidden">
-              <h3>Your jesters <span id="owned-jesters-count"></span></h3>
-              <div id="owned-jesters"></div>
-            </section>
-            <section id="owned-tricks-section" class="hidden">
-              <h3>Your cards <span id="owned-tricks-count"></span></h3>
-              <div id="owned-tricks"></div>
-            </section>
+          <div id="shop-main">
+            <div id="shop-stock">
+              <section class="shelf" id="jesters-shelf">
+                <h3>Jesters for hire</h3>
+                <div id="shop-items" class="shelf-row"></div>
+              </section>
+              <section class="shelf" id="prop-shelf">
+                <h3>Prop</h3>
+                <div id="shop-prop" class="shelf-row"></div>
+              </section>
+              <section class="shelf" id="tricks-shelf">
+                <h3>Costumes</h3>
+                <div id="shop-tricks" class="shelf-row"></div>
+              </section>
+              <section class="shelf" id="packs-shelf">
+                <h3>Packs</h3>
+                <div id="shop-packs" class="shelf-row"></div>
+              </section>
+            </div>
             <p id="owned-props"></p>
-          </aside>
+          </div>
         </div>
       </div>
       <div id="pack-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pack-title">
         <section id="pack-section">
           <h3 id="pack-title">Mask Pack: pick one</h3>
           <div id="pack-items"></div>
+          <div id="pack-owned" class="hidden">
+            <p>Your card slots are full. Use or sell one to make room.</p>
+            <div id="pack-owned-tricks"></div>
+          </div>
           <button id="pack-skip-btn">Skip</button>
         </section>
       </div>

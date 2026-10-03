@@ -97,11 +97,13 @@ function cardArtHTML(dir, id) {
 }
 
 function trickCardHTML(t) {
-  return `<span class="trick-glyph">${t.decree ? "📜" : "🎭"}</span>${cardArtHTML(t.decree ? "decrees" : "masks", t.id)}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.decree ? "Decree" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
+  // The initial is only the stand-in until the art loads, as for props.
+  const initial = t.name.replace(/^The /, "")[0];
+  return `<span class="trick-glyph trick-initial">${initial}</span>${cardArtHTML(t.decree ? "decrees" : "masks", t.id)}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.decree ? "Decree" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
 
 function useButtonDisabled(t) {
-  return Boolean(state.pack) || Boolean(t.decree && !canUseDecree(t));
+  return Boolean(t.decree && !canUseDecree(t));
 }
 
 // A card-sized face for a shop offer or an owned card. Its text lives in the tap-to-read tooltip,

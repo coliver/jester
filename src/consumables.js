@@ -41,7 +41,7 @@ function buyDecree(id) {
 }
 
 function useTrick(index) {
-  if (!canAct() || state.pack) return;
+  if (!canAct()) return;
   const item = state.tricks[index];
   if (!item) return;
   if (item.decree) {
@@ -103,8 +103,9 @@ function useDecree(index) {
   render();
 }
 
+// Allowed with a pack open: a full pack picker lets you sell or use a card to free a slot.
 function sellTrick(index) {
-  if (!canAct() || state.pack) return;
+  if (!canAct()) return;
   const [trick] = state.tricks.splice(index, 1);
   if (!trick) return;
   state.money += trickSellValue(trick);

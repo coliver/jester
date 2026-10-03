@@ -22,6 +22,7 @@ const Sound = (() => {
     ],
     place: clip("assets/sound/placing-playing-card.mp3"),
     shuffleDeck: clip("assets/sound/shuffling-deck-of-cards.mp3"),
+    applause: clip("assets/sound/clapping.wav"),
   };
 
   function playClip(base, { delay = 0, volume = 0.5, rate = 1 } = {}) {
@@ -176,6 +177,72 @@ const Sound = (() => {
     tone({ delay: 0.05, freq: 1900, duration: 0.12, type: "square", gain: 0.09 });
   }
 
+  // The payout ledger: a soft tick as a line is written, a rising whoosh as its amount leaves,
+  // a bright coin clink as it lands (n climbs the ladder like the scoring ticks), and a flourish
+  // when the last one has paid in.
+  function ledgerLine() {
+    tone({ freq: 520, duration: 0.04, type: "triangle", gain: 0.1 });
+    noiseBurst({ duration: 0.03, freq: 3200, q: 1, gain: 0.06 });
+  }
+
+  // The coins are tuned to the F# major triad (F#, A#, C#), the A# being the major third that makes
+  // it sound major. Every note a coin plays is a chord tone, so nothing hints at D# minor.
+  const F_SHARP_6 = 1479.98;
+  const fSharp = (semitones) => F_SHARP_6 * Math.pow(2, semitones / 12);
+  const ARPEGGIO = [0, 4, 7, 12, 16]; // F#, A#, C#, F#, A#: up the triad, as far as it climbs
+
+  // One coin hit: a ringing note with its octave and twelfth, over a short click of high noise
+  // and a dull knock an octave down, the surface it lands on.
+  function clink(delay, f, gain) {
+    tone({ delay, freq: f, duration: 0.32, type: "sine", gain });
+    tone({ delay, freq: f * 2, duration: 0.18, type: "sine", gain: gain * 0.6 });
+    tone({ delay, freq: f * 3, duration: 0.09, type: "sine", gain: gain * 0.35 });
+    tone({ delay, freq: f / 2, duration: 0.05, type: "triangle", gain: gain * 0.6 });
+    noiseBurst({ delay, duration: 0.03, freq: 8000, q: 1.5, gain: gain * 0.9 });
+  }
+
+  // A coin dropped on a pile: it hits, then bounces twice an octave up, quieter and closer together.
+  function coinDrop(delay, f, gain) {
+    clink(delay, f, gain);
+    clink(delay + 0.075, f * 2, gain * 0.5);
+    clink(delay + 0.125, f * 2, gain * 0.3);
+  }
+
+  // The F# major triad ringing softly beneath, so the key is stated every time.
+  function triadBed(delay, gain) {
+    [-12, -8, -5].forEach((semi, i) => clink(delay + i * 0.02, fSharp(semi), gain)); // F#5, A#5, C#6
+  }
+
+  function ledgerFly() {
+    noiseBurst({ duration: 0.3, filterType: "highpass", freq: 5000, q: 0.5, gain: 0.05 }); // coins sliding
+    [0, 0.07, 0.13, 0.2, 0.25].forEach((d, i) => clink(d, fSharp(ARPEGGIO[i % 3]), 0.06));
+  }
+
+  // The amount landing in the purse: a coin on the next note up the triad, over the triad itself,
+  // so a run of landings arpeggiates F#, A#, C#. The last one resolves home to F# an octave up.
+  function coinTally(n = 0, last = false) {
+    const semi = last ? 12 : ARPEGGIO[Math.min(Math.max(0, n), 2)];
+    coinDrop(0, fSharp(semi), last ? 0.18 : 0.16);
+    triadBed(0.01, 0.05);
+    tone({ freq: 185, glideTo: 92.5, duration: 0.12, type: "sine", gain: 0.12 }); // the weight of the purse, F#3 down to F#2
+  }
+
+  // Ka-ching: a till bell on an F# major chord with a cascade of coins pouring in behind it,
+  // the last coin settling on F#.
+  function ledgerDone() {
+    const cascade = [0, 4, 7, 4, 7, 12, 4, 7, 16, 12]; // F#, A#, C#... ending on F#
+    [0, 0.05, 0.09, 0.16, 0.2, 0.27, 0.31, 0.38, 0.46, 0.55].forEach((d, i) => clink(d, fSharp(cascade[i]), i === 9 ? 0.14 : 0.1));
+    [[fSharp(0), 0.16], [fSharp(4), 0.12], [fSharp(7), 0.12], [fSharp(12), 0.08]].forEach(([f, g], i) =>
+      tone({ delay: 0.05, freq: f, duration: 0.9 - i * 0.12, type: "sine", gain: g })); // F#, A#, C#, F#
+    noiseBurst({ delay: 0.05, duration: 0.02, freq: 4000, q: 2, gain: 0.2 }); // the bell's strike
+  }
+
+  // A tap on something that can't be done: a dull falling knock.
+  function deny() {
+    noiseBurst({ duration: 0.06, filterType: "lowpass", freq: 600, q: 0.7, gain: 0.14 });
+    tone({ freq: 200, glideTo: 100, duration: 0.14, type: "sawtooth", gain: 0.08 });
+  }
+
   function coinSell() {
     tone({ freq: 900, duration: 0.05, type: "square", gain: 0.09 });
     tone({ delay: 0.04, freq: 600, duration: 0.1, type: "square", gain: 0.07 });
@@ -183,6 +250,10 @@ const Sound = (() => {
 
   function shuffle() {
     playClip(clips.shuffleDeck, { volume: 0.55 });
+  }
+
+  function applause() {
+    playClip(clips.applause, { volume: 0.6 });
   }
 
   function roundWin() {
@@ -217,7 +288,7 @@ const Sound = (() => {
   return {
     cardFlip, dealHand, cardSelect, cardDeselect, discard, playHandResolve,
     scoreChip, scoreMult, scoreXMult, scoreMute, scoreTotal, scoreRoll,
-    coinBuy, coinSell, shuffle, roundWin, gameOver, gameWin, click,
+    coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, shuffle, applause, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
   };
 })();

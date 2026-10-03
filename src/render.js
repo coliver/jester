@@ -143,10 +143,10 @@ function render() {
 
   renderDeckView();
   if (!scoring && !roundEnd) renderOverlay(); // the shop or game over screen waits for the scoring to finish
-  // Any jester whose status text changed (it grew) flashes and floats its gain, on the shop's
-  // owned list when that's what's showing. The first sighting of a jester only records it.
+  // Any jester whose status text changed (it grew) flashes and floats its gain.
+  // The first sighting of a jester only records it.
   if (!scoring) {
-    const els = document.querySelectorAll(state.phase === "shop" ? "#owned-jesters .jester" : "#jester-row .jester");
+    const els = document.querySelectorAll("#jester-row .jester");
     state.jesters.forEach((j, i) => {
       if (!j.status) return;
       const now = j.status(j);

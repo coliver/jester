@@ -201,10 +201,10 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
 
   assert.equal(gameModule._getState().phase, "shop");
   assert.ok(!document.getElementById("overlay").classList.contains("hidden"));
-  assert.equal(text("overlay-title"), "Act Cleared!");
+  assert.equal(text("overlay-title"), "Backstage");
   assert.equal(document.querySelectorAll("#shop-items .shop-item").length, 3);
   assert.ok(!document.getElementById("reroll-btn").classList.contains("hidden"));
-  assert.equal(text("reroll-btn"), "Reroll ($2)");
+  assert.equal(text("reroll-btn"), "Reroll for $2");
 
   // Buy the first offer (money after a 1-hand round-1 win is always 13 —
   // START_MONEY 4 + reward(3+handsLeft 3+discardsLeft 3) — well above any
@@ -220,20 +220,20 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
   assert.equal(gameModule._getState().jesters[0].id, offer.id);
   assert.equal(gameModule._getState().money, moneyBeforeBuy - offer.price);
   assert.equal(document.querySelectorAll("#shop-items .shop-item").length, 2);
-  assert.ok(!document.getElementById("owned-jesters-section").classList.contains("hidden"));
-  assert.equal(document.querySelectorAll("#owned-jesters .jester").length, 1);
+  assert.equal(document.querySelectorAll("#jester-row .jester").length, 1);
 
-  // Sell it back.
+  // Sell it back: the top row is the play screen's own, so tap the card, then Sell.
   const moneyBeforeSell = gameModule._getState().money;
-  document.querySelector("#owned-jesters .sell-btn").click();
+  document.querySelector("#jester-row .jester").click();
+  document.querySelector("#inspect .sell-btn").click();
   assert.equal(gameModule._getState().jesters.length, 0);
   assert.equal(gameModule._getState().money, moneyBeforeSell + Math.max(1, Math.floor(offer.price / 2)));
-  assert.ok(document.getElementById("owned-jesters-section").classList.contains("hidden"));
+  assert.equal(document.querySelectorAll("#jester-row .jester").length, 0);
 
   // Reroll: cost escalates and offers refresh.
   document.getElementById("reroll-btn").click();
   assert.equal(gameModule._getState().rerollCost, 3);
-  assert.equal(text("reroll-btn"), "Reroll ($3)");
+  assert.equal(text("reroll-btn"), "Reroll for $3");
   assert.equal(document.querySelectorAll("#shop-items .shop-item").length, 3);
 
   // Next Round: overlay closes synchronously; the new round's deal is
@@ -308,7 +308,7 @@ test("clearing the final venue opens the Court Is Amused overlay", async () => {
   assert.equal(text("overlay-title"), "The Court Is Amused");
   assert.match(text("overlay-sub"), /cleared The Throne Room/);
   assert.ok(document.getElementById("reroll-btn").classList.contains("hidden"));
-  assert.ok(document.getElementById("owned-jesters-section").classList.contains("hidden"));
+  assert.ok(document.getElementById("overlay").classList.contains("end"));
   assert.equal(text("overlay-btn"), "Play Again");
 });
 
@@ -553,10 +553,31 @@ test("an open decree pack is titled as one and blocks Take when slots are full",
   assert.match(text("pack-title"), /^Decree Pack/);
   const take = document.querySelector("#pack-items button");
   assert.ok(take.disabled);
+  // Full: the picker lists your cards, and selling one frees a slot so Take works.
+  assert.ok(!document.getElementById("pack-owned").classList.contains("hidden"));
+  document.querySelector("#pack-owned-tricks .sell-btn").click();
+  assert.ok(document.getElementById("pack-owned").classList.contains("hidden"));
+  assert.ok(!document.querySelector("#pack-items button").disabled);
   gameModule._getState().packKind = "trick";
   gameModule._getState().pack = [gameModule.TRICK_POOL[0]];
   gameModule.render();
   assert.match(text("pack-title"), /^Mask Pack/);
+  assert.ok(!document.querySelector("#pack-items button").disabled);
+});
+
+test("a full decree pack lets you use a mask to free a slot", () => {
+  const { DECREE_POOL, TRICK_POOL } = gameModule;
+  const s = dealtState({
+    phase: "shop", pack: DECREE_POOL.slice(0, 3), packKind: "decree",
+    tricks: [{ ...TRICK_POOL[0] }, { ...DECREE_POOL[3] }],
+  });
+  gameModule.render();
+  const use = [...document.querySelectorAll("#pack-owned-tricks .use-btn")];
+  assert.equal(use.length, 2);
+  assert.ok(!use[0].disabled, "the mask's Use is enabled");
+  assert.ok(use[1].disabled, "a decree can't be used here");
+  use[0].click();
+  assert.equal(s.tricks.length, 1);
   assert.ok(!document.querySelector("#pack-items button").disabled);
 });
 
@@ -579,9 +600,9 @@ test("deck view shows enhancements and marks discarded and played cards", () => 
 test("shop: reroll button shows a free reroll, and a boss banner shows in play", () => {
   dealtState({ phase: "shop", jesters: [jesterByName("Chaos the Clown")], lastEarnings: { reward: 5, interest: 1, bonus: 2 } });
   gameModule.render();
-  assert.match(text("reroll-btn"), /Free/);
-  assert.match(text("overlay-sub"), /interest/);
-  assert.match(text("overlay-sub"), /jesters/);
+  assert.match(text("reroll-btn"), /free/);
+  assert.match(text("overlay-sub"), /Interest/);
+  assert.match(text("overlay-sub"), /Jesters/);
   const boss = gameModule.BOSS_MODIFIERS[0];
   dealtState({ bossModifier: boss });
   gameModule.render();
@@ -648,19 +669,16 @@ test("dragging a hand card reorders the hand and switches to custom order", () =
 
 // --- shop screen -------------------------------------------------------------
 
-test("shop bar shows money and one payout chip per earnings line; owned panes show slot counts", () => {
+test("shop bar shows money and one ledger line per earnings source; the top row's slot counts show", () => {
   dealtState({ phase: "shop", money: 12, lastEarnings: { reward: 4, interest: 0, bonus: 2 }, jesters: [] });
   gameModule.render();
   assert.equal(text("shop-money-val"), "12");
   const chips = [...document.querySelectorAll("#overlay-sub .chip")].map((c) => c.textContent);
-  assert.deepEqual(chips.slice(1), ["+$4 act", "+$2 jesters"]);
-  assert.ok(!document.getElementById("shop-yours-empty").classList.contains("hidden"));
+  assert.deepEqual(chips, ["Purse$6", "Reward+$4", "Jesters+$2"]);
   const [a] = gameModule.JESTER_POOL;
   gameModule._getState().jesters = [{ ...a, sellBonus: 0 }];
   gameModule.render();
-  assert.ok(document.getElementById("shop-yours-empty").classList.contains("hidden"));
-  assert.match(text("owned-jesters-count"), /^1\/\d+$/);
-  assert.equal(document.querySelectorAll("#owned-jesters .move-btns").length, 0);
+  assert.match(text("jester-count"), /^1\/\d+$/); // the play screen's own slot counts show in the shop
 });
 
 // --- reordering jesters ---------------------------------------------------
@@ -692,11 +710,11 @@ test("dragging a jester onto another moves it into that slot (shop and play rows
   const [a, b, c] = gameModule.JESTER_POOL;
   const ids = () => gameModule._getState().jesters.map((j) => j.id);
   dealtState({ phase: "shop", jesters: [a, b, c].map((j) => ({ ...j, sellBonus: 0 })) });
-  let cards = document.querySelectorAll("#owned-jesters .jester");
+  let cards = document.querySelectorAll("#jester-row .jester");
   dragOnto(cards[2], cards[0]); // drop c onto slot 0
   assert.deepEqual(ids(), [c.id, a.id, b.id]);
   // dropping on itself, or outside any jester, does nothing
-  cards = document.querySelectorAll("#owned-jesters .jester");
+  cards = document.querySelectorAll("#jester-row .jester");
   dragOnto(cards[0], cards[0]);
   dragOnto(cards[0], null); // released at its own spot
   assert.deepEqual(ids(), [c.id, a.id, b.id]);
