@@ -1398,8 +1398,8 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 .jester .jester-desc, .trick .trick-desc { display: none; }
 #inspect .jester .jester-desc, #inspect .trick .trick-desc { display: block; }
 
-/* Masks and decrees: the art flexes to whatever the name (one or two lines) and the Use button
-   leave, so no card grows taller than the rest. */
+/* Decrees: the art flexes to whatever the name (one or two lines) and the Use button
+   leave, so no card grows taller than the rest. Masks are full-bleed (below) instead. */
 #trick-row .trick-slot { height: var(--card-h); }
 #trick-row .trick, #overlay .trick {
   width: var(--card-w);
@@ -1416,6 +1416,48 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 #trick-row .trick > span, #trick-row .trick > button, #overlay .trick > span { flex: none; }
 #overlay .trick > .trick-glyph { flex: none; }
 #overlay .trick.prop > .trick-glyph, #overlay .trick.pack > .trick-glyph { flex: 1 1 0; }
+
+/* Mask cards: full-bleed portrait art, like the jesters. No glyph, name or hand type on the
+   face; those live in the tap-to-read tooltip only. The Use button (play row only; the shop
+   and pack picker put Buy/Take beside the card instead) sits as a tag over the bottom of the
+   art rather than a flex child, since the card is no longer a text-and-art column. */
+.trick:not(.decree):not(.prop):not(.pack) { padding: 0; }
+.trick:not(.decree):not(.prop):not(.pack) .trick-glyph,
+.trick:not(.decree):not(.prop):not(.pack) .trick-name,
+.trick:not(.decree):not(.prop):not(.pack) .trick-hand { display: none; }
+#trick-row .trick:not(.decree):not(.prop):not(.pack),
+#overlay .trick:not(.decree):not(.prop):not(.pack) {
+  display: block;
+  padding: 0;
+}
+#trick-row .trick:not(.decree):not(.prop):not(.pack) .card-art,
+#overlay .trick:not(.decree):not(.prop):not(.pack) .card-art {
+  /* Stays a normal in-flow child (not position: absolute) so the frame/vignette pseudo-elements
+     below, which are absolutely positioned, paint on top of it rather than behind it. */
+  display: block;
+  flex: none;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: inherit;
+  object-fit: cover;
+}
+#inspect .trick:not(.decree):not(.prop):not(.pack) .trick-name,
+#inspect .trick:not(.decree):not(.prop):not(.pack) .trick-hand {
+  display: block;
+}
+#trick-row .trick:not(.decree):not(.prop):not(.pack) .use-btn {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  width: auto;
+  margin: 0;
+  background: rgba(23, 8, 16, 0.8);
+  border: 1px solid var(--gilt);
+  color: var(--text);
+}
 #trick-row .card-art, #overlay .trick .card-art { flex: 1 1 0; min-height: 0; width: 100%; height: auto; margin: 0 0 2px; }
 
 /* Landscape: the boss banner is one slim line (the quip is dropped), so the three card rows can
