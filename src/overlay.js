@@ -35,6 +35,62 @@ function flipCards(from) {
   }
 }
 
+// The won round closes like a stage iris: the play screen dims to black, a circle of light shrinks onto
+// the table and goes out, and Backstage fades up from the dark. The ledger and the shelves wait for it
+// (IRIS_LEAD, matching the CSS timings). A tap anywhere does not cut it short; it runs everything
+// (iris, ledger, flying coins, deals) at HURRY times speed, so it all still plays, comically fast.
+const IRIS_LEAD = 2.2; // seconds until Backstage is lit enough for the ledger to start
+const HURRY = 10;
+let introLead = 0; // seconds the ledger and shelves wait this showing: IRIS_LEAD on a won round, else 0
+let introRate = 1; // playback speed of the intro: 1, or HURRY once the player taps
+let introActive = false;
+const introTimers = new Set();
+
+// A setTimeout that follows the intro's speed, so a tap can pull the pending ones forward.
+function introLater(fn, ms) {
+  const t = { fn, at: performance.now() + ms / introRate };
+  const fire = () => { introTimers.delete(t); t.fn(); };
+  t.id = setTimeout(fire, ms / introRate);
+  t.fire = fire;
+  introTimers.add(t);
+}
+
+function hurryIntro() {
+  if (!introActive || introRate !== 1) return;
+  introRate = HURRY;
+  const now = performance.now();
+  for (const t of introTimers) {
+    clearTimeout(t.id);
+    t.at = now + Math.max(0, t.at - now) / HURRY;
+    t.id = setTimeout(t.fire, t.at - now);
+  }
+  if (typeof document.getAnimations !== "function") return;
+  for (const a of document.getAnimations()) {
+    if (a.effect?.target?.closest?.("#overlay, #iris, .ledger-flier")) a.playbackRate = HURRY;
+  }
+}
+
+function startIntro(overlay) {
+  introRate = 1;
+  for (const t of introTimers) clearTimeout(t.id);
+  introTimers.clear();
+  introActive = true;
+  introLead = prefersReducedMotion() ? 0 : IRIS_LEAD;
+  // Over once the ledger has run and the last shelf has dealt in.
+  introLater(() => { introActive = false; }, (introLead + 0.8 + LEDGER_FIRST + 4 * LEDGER_STEP + 2) * 1000);
+  if (!introLead) return;
+  const iris = document.getElementById("iris");
+  const hand = document.getElementById("play-area").getBoundingClientRect();
+  iris.style.setProperty("--iris-x", hand.width ? `${hand.left + hand.width / 2}px` : "50%");
+  iris.style.setProperty("--iris-y", hand.height ? `${hand.top + hand.height / 2}px` : "50%");
+  for (const el of [iris, overlay]) {
+    el.classList.remove(el === iris ? "on" : "irised");
+    void el.offsetWidth;
+  }
+  iris.classList.add("on");
+  overlay.classList.add("irised");
+}
+
 // The round's payout as a ledger, one line per source: the label, dotted leaders, and the
 // amount flush right. On the first showing the lines arrive one at a time, each paying into the
 // money total below it (see showShopMoney), so the sum is worked out in front of you.
@@ -62,7 +118,7 @@ function renderPayout(el, debug, earnings, animate, before) {
     return chip;
   };
   el.classList.toggle("tally", animate);
-  el.style.setProperty("--ledger-first", `${LEDGER_FIRST}s`);
+  el.style.setProperty("--ledger-first", `${LEDGER_FIRST + introLead}s`);
   el.style.setProperty("--ledger-step", `${LEDGER_STEP}s`);
   if (debug) { add("Buy and sell freely", undefined, "where"); return gains; }
   if (!earnings) return gains;
@@ -92,11 +148,11 @@ function showShopMoney(from, gains = []) {
   // A tick as each line is written, including the Purse line that has nothing to fly.
   const lines = [...document.querySelectorAll("#overlay-sub .chip:not(.where)")];
   lines.forEach((line) => {
-    setTimeout(() => { if (tick === moneyTick) Sound.ledgerLine(); }, (LEDGER_FIRST + Number(line.style.getPropertyValue("--i")) * LEDGER_STEP) * 1000);
+    introLater(() => { if (tick === moneyTick) Sound.ledgerLine(); }, (LEDGER_FIRST + introLead + Number(line.style.getPropertyValue("--i")) * LEDGER_STEP) * 1000);
   });
   gains.forEach(({ chip, amount, index }, n) => {
-    const land = (LEDGER_FIRST + index * LEDGER_STEP + 0.3) * 1000; // after the line has landed
-    setTimeout(() => {
+    const land = (LEDGER_FIRST + introLead + index * LEDGER_STEP + 0.3) * 1000; // after the line has landed
+    introLater(() => {
       if (tick !== moneyTick) return;
       const src = chip.querySelector(".amt").getBoundingClientRect();
       const dst = val.getBoundingClientRect();
@@ -110,7 +166,7 @@ function showShopMoney(from, gains = []) {
       const dx = dst.left + dst.width / 2 - src.left - src.width / 2, dy = dst.top - src.top;
       flier.animate(
         [{ transform: "none", opacity: 1 }, { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 14}px) scale(1.25)`, opacity: 1, offset: 0.55 }, { transform: `translate(${dx}px, ${dy}px) scale(0.8)`, opacity: 0 }],
-        { duration: FLIGHT * 1000, easing: "cubic-bezier(0.4, 0, 0.7, 1)", fill: "forwards" },
+        { duration: FLIGHT * 1000 / introRate, easing: "cubic-bezier(0.4, 0, 0.7, 1)", fill: "forwards" },
       ).onfinish = () => {
         flier.remove();
         if (tick !== moneyTick) return;
@@ -135,6 +191,8 @@ function debugReplayPayout() {
   if (!DEBUG_ENABLED || !inShop()) return;
   const earnings = state.lastEarnings || { reward: 5, interest: 2, bonus: 3 };
   const from = Math.max(0, state.money - (earnings.reward + earnings.interest + earnings.bonus));
+  introRate = 1;
+  introLead = 0;
   const gains = renderPayout(document.getElementById("overlay-sub"), false, earnings, true, from);
   showShopMoney(from, gains);
 }
@@ -276,8 +334,11 @@ function renderOverlay() {
       shopIntroFor = earnings;
       shopSeen.clear();
     }
-    if (intro) Sound.applause(); // the house applauds the won round as the audience leaves
-    overlay.style.setProperty("--d", intro ? "0.8s" : "0s");
+    if (intro) {
+      startIntro(overlay);
+      Sound.applause(); // the house applauds the won round as the audience leaves
+    }
+    overlay.style.setProperty("--d", intro ? `${introLead + 0.8}s` : "0s");
     if (intro) shopStartMoney = state.money - (earnings.reward + earnings.interest + earnings.bonus);
     const gains = renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro, shopStartMoney);
     showShopMoney(intro ? shopStartMoney : null, gains);

@@ -9,6 +9,8 @@ function initApp() {
   document.getElementById("win-btn").addEventListener("click", debugWinRound);
   document.getElementById("money-btn").addEventListener("click", () => addDebugMoney());
   window.addEventListener("resize", () => { if (inShop()) syncShopTop(); });
+  document.addEventListener("pointerdown", hurryIntro, true);
+  document.getElementById("iris").addEventListener("animationend", (e) => { if (e.animationName === "iris-open") e.currentTarget.classList.remove("on"); });
   document.getElementById("payout-btn").addEventListener("click", () => debugReplayPayout());
   document.getElementById("sort-rank-btn").addEventListener("click", () => setSortMode("rank"));
   document.getElementById("sort-suit-btn").addEventListener("click", () => setSortMode("suit"));
