@@ -979,8 +979,10 @@ body::before {
 #shop-main { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Your jesters and cards are the play screen's own top row, lifted above the shop so they sit,
    look and behave exactly as they do in play: drag to reorder, tap for Sell, Use on a mask. The
-   shop begins below it (--top-bottom is measured in syncShopTop). */
-body:has(#overlay:not(.hidden):not(.end)) #top-row { position: relative; z-index: 11; }
+   shop begins below it (--top-bottom is measured in syncShopTop). That lift lives outside
+   #overlay's own stacking context, so it must stand down while a pack's modal is open (z-index: 5,
+   scoped inside #overlay) or the jesters would float above the picker instead of behind it. */
+body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #top-row { position: relative; z-index: 11; }
 #shop-main { padding-top: calc(var(--top-bottom, 0px) + 6px); }
 
 #shop-stock {
