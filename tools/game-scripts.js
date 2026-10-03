@@ -12,7 +12,7 @@ const ROOT = path.join(__dirname, "..");
 
 // These need real audio / canvas support. Tests stub `Sound` and never paint
 // the backdrop, so the loader skips them.
-const BROWSER_ONLY = new Set(["src/sounds.js", "src/backdrop.js"]);
+const BROWSER_ONLY = new Set(["src/sounds.js", "src/backdrop.js", "src/curtain.js"]);
 
 // Every script in index.html, in load order, as repo-relative paths.
 function scriptPaths() {
