@@ -57,7 +57,7 @@ static (it's also set up for GitHub Pages).
   silenced leftmost jester) applies for that act; venue 8's boss is always
   the King. Clearing act 3 of venue 8 wins the run; running out of hands
   first ends it.
-- Balatro-style scoring: the hand name and live chips × mult counters sit in the
+- Animated scoring: the hand name and live chips × mult counters sit in the
   sidebar; each played card, then each jester left to right, pops with a floating
   number and a rising-pitch tick; the counters glow as the hand nears what the act
   needs, merge into a total, and roll into the score (the King reacts as it climbs).
@@ -90,7 +90,7 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Mid-act saves, a Balatro-sized jester roster, spectral-style cards, decks,
+Mid-act saves, a much larger jester roster, spectral-style cards, decks,
 and stakes. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for the
