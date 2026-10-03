@@ -1378,11 +1378,14 @@ body:has(#overlay:not(.hidden):not(.end)) #top-row { position: relative; z-index
    owned list alike. */
 #jester-row .jester-slot { width: var(--card-w); min-height: var(--card-h); }
 #jester-row .jester, #overlay .jester, #shop-items .jester {
-  width: var(--card-w);
   height: var(--card-h);
   box-sizing: border-box;
   aspect-ratio: auto;
 }
+/* In the play row the card tracks its slot's width (which shrinks before the row overflows,
+   see the narrow-viewport rule above); elsewhere there's no slot to track, so it's fixed. */
+#jester-row .jester { width: 100%; }
+#overlay .jester, #shop-items .jester { width: var(--card-w); }
 .jester .jester-desc, .trick .trick-desc { display: none; }
 #inspect .jester .jester-desc, #inspect .trick .trick-desc { display: block; }
 
