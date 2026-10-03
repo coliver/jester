@@ -129,9 +129,9 @@
   "52": {
     "inputs": {
       "eta": 0.5,
-      "sampler_name": "linear/ralston_2s",
+      "sampler_name": "linear/euler",
       "scheduler": "beta",
-      "steps": 20,
+      "steps": 10,
       "steps_to_run": -1,
       "denoise": 1,
       "cfg": 1,
@@ -180,7 +180,7 @@
   },
   "54": {
     "inputs": {
-      "steps": 20,
+      "steps": 10,
       "alpha": 0.39999999999999997,
       "beta": 0.4,
       "model": [
