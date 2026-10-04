@@ -33,6 +33,9 @@ const Sound = (() => {
       const node = base.cloneNode();
       node.volume = volume;
       node.playbackRate = rate;
+      node.preservesPitch = false;
+      node.mozPreservesPitch = false;
+      node.webkitPreservesPitch = false;
       node.play().catch(() => {});
     };
     if (delay > 0) setTimeout(run, delay * 1000);
@@ -247,7 +250,7 @@ const Sound = (() => {
 
   // A jester destroyed at act end.
   function jesterDestroy() {
-    playClip(clips.glassBreak, { volume: 0.6 });
+    playClip(clips.glassBreak, { volume: 0.6, rate: 0.85 + Math.random() * 0.3 });
   }
 
   // The shop's offers dealing onto the shelf.
