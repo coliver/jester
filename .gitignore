@@ -1,6 +1,7 @@
 node_modules/
 coverage/
 npm-debug.log*
+tools/screenshots/
 
 # OS/editor cruft
 .DS_Store

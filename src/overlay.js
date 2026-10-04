@@ -197,10 +197,28 @@ function debugReplayPayout() {
   showShopMoney(from, gains);
 }
 
-// The shop starts below the play screen's top row, wherever the layout puts it.
+// The shop starts below the play screen's top row, wherever the layout puts it. It's also
+// framed so the ledger rail ends exactly where the top row begins and the stock reaches
+// exactly to the top row's right edge: the lifted-up top row is positioned by #app, which
+// knows nothing about the overlay, so without this a wide top row (e.g. an extra jester
+// slot from Wide Stage) can land under the ledger rail instead of beside it. See the
+// "framed to the play screen's own #app box" comment on #overlay-card.
+
+// A breathing gap between the ledger rail and the top row beside it, matching #overlay-bar's
+// own padding, so the leftmost jester isn't flush against the rail.
+const SHOP_GAP = 16;
 function syncShopTop() {
-  const row = document.getElementById("top-row");
-  document.getElementById("overlay").style.setProperty("--top-bottom", `${Math.ceil(row.getBoundingClientRect().bottom)}px`);
+  const row = document.getElementById("top-row").getBoundingClientRect();
+  const overlay = document.getElementById("overlay");
+  overlay.style.setProperty("--top-bottom", `${Math.ceil(row.bottom)}px`);
+  const barWidth = document.getElementById("overlay-bar").getBoundingClientRect().width;
+  // Clamped to 0: on a narrow landscape viewport, the play screen's own left gutter can be
+  // narrower than the ledger rail plus this gap, and the rail must stay on screen even at the
+  // cost of shrinking (or losing) the gap and overlapping the top row a little, same as this
+  // layout already lived with before the shop was framed to it.
+  const left = Math.max(0, Math.round(row.left - barWidth - SHOP_GAP));
+  overlay.style.setProperty("--shop-left", `${left}px`);
+  overlay.style.setProperty("--shop-width", `${Math.round(row.right) - left}px`);
 }
 
 // A tap on a "Full" tag: the count of slots used shakes, with a knock.
