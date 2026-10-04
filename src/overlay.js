@@ -39,7 +39,7 @@ function flipCards(from) {
 // the table and goes out, and Backstage fades up from the dark. The ledger and the shelves wait for it
 // (IRIS_LEAD, matching the CSS timings). A tap anywhere does not cut it short; it runs everything
 // (iris, ledger, flying coins, deals) at HURRY times speed, so it all still plays, comically fast.
-const IRIS_LEAD = 2.2; // seconds until Backstage is lit enough for the ledger to start
+const IRIS_LEAD = 3; // seconds until Backstage is lit enough for the ledger to start
 const HURRY = 10;
 let introLead = 0; // seconds the ledger and shelves wait this showing: IRIS_LEAD on a won round, else 0
 let introRate = 1; // playback speed of the intro: 1, or HURRY once the player taps
@@ -89,6 +89,14 @@ function startIntro(overlay) {
   }
   iris.classList.add("on");
   overlay.classList.add("irised");
+  // During the hold between close and open (1s-1.35s, see #iris.on), re-aim the iris at the
+  // money total so it reopens from there instead of from the table.
+  introLater(() => {
+    const money = document.getElementById("shop-money").getBoundingClientRect();
+    if (!money.width) return;
+    iris.style.setProperty("--iris-x", `${money.left + money.width / 2}px`);
+    iris.style.setProperty("--iris-y", `${money.top + money.height / 2}px`);
+  }, 1000);
 }
 
 // The round's payout as a ledger, one line per source: the label, dotted leaders, and the

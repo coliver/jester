@@ -1229,8 +1229,10 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 }
 
 /* The iris that closes a won round (see startIntro): black over everything with a soft-edged circle of
-   light that shrinks onto the table and goes out (0.75s), holds a beat, then opens again onto Backstage,
-   which stays invisible under it until the circle is shut. Keep these timings in step with IRIS_LEAD. */
+   light that shrinks onto the table and goes out (1s), holds a beat (0.35s), then opens again onto
+   Backstage's money total (3.5s), which stays invisible under it until the circle is shut. The hold is
+   also when startIntro re-aims --iris-x/--iris-y at the money total, so the open centers there. Keep
+   these timings in step with IRIS_LEAD. */
 @property --iris-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
 #iris {
   display: none;
@@ -1241,12 +1243,12 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 }
 #iris.on {
   display: block;
-  animation: iris-close 0.75s cubic-bezier(0.55, 0, 0.8, 0.6) both, iris-open 2.6s cubic-bezier(0.3, 0.5, 0.3, 1) 0.85s forwards;
+  animation: iris-close 1s cubic-bezier(0.55, 0, 0.8, 0.6) both, iris-open 3.5s cubic-bezier(0.3, 0.5, 0.3, 1) 1.35s forwards;
 }
 @keyframes iris-close { from { --iris-r: 150vmax; } to { --iris-r: -70px; } }
 @keyframes iris-open { from { --iris-r: -70px; } to { --iris-r: 150vmax; } }
 @keyframes iris-hold { from, to { opacity: 0; } }
-#overlay.irised { animation: iris-hold 0.76s linear; }
+#overlay.irised { animation: iris-hold 1s linear; }
 @media (prefers-reduced-motion: reduce) {
   #iris.on { display: none; }
   #overlay.irised { animation: none; }
