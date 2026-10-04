@@ -492,11 +492,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 /* LAYOUT CONTRACT. Landscape is the game: a 150px HUD column plus the table, in a container capped at
-   1100px, with cards sized by --card-w = min(130px, width share, height share) and every card face derived
+   1140px, with cards sized by --card-w = min(130px, width share, height share) and every card face derived
    from it. Big screens are deliberately an island at that size (no growth past the caps), and portrait
    tablets keep the stacked 74px layout. Portrait phones get the rotate prompt. Rows that run out of room
    overlap their cards (the hand's overlap adapts to its count) instead of wrapping or scrolling. Supported
-   floor: about 640x360 landscape; tools/layout-sweep.js checks the spread of sizes. */
+   floor: about 640x360 landscape; tools/layout-sweep.js checks the spread of sizes.
+   The island width must fit the default top row at full card width with zero shrink: 150 HUD + 10 gap +
+   jester row (5 slots x 130 + 4x6 gaps + 12 padding = 686) + 10 top-row gap + trick row (2 slots x 130 +
+   6 gap + 12 padding = 278) = 1134, rounded up to 1140. Buying a slot-upgrade prop (Wide Stage, Mask
+   Rack) grows the top row past that island, and --card-w's --top-slots term (set from jesterSlots() +
+   trickSlots() in render()) shrinks every card together to fit, the same way it already does for a
+   short viewport, rather than letting only the jesters lose out to the mask/decree row's fixed width. */
 /* Landscape layout (phone-first, used on desktop too): HUD in a left column, everything else
    stacked on the right so all eight cards fit at a comfortable size. */
 /* The visible height. On a phone, 100vh is the page with the browser's toolbars hidden, which is taller than
@@ -511,7 +517,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     /* Three card rows (jesters, play area, hand) plus the controls, banner and padding must fit the
        viewport height, so the card height is (viewport - --chrome) / 3. */
     --chrome: 164px;
-    --card-w: min(130px, calc((100vw - 150px) / 8), calc((var(--vh) - var(--chrome)) / 4.2));
+    /* The top row (jester + mask/decree slots, --top-slots, set in render()) only ever grows past
+       its default of 7 when a slot-upgrade prop is bought. Unlike the hand (which overlaps instead
+       of shrinking) that row has no overlap fallback, so once it doesn't fit, every slot has to
+       shrink together here rather than just the jesters losing a fight for leftover flex space
+       (see the LAYOUT CONTRACT note below on the 1140px island this term is tuned against). */
+    --card-w: min(
+      130px,
+      calc((100vw - 150px) / 8),
+      calc((var(--vh) - var(--chrome)) / 4.2),
+      calc((min(calc(100vw - 16px), 1140px) - 182px) / var(--top-slots, 7) - 6px)
+    );
     --card-h: calc(var(--card-w) * 1.4);
   }
   body { padding: 8px; min-height: 0; }
@@ -531,7 +547,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     gap: 6px;
   }
   #app {
-    max-width: 1100px;
+    max-width: 1140px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
@@ -560,7 +576,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .hud-label { font-size: 10px; }
   .hud-val { font-size: 16px; }
   #mute-btn { margin: 0; width: 100%; padding: 6px 0; }
-  #controls { gap: 8px; flex-wrap: nowrap; }
+  /* The player's five buttons always fit in one row at every supported width. overflow-x
+     keeps that true even when ?debug unhides extra debug-only buttons that don't: they get a
+     scrollbar confined to this bar instead of pushing the whole page into horizontal scroll. */
+  #controls { gap: 8px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
   #controls button:not(.sort-btn) { font-size: 17px; padding: 10px 30px; min-width: 130px; }
   #deck-btn { display: none; }
   #hand-area { display: flex; align-items: center; gap: 8px; }
@@ -578,7 +597,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   #jester-row .jester-slot { flex: 0 1 auto; min-width: 36px; aspect-ratio: auto; } /* slots shrink in width; the later card-size rule holds their height */
   #jester-row .jester-slot:hover, #jester-row .jester-slot:focus-within { z-index: 1; }
   #trick-row { gap: 6px; }
-  #trick-row .trick-slot { width: var(--card-w); }
+  /* Shrinkable like the jester slots (not just a fixed var(--card-w)): --card-w's own --top-slots
+     term is tuned to fit both rows exactly, so any sub-pixel rounding left over has to land
+     somewhere. Letting both rows give a little keeps that invisible instead of dumping it all on
+     the jesters again. */
+  #trick-row .trick-slot { width: var(--card-w); flex: 0 1 auto; min-width: 36px; }
   #trick-row .trick { padding: 4px; }
   /* Held cards are playing-card sized: drop the glyph and shrink the art and Use button so the card holds its 5:7 shape. */
   #trick-row .trick-glyph { display: none; }
@@ -1411,8 +1434,11 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 /* Base trick layout: a text-and-art column. Only props still use it as-is; masks and
    decrees override it to full-bleed art below. */
 #trick-row .trick-slot { height: var(--card-h); }
+/* Tracks its slot's (possibly shrunk) width, same reasoning as the jester rule above; the shop
+   and pack picker have no slot, so they stay fixed to --card-w. */
+#trick-row .trick { width: 100%; }
+#overlay .trick { width: var(--card-w); }
 #trick-row .trick, #overlay .trick {
-  width: var(--card-w);
   height: var(--card-h);
   box-sizing: border-box;
   aspect-ratio: auto;

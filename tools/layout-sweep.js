@@ -30,15 +30,22 @@ const VIEWPORTS = [
 // 568x320 and smaller are out of scope (the supported floor is about 640x360).
 const MIN_CARD_W = 44; // narrower than this and a rank index stops being legible
 const TOL = 1.5;
+// Every jester, mask/decree and playing card is meant to render at the same --card-w (see the
+// LAYOUT CONTRACT and "Every jester, mask, decree..." comments in styles.css). A couple of px is
+// the jester's own border eating into its percentage width; anything past that is the row
+// actually squeezing one card type and not another.
+const CARD_PARITY_TOL = 4;
 
-// Fill the run so the page is as crowded as it gets: every jester slot, masks and decrees,
-// an oversized hand, a boss banner.
+// Fill the run so the page is as crowded as it gets: both slot-upgrade props (Wide Stage, Mask
+// Rack), every jester and mask/decree slot that opens up because of them, an oversized hand, a
+// boss banner.
 const CROWD = `(() => {
   const t = window.__jesterTest;
   const s = t._getState();
   s.money = 9999;
+  s.props = [...(s.props || []), ...PROP_POOL.filter((p) => p.id === "wide_stage" || p.id === "trick_tray")];
   t.setDebugShop(true);
-  for (const o of [...s.shopOffers]) { if (s.jesters.length < 5) t.buyJester(o.id); }
+  for (const o of [...s.shopOffers]) { if (s.jesters.length < jesterSlots()) t.buyJester(o.id); }
   for (const o of [...s.shopTricks]) t.buyTrick(o.id);
   for (const o of [...s.shopDecrees]) t.buyDecree(o.id);
   t.setDebugShop(false);
@@ -50,8 +57,24 @@ const CROWD = `(() => {
 const SHOP = `(() => { const t = window.__jesterTest; t.setDebugShop(true); })()`;
 
 // Runs in the page: returns a list of problem strings.
-function inspect({ kind, MIN_CARD_W, TOL }) {
+function inspect({ kind, MIN_CARD_W, TOL, CARD_PARITY_TOL }) {
   const out = [];
+  // All card-shaped faces should be the same size. Compares offsetWidth (the laid-out box,
+  // unaffected by the hand's fan/hover transforms) across whichever of the given selectors
+  // actually have an element on screen; skips the check entirely if fewer than two do.
+  const checkParity = (label, selectors) => {
+    const sizes = {};
+    for (const [name, sel] of Object.entries(selectors)) {
+      const el = document.querySelector(sel);
+      if (el) sizes[name] = el.offsetWidth;
+    }
+    const vals = Object.values(sizes);
+    if (vals.length < 2) return;
+    if (Math.max(...vals) - Math.min(...vals) > CARD_PARITY_TOL) {
+      const detail = Object.entries(sizes).map(([n, v]) => `${n} ${v}px`).join(", ");
+      out.push(`${label} sizes don't match: ${detail}`);
+    }
+  };
   const W = innerWidth, H = innerHeight;
   const landscape = W > H;
   const box = (sel) => {
@@ -85,6 +108,7 @@ function inspect({ kind, MIN_CARD_W, TOL }) {
     if (stock && stock.scrollWidth > stock.clientWidth + 1) out.push("shop stock scrolls sideways");
     const items = [...document.querySelectorAll("#shop-stock .shop-item")];
     if (items.length && items[0].offsetWidth < MIN_CARD_W) out.push(`shop cards under ${MIN_CARD_W}px wide`);
+    checkParity("shop", { jester: "#shop-items .jester", trick: "#shop-tricks .trick", prop: "#shop-prop .trick" });
     return { info: `card ${Math.round(items[0]?.offsetWidth ?? 0)}px`, out };
   }
 
@@ -123,6 +147,7 @@ function inspect({ kind, MIN_CARD_W, TOL }) {
     }
   }
   if (realCardW !== null && realCardW < MIN_CARD_W) out.push(`cards under ${MIN_CARD_W}px wide`);
+  checkParity("card/jester/mask", { card: "#hand-row .card", jester: "#jester-row .jester", trick: "#trick-row .trick" });
   // Card faces use overflow:hidden, so clipped text shows up as scrollHeight > clientHeight.
   let clipped = 0;
   for (const el of document.querySelectorAll("#jester-row .jester, #trick-row .trick")) {
@@ -160,7 +185,7 @@ async function main() {
         await page.waitForTimeout(700);
       }
       const kind = name === "shop" ? "shop" : "play";
-      const { info, out } = await page.evaluate(inspect, { kind, MIN_CARD_W, TOL });
+      const { info, out } = await page.evaluate(inspect, { kind, MIN_CARD_W, TOL, CARD_PARITY_TOL });
       lines.push(`  ${out.length ? "FAIL" : "ok  "} ${name.padEnd(13)} ${info}${out.length ? ": " + out.join("; ") : ""}`);
       failures += out.length;
     }
