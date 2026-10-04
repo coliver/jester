@@ -70,9 +70,31 @@ function buyJester(id) {
   render();
 }
 
+// Shop odds favor Commons, same as the source material: each slot rolls a
+// rarity tier (weighted 70/25/5) and then a jester uniformly within it,
+// instead of drawing uniformly across the whole pool.
+const RARITY_WEIGHTS = { Common: 0.7, Uncommon: 0.25, Rare: 0.05 };
+
 function rollShopOffers() {
   const owned = new Set(state.jesters.map(j => j.id));
-  state.shopOffers = shuffled(JESTER_POOL.filter(j => !owned.has(j.id)), rngFor(shopRollLabel("jesters"))).slice(0, 3);
+  const available = JESTER_POOL.filter(j => !owned.has(j.id));
+  state.shopOffers = pickByRarity(available, 3, rngFor(shopRollLabel("jesters")));
+}
+
+function pickByRarity(pool, count, rand) {
+  const remaining = [...pool];
+  const picks = [];
+  while (picks.length < count && remaining.length) {
+    const tiers = Object.keys(RARITY_WEIGHTS).filter(r => remaining.some(j => j.rarity === r));
+    if (!tiers.length) break;
+    let roll = rand() * tiers.reduce((sum, r) => sum + RARITY_WEIGHTS[r], 0);
+    const rarity = tiers.find(r => (roll -= RARITY_WEIGHTS[r]) < 0) ?? tiers[tiers.length - 1];
+    const candidates = remaining.filter(j => j.rarity === rarity);
+    const [chosen] = candidates.splice(Math.floor(rand() * candidates.length), 1);
+    picks.push(chosen);
+    remaining.splice(remaining.indexOf(chosen), 1);
+  }
+  return picks;
 }
 
 function shopRollLabel(kind) {
