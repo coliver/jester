@@ -11,7 +11,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { JESTER_POOL, DECREE_POOL, TRICK_POOL, BOSS_POOL } = require("../tools/load-game.js");
+const { JESTER_POOL, DECREE_POOL, TRICK_POOL, BOSS_POOL, PROP_POOL } = require("../tools/load-game.js");
 
 // Minimal RFC 4180 reader: quoted fields, "" escapes, CRLF or LF.
 function parseCsv(text) {
@@ -35,7 +35,7 @@ function parseCsv(text) {
   return rows;
 }
 
-const KINDS = { jesters: JESTER_POOL, decrees: DECREE_POOL, masks: TRICK_POOL, bosses: BOSS_POOL };
+const KINDS = { jesters: JESTER_POOL, decrees: DECREE_POOL, masks: TRICK_POOL, bosses: BOSS_POOL, props: PROP_POOL };
 
 for (const [kind, pool] of Object.entries(KINDS)) {
   test(`assets/${kind}/prompts.csv has one prompt per ${kind} card`, () => {

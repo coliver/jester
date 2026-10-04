@@ -71,7 +71,7 @@ static (it's also set up for GitHub Pages).
   release it; the played cards score in the order they sit.
 - Jesters reorder the same way (drag them), and order
   matters: they score left to right, so a Blueprint copies whatever is on its
-  right. You can own 5 jesters (more with the Wide Stage prop).
+  right. You can own 5 jesters (more with the Stilts prop).
 - Tap or click a jester, mask, or decree to inspect it. Sound effects (recorded
   card clips plus synthesized stings) with a mute button that remembers its
   setting. Layout is landscape-first: a wide desktop layout with a fanned

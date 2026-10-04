@@ -47,7 +47,7 @@ const PROP_POOL = [
   { id: "extra_discard", name: "Extra Discard", desc: "+1 discard each act.", discardsDelta: 1 },
   { id: "big_hand", name: "Big Hand", desc: "+1 hand size.", handSizeDelta: 1 },
   { id: "haggler", name: "Haggler", desc: "Shop rerolls start $1 cheaper.", rerollDelta: -1 },
-  { id: "wide_stage", name: "Wide Stage", desc: "+1 jester slot.", jesterSlotsDelta: 1 },
+  { id: "wide_stage", name: "Stilts", desc: "+1 jester slot.", jesterSlotsDelta: 1 },
   { id: "trick_tray", name: "Mask Rack", desc: "+1 mask slot.", trickSlotsDelta: 1 },
 ];
 

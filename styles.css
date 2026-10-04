@@ -508,7 +508,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    floor: about 640x360 landscape; tools/layout-sweep.js checks the spread of sizes.
    The island width must fit the default top row at full card width with zero shrink: 150 HUD + 10 gap +
    jester row (5 slots x 130 + 4x6 gaps + 12 padding = 686) + 10 top-row gap + trick row (2 slots x 130 +
-   6 gap + 12 padding = 278) = 1134, rounded up to 1140. Buying a slot-upgrade prop (Wide Stage, Mask
+   6 gap + 12 padding = 278) = 1134, rounded up to 1140. Buying a slot-upgrade prop (Stilts, Mask
    Rack) grows the top row past that island, and --card-w's --top-slots term (set from jesterSlots() +
    trickSlots() in render()) shrinks every card together to fit, the same way it already does for a
    short viewport, rather than letting only the jesters lose out to the mask/decree row's fixed width. */
@@ -1160,7 +1160,8 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
   justify-content: center;
   font-size: calc(var(--card-w) * 0.3);
 }
-/* The prop has no painting: its initial, set large like an illuminated capital. */
+/* Until art loads (see assets/props/PROMPTS.md), the initial stands in, set large like an
+   illuminated capital; the generic .trick .card-art rules above size the art the same way once it's there. */
 .trick.prop .prop-initial { font: italic 400 calc(var(--card-w) * 0.5)/1 var(--fell); }
 
 /* Packs wear the deck's own back (wine with a gilt lattice), with a cartouche naming the pack.

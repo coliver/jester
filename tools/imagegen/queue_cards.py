@@ -1,7 +1,7 @@
 """Queue one ComfyUI job per CSV row.
 
 Usage: python3 queue_cards.py [kind] [--limit N] [--only ID[,ID...]] [--repeat N] [--seed N] [--prefix DIR]
-  kind     jesters (default), decrees, masks, faces, bosses or court: reads assets/<kind>/prompts.csv
+  kind     jesters (default), decrees, masks, props, faces, bosses or court: reads assets/<kind>/prompts.csv
            (columns: id,prompt), the single source of art prompts. Card ids,
            names and rarities live in src/; test/art-prompts.test.js keeps
            the two in step.
@@ -34,7 +34,7 @@ COMFY_URL = os.environ.get("COMFY_URL", "http://127.0.0.1:8600")
 WORKFLOW_FILE = HERE / "workflow_api.json"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("kind", nargs="?", default="jesters", choices=["jesters", "decrees", "masks", "faces", "bosses", "court"])
+parser.add_argument("kind", nargs="?", default="jesters", choices=["jesters", "decrees", "masks", "props", "faces", "bosses", "court"])
 parser.add_argument("--limit", type=int, default=None, help="queue only the first N rows")
 parser.add_argument("--only", default=None, help="comma-separated card ids to queue (default: all)")
 parser.add_argument("--repeat", type=int, default=1, help="queue each card N times with different seeds")
@@ -50,9 +50,9 @@ SAVE_NODE = "9"
 RESOLUTION_NODE = "41"  # FluxResolutionNode: aspect ratio at the set megapixels
 # Court portraits fill a tall window on the card (about 0.58 wide to 1 high).
 FACE_ASPECT = "9:16 (Slim Vertical)"
-# Jesters, masks and decrees are all rendered tall at the same 9:16 (jesters are full-bleed card
-# art; masks and decrees fit a flexible art window above the name, but a tall source still reads
-# better there than a square one gets stretched into); bosses stay square.
+# Jesters, masks, decrees and props are all rendered tall at the same 9:16 (jesters are full-bleed
+# card art; masks, decrees and props fit a flexible art window above the name, but a tall source
+# still reads better there than a square one gets stretched into); bosses stay square.
 TALL_ASPECT = "9:16 (Slim Vertical)"
 
 # A kind can have its own style text (style_<kind>.txt, placed after the prompt); faces need one without
@@ -83,7 +83,7 @@ for index, card in enumerate(cards):
     workflow[PROMPT_NODE]["inputs"][PROMPT_FIELD] = (
         f"{prompt} {STYLE}" if style_file.exists() else f"{STYLE}, {prompt}"
     )
-    aspect = args.aspect or (FACE_ASPECT if args.kind == "faces" else TALL_ASPECT if args.kind in ("jesters", "decrees", "masks") else None)
+    aspect = args.aspect or (FACE_ASPECT if args.kind == "faces" else TALL_ASPECT if args.kind in ("jesters", "decrees", "masks", "props") else None)
     if aspect:
         workflow[RESOLUTION_NODE]["inputs"]["aspect_ratio"] = aspect
     seed = args.seed if args.seed is not None else random.randrange(0, 2**48)

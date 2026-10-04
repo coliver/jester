@@ -30,7 +30,7 @@ function render() {
     bossBanner.classList.add("hidden");
   }
 
-  // --card-w shrinks every card together once a bought slot upgrade (Wide Stage, Mask Rack) makes
+  // --card-w shrinks every card together once a bought slot upgrade (Stilts, Mask Rack) makes
   // the top row wider than its default 5 jester + 2 mask/decree slots (see the --top-slots term in
   // the landscape --card-w rule in styles.css).
   document.documentElement.style.setProperty("--top-slots", jesterSlots() + trickSlots());

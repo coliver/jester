@@ -864,7 +864,7 @@ test("hand, discard and hand-size props apply at round start", () => {
   assert.equal(s.handSize, 9);
 });
 
-test("Haggler lowers reroll base cost; Wide Stage adds a jester slot", () => {
+test("Haggler lowers reroll base cost; Stilts adds a jester slot", () => {
   const state = freshRoundState();
   state.props = ["haggler", "wide_stage"].map(propById);
   state.jesters = JESTER_POOL.slice(0, 5).map(j => ({ ...j, sellBonus: 0 }));

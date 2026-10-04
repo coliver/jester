@@ -209,7 +209,7 @@ function debugReplayPayout() {
 // framed so the ledger rail ends exactly where the top row begins and the stock reaches
 // exactly to the top row's right edge: the lifted-up top row is positioned by #app, which
 // knows nothing about the overlay, so without this a wide top row (e.g. an extra jester
-// slot from Wide Stage) can land under the ledger rail instead of beside it. See the
+// slot from Stilts) can land under the ledger rail instead of beside it. See the
 // "framed to the play screen's own #app box" comment on #overlay-card.
 
 // A breathing gap between the ledger rail and the top row beside it, matching #overlay-bar's
@@ -418,7 +418,7 @@ function renderOverlay() {
       const div = document.createElement("div");
       div.className = "shop-item prop" + (canBuy ? "" : " unaffordable");
       dealIn(div, "v:" + prop.id);
-      div.append(cardFace("trick prop", `<span class="trick-glyph prop-initial">${prop.name[0]}</span><span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
+      div.append(cardFace("trick prop", `<span class="trick-glyph prop-initial">${prop.name[0]}</span>${cardArtHTML("props", prop.id)}<span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
       div.insertAdjacentHTML("beforeend", buyHTML(PROP_PRICE, canBuy));
       div.querySelector("button").addEventListener("click", buyProp);
       propEl.appendChild(div);

@@ -73,7 +73,7 @@ const TOL = 1.5;
 // actually squeezing one card type and not another.
 const CARD_PARITY_TOL = 4;
 
-// Fill the run so the page is as crowded as it gets: both slot-upgrade props (Wide Stage, Mask
+// Fill the run so the page is as crowded as it gets: both slot-upgrade props (Stilts, Mask
 // Rack), every jester and mask/decree slot that opens up because of them, an oversized hand, a
 // boss banner.
 const CROWD = `(() => {
