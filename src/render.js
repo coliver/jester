@@ -212,14 +212,17 @@ function renderDeckView() {
   document.getElementById("deck-count").textContent = `${state.deck.length}/${total}`;
   if (!open) return;
   const hands = deckViewTab === "hands";
-  document.getElementById("deck-view").classList.toggle("hidden", hands);
+  const options = deckViewTab === "options";
+  document.getElementById("deck-view").classList.toggle("hidden", hands || options);
   document.getElementById("hands-view").classList.toggle("hidden", !hands);
-  for (const [id, on] of [["deck-tab", !hands], ["hands-tab", hands]]) {
+  document.getElementById("options-view").classList.toggle("hidden", !options);
+  for (const [id, on] of [["deck-tab", !hands && !options], ["hands-tab", hands], ["options-tab", options]]) {
     const tab = document.getElementById(id);
     tab.classList.toggle("active", on);
     tab.setAttribute("aria-pressed", String(on));
   }
   if (hands) { renderHandTable(); return; }
+  if (options) return;
 
   const status = cardStatuses();
   const removed = state.removed || [];
@@ -248,8 +251,8 @@ function renderDeckView() {
 // The popup shows either the deck or the hand rankings; opening it always starts on the deck.
 let deckViewTab = "deck";
 
-function setDeckViewOpen(open) {
-  if (open) deckViewTab = "deck";
+function setDeckViewOpen(open, tab = "deck") {
+  if (open) deckViewTab = tab;
   document.getElementById("deck-modal").classList.toggle("hidden", !open);
   renderDeckView();
 }
@@ -257,4 +260,19 @@ function setDeckViewOpen(open) {
 function setDeckViewTab(tab) {
   deckViewTab = tab;
   renderDeckView();
+}
+
+// "I AM AN OLD MAN" mode: enlarges the rank/suit text on normal playing cards
+// for players who find the small corner indices (or telling clubs from
+// spades) hard to read. Persisted like the mute setting.
+let oldManMode = (() => {
+  try { return localStorage.getItem("jester-old-man-mode") === "1"; } catch { return false; }
+})();
+
+function isOldManMode() { return oldManMode; }
+
+function setOldManMode(v) {
+  oldManMode = v;
+  document.body.classList.toggle("old-man-mode", v);
+  try { localStorage.setItem("jester-old-man-mode", v ? "1" : "0"); } catch {}
 }

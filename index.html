@@ -105,9 +105,10 @@
 
     <div id="deck-modal" class="hidden" role="dialog" aria-label="Deck contents">
       <div id="deck-card">
-        <div id="deck-tabs" role="group" aria-label="Deck or hand rankings">
+        <div id="deck-tabs" role="group" aria-label="Deck, hand rankings, or options">
           <button id="deck-tab" class="active" aria-pressed="true">Deck</button>
           <button id="hands-tab" aria-pressed="false">Hand Rankings</button>
+          <button id="options-tab" aria-pressed="false">Options</button>
         </div>
         <section id="deck-view">
           <div id="deck-legend"></div>
@@ -118,6 +119,12 @@
             <thead><tr><th>Hand</th><th>Lvl</th><th>Chips</th><th>Mult</th></tr></thead>
             <tbody></tbody>
           </table>
+        </section>
+        <section id="options-view" class="hidden">
+          <label class="option-row">
+            <input type="checkbox" id="old-man-toggle">
+            <span>I AM AN OLD MAN <small>(bigger numbers and suits on playing cards)</small></span>
+          </label>
         </section>
         <div id="deck-actions">
           <button id="end-run-btn">End Run</button>

@@ -19,9 +19,15 @@ function initApp() {
 
   const deckModal = document.getElementById("deck-modal");
   document.getElementById("deck-btn").addEventListener("click", () => setDeckViewOpen(true));
-  document.getElementById("options-btn").addEventListener("click", () => setDeckViewOpen(true));
+  document.getElementById("options-btn").addEventListener("click", () => setDeckViewOpen(true, "options"));
   document.getElementById("deck-tab").addEventListener("click", () => setDeckViewTab("deck"));
   document.getElementById("hands-tab").addEventListener("click", () => setDeckViewTab("hands"));
+  document.getElementById("options-tab").addEventListener("click", () => setDeckViewTab("options"));
+
+  const oldManToggle = document.getElementById("old-man-toggle");
+  oldManToggle.checked = isOldManMode();
+  setOldManMode(oldManToggle.checked);
+  oldManToggle.addEventListener("change", () => setOldManMode(oldManToggle.checked));
   document.getElementById("deck-close-btn").addEventListener("click", () => setDeckViewOpen(false));
   deckModal.addEventListener("click", (e) => { if (e.target === deckModal) setDeckViewOpen(false); });
   const deckPile = document.getElementById("deck-pile");
