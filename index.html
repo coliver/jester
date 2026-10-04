@@ -125,6 +125,18 @@
             <input type="checkbox" id="old-man-toggle">
             <span>I AM AN OLD MAN <small>(bigger numbers and suits on playing cards)</small></span>
           </label>
+          <div class="option-row slider-row">
+            <span class="option-label">Sound Effects<small>Card flips, scoring, coins</small></span>
+            <input type="range" id="sfx-volume-slider" min="0" max="100" step="1">
+          </div>
+          <div class="option-row slider-row">
+            <span class="option-label">Music<small>Background court music</small></span>
+            <input type="range" id="music-volume-slider" min="0" max="100" step="1">
+          </div>
+          <div class="option-row slider-row">
+            <span class="option-label">UI Sounds<small>Clicks, selects, denials</small></span>
+            <input type="range" id="ui-volume-slider" min="0" max="100" step="1">
+          </div>
         </section>
         <div id="deck-actions">
           <button id="end-run-btn">End Run</button>

@@ -63,6 +63,27 @@ function initApp() {
   });
   syncMuteBtn();
 
+  const volumeSliders = [
+    ["sfx-volume-slider", Sound.getSfxVolume, Sound.setSfxVolume],
+    ["music-volume-slider", Sound.getMusicVolume, Sound.setMusicVolume],
+    ["ui-volume-slider", Sound.getUiVolume, Sound.setUiVolume],
+  ];
+  for (const [id, get, set] of volumeSliders) {
+    const slider = document.getElementById(id);
+    slider.value = String(Math.round(get() * 100));
+    slider.addEventListener("input", () => set(slider.value / 100));
+  }
+
+  // Browsers block audio playback until a user gesture, so background music starts on
+  // the first pointer/key input rather than at load.
+  const startMusicOnce = () => {
+    Sound.startMusic();
+    document.removeEventListener("pointerdown", startMusicOnce);
+    document.removeEventListener("keydown", startMusicOnce);
+  };
+  document.addEventListener("pointerdown", startMusicOnce);
+  document.addEventListener("keydown", startMusicOnce);
+
   document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
   initNewRunButton();
 

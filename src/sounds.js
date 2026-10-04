@@ -8,6 +8,31 @@ const Sound = (() => {
     try { return localStorage.getItem("jester-muted") === "1"; } catch { return false; }
   })();
 
+  function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+
+  function loadVolume(key, fallback) {
+    try {
+      const v = localStorage.getItem(key);
+      return v === null ? fallback : clamp01(parseFloat(v));
+    } catch { return fallback; }
+  }
+
+  function saveVolume(key, v) {
+    try { localStorage.setItem(key, String(v)); } catch {}
+  }
+
+  let sfxVolume = loadVolume("jester-sfx-volume", 0.7);
+  let musicVolume = loadVolume("jester-music-volume", 0.5);
+  let uiVolume = loadVolume("jester-ui-volume", 0.7);
+
+  // The scale a sound should play at: 0 whenever the master mute is on, otherwise
+  // whichever bus's slider it belongs to. "sfx" (the default) covers card/game-event
+  // sounds; "ui" covers direct click feedback (selecting a card, denials, button clicks).
+  function busVolume(bus) {
+    if (muted) return 0;
+    return bus === "ui" ? uiVolume : sfxVolume;
+  }
+
   function clip(src) {
     const el = new Audio(src);
     el.preload = "auto";
@@ -16,22 +41,23 @@ const Sound = (() => {
 
   const clips = {
     take: [
-      clip("assets/sound/taking-playing-card.mp3"),
-      clip("assets/sound/taking-playing-card-2.mp3"),
-      clip("assets/sound/taking-playing-card-3.mp3"),
+      clip("assets/sound/sfx/taking-playing-card.mp3"),
+      clip("assets/sound/sfx/taking-playing-card-2.mp3"),
+      clip("assets/sound/sfx/taking-playing-card-3.mp3"),
     ],
-    place: clip("assets/sound/placing-playing-card.mp3"),
-    shuffleDeck: clip("assets/sound/shuffling-deck-of-cards.mp3"),
-    applause: clip("assets/sound/clapping.wav"),
-    glassBreak: clip("assets/sound/bottle_breaking.mp3"),
-    swoosh: clip("assets/sound/swoosh.mp3"),
+    place: clip("assets/sound/sfx/placing-playing-card.mp3"),
+    shuffleDeck: clip("assets/sound/sfx/shuffling-deck-of-cards.mp3"),
+    applause: clip("assets/sound/sfx/clapping.wav"),
+    glassBreak: clip("assets/sound/sfx/bottle_breaking.mp3"),
+    swoosh: clip("assets/sound/sfx/swoosh.mp3"),
   };
 
-  function playClip(base, { delay = 0, volume = 0.5, rate = 1 } = {}) {
-    if (muted) return;
+  function playClip(base, { delay = 0, volume = 0.5, rate = 1, bus = "sfx" } = {}) {
+    const scale = busVolume(bus);
+    if (scale <= 0) return;
     const run = () => {
       const node = base.cloneNode();
-      node.volume = volume;
+      node.volume = clamp01(volume * scale);
       node.playbackRate = rate;
       node.preservesPitch = false;
       node.mozPreservesPitch = false;
@@ -66,8 +92,9 @@ const Sound = (() => {
     return g;
   }
 
-  function noiseBurst({ delay = 0, duration = 0.08, filterType = "bandpass", freq = 3000, q = 1, gain = 0.3 }) {
-    if (muted) return;
+  function noiseBurst({ delay = 0, duration = 0.08, filterType = "bandpass", freq = 3000, q = 1, gain = 0.3, bus = "sfx" }) {
+    const scale = busVolume(bus);
+    if (scale <= 0) return;
     ensureCtx();
     const t = ctx.currentTime + delay;
     const src = ctx.createBufferSource();
@@ -76,21 +103,22 @@ const Sound = (() => {
     filter.type = filterType;
     filter.frequency.value = freq;
     filter.Q.value = q;
-    const g = envGain(t, gain, 0.002, duration);
+    const g = envGain(t, gain * scale, 0.002, duration);
     src.connect(filter).connect(g).connect(ctx.destination);
     src.start(t);
     src.stop(t + duration + 0.05);
   }
 
-  function tone({ delay = 0, freq = 440, duration = 0.12, type = "sine", gain = 0.2, glideTo = null }) {
-    if (muted) return;
+  function tone({ delay = 0, freq = 440, duration = 0.12, type = "sine", gain = 0.2, glideTo = null, bus = "sfx" }) {
+    const scale = busVolume(bus);
+    if (scale <= 0) return;
     ensureCtx();
     const t = ctx.currentTime + delay;
     const osc = ctx.createOscillator();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, t);
     if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t + duration);
-    const g = envGain(t, gain, 0.005, duration);
+    const g = envGain(t, gain * scale, 0.005, duration);
     osc.connect(g).connect(ctx.destination);
     osc.start(t);
     osc.stop(t + duration + 0.05);
@@ -105,12 +133,12 @@ const Sound = (() => {
   }
 
   function cardSelect() {
-    noiseBurst({ duration: 0.03, freq: 4200, q: 1, gain: 0.1 });
-    tone({ freq: 900, duration: 0.05, type: "triangle", gain: 0.1 });
+    noiseBurst({ duration: 0.03, freq: 4200, q: 1, gain: 0.1, bus: "ui" });
+    tone({ freq: 900, duration: 0.05, type: "triangle", gain: 0.1, bus: "ui" });
   }
 
   function cardDeselect() {
-    playClip(clips.place, { volume: 0.4, rate: 1 + Math.random() * 0.1 });
+    playClip(clips.place, { volume: 0.4, rate: 1 + Math.random() * 0.1, bus: "ui" });
   }
 
   function discard(count = 1) {
@@ -244,8 +272,8 @@ const Sound = (() => {
 
   // A tap on something that can't be done: a dull falling knock.
   function deny() {
-    noiseBurst({ duration: 0.06, filterType: "lowpass", freq: 600, q: 0.7, gain: 0.14 });
-    tone({ freq: 200, glideTo: 100, duration: 0.14, type: "sawtooth", gain: 0.08 });
+    noiseBurst({ duration: 0.06, filterType: "lowpass", freq: 600, q: 0.7, gain: 0.14, bus: "ui" });
+    tone({ freq: 200, glideTo: 100, duration: 0.14, type: "sawtooth", gain: 0.08, bus: "ui" });
   }
 
   // A jester destroyed at act end.
@@ -290,20 +318,93 @@ const Sound = (() => {
   }
 
   function click() {
-    tone({ freq: 700, duration: 0.03, type: "square", gain: 0.07 });
+    tone({ freq: 700, duration: 0.03, type: "square", gain: 0.07, bus: "ui" });
   }
 
   function isMuted() { return muted; }
   function setMuted(v) {
     muted = v;
     try { localStorage.setItem("jester-muted", v ? "1" : "0"); } catch {}
+    syncMusicVolume();
   }
   function toggleMuted() { setMuted(!muted); return muted; }
+
+  function getSfxVolume() { return sfxVolume; }
+  function setSfxVolume(v) {
+    sfxVolume = clamp01(v);
+    saveVolume("jester-sfx-volume", sfxVolume);
+  }
+
+  function getUiVolume() { return uiVolume; }
+  function setUiVolume(v) {
+    uiVolume = clamp01(v);
+    saveVolume("jester-ui-volume", uiVolume);
+  }
+
+  // --- Background music: a shuffled playlist of the court's ambient tracks, one Audio
+  // element that advances to the next track when the current one ends. ---
+  const MUSIC_TRACKS = [
+    "assets/sound/music/2b16-the-inn-184201.mp3",
+    "assets/sound/music/melodigne-enigmatic-embrace-185358.mp3",
+    "assets/sound/music/turning_pages-candle-hearts-483961.mp3",
+    "assets/sound/music/turning_pages-dead-manx27s-drink-lofi-483957.mp3",
+    "assets/sound/music/turning_pages-degraded-castle-loops-medieval-lofi-390677.mp3",
+    "assets/sound/music/turning_pages-four-shields-inn-lo-fi-483964.mp3",
+    "assets/sound/music/turning_pages-the-dancing-dragon-medieval-lofi-track-540970.mp3",
+    "assets/sound/music/turning_pages-winding-village-roads-upbeat-medieval-lofi-390678.mp3",
+  ];
+
+  let musicEl = null;
+  let musicPlaylist = [];
+  let musicIndex = 0;
+
+  function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function playNextTrack() {
+    if (musicIndex >= musicPlaylist.length) {
+      musicPlaylist = shuffled(MUSIC_TRACKS);
+      musicIndex = 0;
+    }
+    musicEl.src = musicPlaylist[musicIndex++];
+    musicEl.play().catch(() => {});
+  }
+
+  function syncMusicVolume() {
+    if (musicEl) musicEl.volume = muted ? 0 : musicVolume;
+  }
+
+  // Browsers block audio until a user gesture, so this is called once on the first
+  // pointerdown/keydown rather than at load; it's harmless to call more than once.
+  function startMusic() {
+    if (musicEl) return;
+    musicEl = new Audio();
+    musicEl.preload = "auto";
+    musicEl.volume = muted ? 0 : musicVolume;
+    musicEl.addEventListener("ended", playNextTrack);
+    musicPlaylist = shuffled(MUSIC_TRACKS);
+    musicIndex = 0;
+    playNextTrack();
+  }
+
+  function getMusicVolume() { return musicVolume; }
+  function setMusicVolume(v) {
+    musicVolume = clamp01(v);
+    saveVolume("jester-music-volume", musicVolume);
+    syncMusicVolume();
+  }
 
   return {
     cardFlip, dealHand, cardSelect, cardDeselect, discard, playHandResolve,
     scoreChip, scoreMult, scoreXMult, scoreMute, scoreTotal, scoreRoll,
     coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
+    getSfxVolume, setSfxVolume, getUiVolume, setUiVolume, getMusicVolume, setMusicVolume, startMusic,
   };
 })();
