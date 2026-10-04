@@ -776,11 +776,18 @@ body {
 .card.enh-bonus { background: linear-gradient(160deg, rgba(110, 150, 220, 0.38), rgba(110, 150, 220, 0.12)), var(--stock); }
 .card.enh-mult { background: linear-gradient(160deg, rgba(190, 70, 70, 0.34), rgba(190, 70, 70, 0.1)), var(--stock); }
 .card.enh-wild { background: linear-gradient(135deg, rgba(220, 170, 70, 0.3) 30%, rgba(120, 180, 130, 0.3) 80%), var(--stock); }
-.card.enh-glass { background: linear-gradient(160deg, rgba(150, 215, 230, 0.45), rgba(150, 215, 230, 0.15)), var(--stock); opacity: 0.92; }
+.card.enh-glass {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 16%, rgba(255, 255, 255, 0) 58%, rgba(255, 255, 255, 0.2) 64%, rgba(255, 255, 255, 0) 78%),
+    linear-gradient(160deg, rgba(150, 215, 230, 0.16), rgba(150, 215, 230, 0.04));
+  backdrop-filter: blur(3px) saturate(140%);
+  -webkit-backdrop-filter: blur(3px) saturate(140%);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 0 10px rgba(180, 230, 240, 0.25);
+}
 .mini-card.enh-bonus { background: linear-gradient(rgba(110, 150, 220, 0.38), rgba(110, 150, 220, 0.38)), var(--stock); }
 .mini-card.enh-mult { background: linear-gradient(rgba(190, 70, 70, 0.34), rgba(190, 70, 70, 0.34)), var(--stock); }
 .mini-card.enh-wild { background: linear-gradient(rgba(220, 170, 70, 0.3), rgba(120, 180, 130, 0.3)), var(--stock); }
-.mini-card.enh-glass { background: linear-gradient(rgba(150, 215, 230, 0.45), rgba(150, 215, 230, 0.45)), var(--stock); }
+.mini-card.enh-glass { background: linear-gradient(rgba(150, 215, 230, 0.22), rgba(150, 215, 230, 0.22)); }
 .card-art { display: block; width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 6px; object-fit: cover; }
 .card-art[hidden] { display: none; }
 #inspect .card-art { display: none; }
@@ -984,12 +991,15 @@ body::before {
    scoped inside #overlay) or the jesters would float above the picker instead of behind it. */
 body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #top-row { position: relative; z-index: 11; }
 #shop-main { padding-top: calc(var(--top-bottom, 0px) + 6px); }
-/* The shelves stay dark under the ledger's count-up, then light back up the moment the
+/* The shelves, and the top row of jesters/cards floating above them, stay dark and locked
+   under the ledger's count-up, then light back up and unlock together the moment the
    offers deal in (see --d in renderOverlay); the ledger itself (in #overlay-bar) stays lit. */
-#shop-main { transition: filter 0.5s ease; }
-#shop-main.dim { filter: brightness(0.3) saturate(0.7); pointer-events: none; }
+/* The dim-in matches the iris's own close timing (0.75s, same easing) so the two read as one
+   motion instead of the shelves visibly darkening ahead of the iris swallowing them. */
+#shop-main, #top-row { transition: filter 0.75s cubic-bezier(0.55, 0, 0.8, 0.6); }
+#shop-main.dim, #top-row.dim { filter: brightness(0.3) saturate(0.7); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
-  #shop-main { transition: none; }
+  #shop-main, #top-row { transition: none; }
 }
 
 #shop-stock {
@@ -1398,8 +1408,8 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 .jester .jester-desc, .trick .trick-desc { display: none; }
 #inspect .jester .jester-desc, #inspect .trick .trick-desc { display: block; }
 
-/* Decrees: the art flexes to whatever the name (one or two lines) and the Use button
-   leave, so no card grows taller than the rest. Masks are full-bleed (below) instead. */
+/* Base trick layout: a text-and-art column. Only props still use it as-is; masks and
+   decrees override it to full-bleed art below. */
 #trick-row .trick-slot { height: var(--card-h); }
 #trick-row .trick, #overlay .trick {
   width: var(--card-w);
@@ -1417,21 +1427,22 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 #overlay .trick > .trick-glyph { flex: none; }
 #overlay .trick.prop > .trick-glyph, #overlay .trick.pack > .trick-glyph { flex: 1 1 0; }
 
-/* Mask cards: full-bleed portrait art, like the jesters. No glyph, name or hand type on the
-   face; those live in the tap-to-read tooltip only. The Use button (play row only; the shop
-   and pack picker put Buy/Take beside the card instead) sits as a tag over the bottom of the
-   art rather than a flex child, since the card is no longer a text-and-art column. */
-.trick:not(.decree):not(.prop):not(.pack) { padding: 0; }
-.trick:not(.decree):not(.prop):not(.pack) .trick-glyph,
-.trick:not(.decree):not(.prop):not(.pack) .trick-name,
-.trick:not(.decree):not(.prop):not(.pack) .trick-hand { display: none; }
-#trick-row .trick:not(.decree):not(.prop):not(.pack),
-#overlay .trick:not(.decree):not(.prop):not(.pack) {
+/* Mask and decree cards: full-bleed portrait art, like the jesters. No glyph, name or hand
+   type on the face; those live in the tap-to-read tooltip only. The Use button (play row
+   only; the shop and pack picker put Buy/Take beside the card instead) sits as a tag over
+   the bottom of the art rather than a flex child, since the card is no longer a
+   text-and-art column. */
+.trick:not(.prop):not(.pack) { padding: 0; }
+.trick:not(.prop):not(.pack) .trick-glyph,
+.trick:not(.prop):not(.pack) .trick-name,
+.trick:not(.prop):not(.pack) .trick-hand { display: none; }
+#trick-row .trick:not(.prop):not(.pack),
+#overlay .trick:not(.prop):not(.pack) {
   display: block;
   padding: 0;
 }
-#trick-row .trick:not(.decree):not(.prop):not(.pack) .card-art,
-#overlay .trick:not(.decree):not(.prop):not(.pack) .card-art {
+#trick-row .trick:not(.prop):not(.pack) .card-art,
+#overlay .trick:not(.prop):not(.pack) .card-art {
   /* Stays a normal in-flow child (not position: absolute) so the frame/vignette pseudo-elements
      below, which are absolutely positioned, paint on top of it rather than behind it. */
   display: block;
@@ -1443,11 +1454,11 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
   border-radius: inherit;
   object-fit: cover;
 }
-#inspect .trick:not(.decree):not(.prop):not(.pack) .trick-name,
-#inspect .trick:not(.decree):not(.prop):not(.pack) .trick-hand {
+#inspect .trick:not(.prop):not(.pack) .trick-name,
+#inspect .trick:not(.prop):not(.pack) .trick-hand {
   display: block;
 }
-#trick-row .trick:not(.decree):not(.prop):not(.pack) .use-btn {
+#trick-row .trick:not(.prop):not(.pack) .use-btn {
   position: absolute;
   left: 3px;
   right: 3px;

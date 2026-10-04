@@ -342,17 +342,21 @@ function renderOverlay() {
     const gains = renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro, shopStartMoney);
     showShopMoney(intro ? shopStartMoney : null, gains);
 
-    // The shelves stay dark under the ledger while the money counts up, then deal in, swoosh,
-    // and light up together once the last coin has landed (lineCount includes the Purse line).
+    // The shelves (and the top row of jesters/cards floating above them) stay dark and locked
+    // under the ledger while the money counts up, then deal in, swoosh, and light up together
+    // once the last coin has landed (lineCount includes the Purse line).
     const shopMain = document.getElementById("shop-main");
+    const topRow = document.getElementById("top-row");
     const lineCount = 1 + gains.length;
     const shelfDelay = intro ? introLead + LEDGER_FIRST + (lineCount - 1) * LEDGER_STEP + 0.3 + FLIGHT + 0.3 : 0;
     overlay.style.setProperty("--d", `${shelfDelay}s`);
     if (intro) {
       shopMain.classList.add("dim");
-      introLater(() => { shopMain.classList.remove("dim"); Sound.shopDeal(); }, shelfDelay * 1000);
+      topRow.classList.add("dim");
+      introLater(() => { shopMain.classList.remove("dim"); topRow.classList.remove("dim"); Sound.shopDeal(); }, shelfDelay * 1000);
     } else {
       shopMain.classList.remove("dim");
+      topRow.classList.remove("dim");
     }
 
     // Offers not shown before (fresh shop, or after a reroll) deal in; a
