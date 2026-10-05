@@ -16,7 +16,7 @@
     radial-gradient(ellipse at 82% 92%, rgba(120, 78, 28, 0.25), transparent 58%),
     repeating-linear-gradient(0deg, rgba(110, 80, 40, 0.04) 0 1px, transparent 1px 3px),
     linear-gradient(160deg, #eadcb8, #d8c493);
-  --card-font: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+  --card-font: "Palatino Linotype", "Book Antiqua", palatino, georgia, "Times New Roman", serif;
 }
 
 * { box-sizing: border-box; }
@@ -707,8 +707,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     margin: 0 auto;
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
-    column-gap: 10px;
-    row-gap: 2px;
+    gap: 2px 10px;
     /* Exactly the viewport (a definite height, so the two 1fr rows share only the leftover space
        instead of the trailing one growing to match the play area and forcing a page scrollbar). */
     height: calc(100vh - 16px);
@@ -973,7 +972,7 @@ body {
 
 #jester-row .jester { cursor: grab; touch-action: none; }
 .jester { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.jester img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+.jester img { -webkit-user-drag: none; pointer-events: none; }
 .jester.dragging { opacity: 0.85; cursor: grabbing; box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
 
 .card.dragging { cursor: grabbing; transition: none; box-shadow: 0 14px 24px rgba(0, 0, 0, 0.55); }
@@ -1075,7 +1074,7 @@ body::before {
    Stage's extra jester slot). */
 #overlay-card {
   width: var(--shop-width, 100%);
-  margin-left: var(--shop-left, 0px);
+  margin-left: var(--shop-left, 0);
   height: 100vh;
   height: 100dvh;
   display: flex;
@@ -1176,7 +1175,7 @@ body::before {
    shop begins below it (--top-bottom is measured in syncShopTop). That lift lives outside
    #overlay's own stacking context, so it must stand down while a pack's modal is open (z-index: 5,
    scoped inside #overlay) or the jesters would float above the picker instead of behind it. */
-body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #top-row { position: relative; z-index: 11; }
+body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-row { position: relative; z-index: 11; }
 #shop-main { padding-top: calc(var(--top-bottom, 0px) + 6px); }
 /* The shelves, and the top row of jesters/cards floating above them, stay dark and locked
    under the ledger's count-up, then light back up and unlock together the moment the
@@ -1196,8 +1195,7 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
   overscroll-behavior: contain;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
-  align-content: flex-start;
+  place-content: flex-start flex-start;
   gap: 24px 32px;
   padding: 20px 16px 24px;
 }
@@ -1241,7 +1239,7 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
   max-width: 100%;
   max-height: 100%;
   overflow-y: auto;
-  padding: 18px 22px 18px;
+  padding: 18px 22px;
   border: 1px solid var(--gilt-rule);
   border-radius: 3px;
   background: var(--velvet);
@@ -1378,7 +1376,7 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
    Backstage's money total (3.5s), which stays invisible under it until the circle is shut. The hold is
    also when startIntro re-aims --iris-x/--iris-y at the money total, so the open centers there. Keep
    these timings in step with IRIS_LEAD. */
-@property --iris-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --iris-r { syntax: "<length>"; inherits: false; initial-value: 0; }
 #iris {
   display: none;
   position: fixed;
@@ -1402,7 +1400,7 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 /* Short landscape screens (phones): tighter rail and shelves so more of the stock shows. */
 @media (max-height: 500px) {
   #overlay { --card-w: max(44px, min(130px, calc((100vw - 230px) / 7), calc((100dvh - var(--top-bottom, 130px) - 120px) / 2.8))); }
-  #overlay-bar { width: 156px; padding: 10px 10px; gap: 8px; }
+  #overlay-bar { width: 156px; padding: 10px; gap: 8px; }
   #overlay-title { font-size: 22px; }
   #overlay-sub { margin-top: 12px; font-size: 14px; }
   #overlay-sub .chip .amt, .ledger-flier { font-size: 19px; }
@@ -1458,13 +1456,10 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 .card .rank-top span:last-child { position: relative; top: -6px; }
 .card .rank-bottom span:last-child { position: relative; top: -6px; }
 .card .rank-bottom { bottom: 1px; right: 5px; }
-.card .pip, .card .suit-mid { text-shadow: 0 0 0.6px currentColor; }
+.card .pip, .card .suit-mid { text-shadow: 0 0 0.6px currentcolor; }
 .card .court-panel {
   position: absolute;
-  left: 25%;
-  right: 25%;
-  top: 18%;
-  bottom: 18%;
+  inset: 18% 25%;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(70, 40, 15, 0.6);
@@ -1637,17 +1632,17 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
    only; the shop and pack picker put Buy/Take beside the card instead) sits as a tag over
    the bottom of the art rather than a flex child, since the card is no longer a
    text-and-art column. */
-.trick:not(.prop):not(.pack) { padding: 0; }
-.trick:not(.prop):not(.pack) .trick-glyph,
-.trick:not(.prop):not(.pack) .trick-name,
-.trick:not(.prop):not(.pack) .trick-hand { display: none; }
-#trick-row .trick:not(.prop):not(.pack),
-#overlay .trick:not(.prop):not(.pack) {
+.trick:not(.prop, .pack) { padding: 0; }
+.trick:not(.prop, .pack) .trick-glyph,
+.trick:not(.prop, .pack) .trick-name,
+.trick:not(.prop, .pack) .trick-hand { display: none; }
+#trick-row .trick:not(.prop, .pack),
+#overlay .trick:not(.prop, .pack) {
   display: block;
   padding: 0;
 }
-#trick-row .trick:not(.prop):not(.pack) .card-art,
-#overlay .trick:not(.prop):not(.pack) .card-art {
+#trick-row .trick:not(.prop, .pack) .card-art,
+#overlay .trick:not(.prop, .pack) .card-art {
   /* Stays a normal in-flow child (not position: absolute) so the frame/vignette pseudo-elements
      below, which are absolutely positioned, paint on top of it rather than behind it. */
   display: block;
@@ -1659,11 +1654,11 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
   border-radius: inherit;
   object-fit: cover;
 }
-#inspect .trick:not(.prop):not(.pack) .trick-name,
-#inspect .trick:not(.prop):not(.pack) .trick-hand {
+#inspect .trick:not(.prop, .pack) .trick-name,
+#inspect .trick:not(.prop, .pack) .trick-hand {
   display: block;
 }
-#trick-row .trick:not(.prop):not(.pack) .use-btn {
+#trick-row .trick:not(.prop, .pack) .use-btn {
   position: absolute;
   left: 3px;
   right: 3px;
@@ -1824,7 +1819,7 @@ body:has(#overlay:not(.hidden):not(.end)):not(:has(#pack-modal:not(.hidden))) #t
 /* Short landscape screens (phones): the left column (scoreboard, hand preview, the King, hand rankings)
    is taller than the viewport, so trim it until it fits beside the table. */
 @media (orientation: landscape) and (max-height: 500px) {
-  #hud { padding: 6px 8px; gap: 4px 4px; }
+  #hud { padding: 6px 8px; gap: 4px; }
   #app > #side { gap: 4px; }
   #side-tools { gap: 4px; }
   #preview { height: 54px; gap: 4px; }
