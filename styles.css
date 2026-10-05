@@ -99,6 +99,58 @@ body {
   font-size: 20px;
   font-weight: 700;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-val.rolling {
+  position: relative;
+  display: inline-block;
+}
+
+.hud-roll-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: text-bottom;
+}
+.hud-roll-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-50%);
+}
+.hud-roll-strip.falling { animation: hud-roll-fall 0.55s ease-in-out 0.3s both; }
+@keyframes hud-roll-fall {
+  from { transform: translateY(-50%); }
+  to   { transform: translateY(0%); }
+}
+
+/* The X and the digit it marks travel together: both live inside the same strip item, so
+   when the strip rolls, the crossed-out old number exits with its X still stuck to it. */
+.hud-roll-old {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hud-roll-old-num { transition: opacity 0.25s ease-out; }
+.hud-roll-old.marked .hud-roll-old-num { opacity: 0.4; }
+
+.hud-discard-x {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cardinal);
+  font-size: 1.3em;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+}
+.hud-discard-x.flash { animation: hud-discard-x-flash 0.25s ease-out both; }
+@keyframes hud-discard-x-flash {
+  0% { opacity: 0; transform: scale(1.7) rotate(-14deg); }
+  100% { opacity: 1; transform: scale(1) rotate(8deg); }
 }
 
 .hud-place { flex: 1 1 100%; text-align: center; }

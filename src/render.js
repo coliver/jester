@@ -1,6 +1,41 @@
 // --- Rendering ---------------------------------------------------------
 // Redrawing the table from `state`, plus the deck view.
 
+let pendingDiscardRoll = false;
+function markDiscardRoll() { pendingDiscardRoll = true; }
+
+// An X marks the old count (dimming it), then the whole strip rolls down together — the
+// X stays stuck to the old digit as it exits, the new digit drops into place behind it.
+function rollDiscardsHud(el, newValue) {
+  const oldValue = el.textContent;
+  if (!scoringAnimated() || oldValue === "" || oldValue === String(newValue)) {
+    el.classList.remove("rolling");
+    el.textContent = newValue;
+    return;
+  }
+  // The mask's clip height has to match the plain line box exactly (measured live, not
+  // guessed as 1em) or the glyph renders a couple of px off from where the plain text sits,
+  // since normal line-height carries extra leading that a bare "1em" box doesn't.
+  const lineH = el.getBoundingClientRect().height;
+  clearTimeout(el._rollTimer);
+  el.classList.add("rolling");
+  el.innerHTML =
+    `<span class="hud-roll-mask"><span class="hud-roll-strip">` +
+    `<span>${newValue}</span>` +
+    `<span class="hud-roll-old marked"><span class="hud-roll-old-num">${oldValue}</span>` +
+    `<span class="hud-discard-x">✕</span></span>` +
+    `</span></span>`;
+  const mask = el.querySelector(".hud-roll-mask");
+  mask.style.height = `${lineH}px`;
+  mask.style.lineHeight = `${lineH}px`;
+  restartClass(el.querySelector(".hud-discard-x"), "flash");
+  restartClass(el.querySelector(".hud-roll-strip"), "falling");
+  el._rollTimer = setTimeout(() => {
+    el.classList.remove("rolling");
+    el.textContent = newValue;
+  }, 950);
+}
+
 function render() {
   if (typeof document === "undefined") return;
   persistRun();
@@ -10,7 +45,13 @@ function render() {
   renderScoreHud(scoring ? scoring.shownScore : state.roundScore);
   document.getElementById("money-val").textContent = scoring ? scoring.money : state.money;
   document.getElementById("hands-val").textContent = state.handsLeft;
-  document.getElementById("discards-val").textContent = state.discardsLeft;
+  const discardsEl = document.getElementById("discards-val");
+  if (pendingDiscardRoll) {
+    pendingDiscardRoll = false;
+    rollDiscardsHud(discardsEl, state.discardsLeft);
+  } else if (!discardsEl.classList.contains("rolling")) {
+    discardsEl.textContent = state.discardsLeft;
+  }
 
   const bossBanner = document.getElementById("boss-banner");
   if (state.bossModifier) {
