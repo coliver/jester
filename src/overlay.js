@@ -6,6 +6,12 @@ const shopSeen = new Set();
 let shopIntroFor = null;
 let shopStartMoney = null; // the purse before this shop's payout, for its ledger; null when unknown (a reloaded shop)
 let moneyTick = 0;
+// Whether the shop's muffled music filter is currently engaged, so a render can sync it to
+// state.phase without re-triggering the flange swoosh on every single render. Normally set by
+// startIntro(); a reload resuming straight into an already-open shop skips that intro (see
+// shopIntroFor above), but the music graph always starts unmuffled, so renderOverlay() also
+// engages it directly in that case. Reset to false wherever Sound.setMusicMuffled(false) runs.
+let musicMuffled = false;
 
 function prefersReducedMotion() {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -365,9 +371,14 @@ function renderOverlay() {
       shopSeen.clear();
     }
     if (intro) {
-      startIntro(overlay);
+      startIntro(overlay); // engages the muffle itself, timed to the iris closing
       Sound.applause(); // the house applauds the won round as the audience leaves
+    } else if (!musicMuffled) {
+      // A reload resuming straight into an already-open shop skips the intro above, but the
+      // music graph always starts unmuffled: sync it directly instead of leaving it open.
+      Sound.setMusicMuffled(true);
     }
+    musicMuffled = true;
     if (intro) shopStartMoney = state.money - (earnings.reward + earnings.interest + earnings.bonus);
     const gains = renderPayout(document.getElementById("overlay-sub"), debug, earnings, intro, shopStartMoney);
     showShopMoney(intro ? shopStartMoney : null, gains);

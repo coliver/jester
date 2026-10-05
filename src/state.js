@@ -165,6 +165,7 @@ function startRound(boss) {
   state.discardsUsed = 0;
   Sound.resumeMusic();
   Sound.setMusicMuffled(false);
+  musicMuffled = false;
   persistRun();
 
   const deal = () => {

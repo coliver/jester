@@ -127,6 +127,7 @@ function setDebugShop(open) {
   if (!DEBUG_ENABLED) return;
   if (state.phase !== "playing") return;
   state.debugShop = open;
+  musicMuffled = open;
   Sound.setMusicMuffled(open);
   if (open && state.shopOffers.length === 0) {
     rollShopOffers();
