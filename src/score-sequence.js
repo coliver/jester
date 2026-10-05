@@ -10,6 +10,7 @@ const SCORE_CARD_MS = 330;
 const SCORE_JESTER_MS = 430;
 const SCORE_FACET_MS = 140;
 const SCORE_ROLL_MS = 650;
+const TABLE_WIPE_MS = 400; // how long the played cards take to sweep off the table once scoring ends
 const SCORE_FAST = 0.18; // a click plays the remaining delays at this fraction of their length
 let scoring = null;
 let scoringOverride = null;
@@ -196,6 +197,12 @@ async function runScoring(s) {
     await scoringPause(s, 300);
   } finally {
     finishScoring(s);
+    // The played cards linger a moment longer to sweep off the table instead of
+    // vanishing the instant the sequence ends.
+    if (tableWipe && tableWipe.cards === s.cards) {
+      await scoringPause(s, TABLE_WIPE_MS);
+      if (tableWipe && tableWipe.cards === s.cards) { tableWipe = null; render(); }
+    }
   }
 }
 
@@ -235,6 +242,7 @@ function finishScoring(s) {
   document.getElementById("tally").className = "";
   delete document.getElementById("preview").dataset.heat;
   if (state) state.dealtIds = s.dealtIds;
+  if (scoringAnimated()) tableWipe = { cards: s.cards };
   for (const fn of s.after) fn();
   render();
 }

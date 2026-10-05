@@ -342,7 +342,7 @@ body {
   cursor: pointer;
   user-select: none;
   touch-action: none;
-  transition: transform 0.12s ease, translate 0.15s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, translate 0.15s ease, box-shadow 0.12s ease, opacity 0.2s ease-out;
   box-shadow: 0 3px 6px rgba(0,0,0,0.4);
   font-weight: 700;
   font-family: var(--card-font);
@@ -1796,7 +1796,9 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 #score-val.bump { animation: score-glow 0.9s ease-out; }
 
 .card.raised { translate: 0 -20px; transition: translate 0.15s ease-out; z-index: 2; }
-.card.scoring { animation: card-score 0.4s ease-out; z-index: 2; }
+.card.dimmed { opacity: 0.6; }
+.card.scoring { animation: card-score 0.5s ease-in-out; z-index: 2; }
+.card.wipe { animation: card-wipe 0.4s ease-in forwards; pointer-events: none; }
 .jester.trigger { animation: jester-trigger 0.45s ease-out; z-index: 2; }
 
 .score-pop {
@@ -1836,9 +1838,13 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 @keyframes total-pop-big { 0% { opacity: 0; transform: scale(0.2); } 60% { opacity: 1; transform: scale(1.35); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes total-land { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: translate(-40px, -90px) scale(0.5); } }
 @keyframes card-score {
-  0% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-20px) scale(1.12) rotate(-3deg); box-shadow: 0 16px 24px rgba(255, 207, 86, 0.6); }
-  100% { transform: translateY(0) scale(1); }
+  0% { box-shadow: 0 8px 16px rgba(255, 207, 86, 0.45); }
+  40% { box-shadow: 0 16px 26px rgba(255, 207, 86, 0.75); }
+  100% { box-shadow: 0 8px 16px rgba(255, 207, 86, 0.45); }
+}
+@keyframes card-wipe {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(34px) scale(0.8); }
 }
 @keyframes jester-trigger {
   0% { transform: scale(1) rotate(0deg); }

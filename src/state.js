@@ -4,6 +4,7 @@ let state = null;
 const lastJesterStatus = new WeakMap(); // jester -> its status text at the last render, to spot growth
 let lastJesterSig = null;
 let roundEnd = null; // while the jesters' end-of-act effects play out on the table, before the shop opens
+let tableWipe = null; // the just-scored cards, held a moment to animate off the table instead of vanishing
 let lastTricks = null; // the tricks the play row was last built from
 let lastTrickSlots = 0;
 
