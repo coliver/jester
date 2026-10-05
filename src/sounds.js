@@ -389,14 +389,16 @@ const Sound = (() => {
   // element that advances to the next track when the current one ends. A played-order
   // history (rather than just the shuffle pointer) is what lets prevTrack step backward
   // without re-shuffling or repeating a track out of order. ---
+  // `artist` is each track's Pixabay uploader handle (also the filename's own prefix);
+  // `artistUrl` is their Pixabay profile.
   const MUSIC_TRACKS = [
-    { src: "assets/sound/music/2b16-the-inn-184201.mp3", title: "The Inn" },
-    { src: "assets/sound/music/melodigne-enigmatic-embrace-185358.mp3", title: "Enigmatic Embrace" },
-    { src: "assets/sound/music/turning_pages-candle-hearts-483961.mp3", title: "Candle Hearts" },
-    { src: "assets/sound/music/turning_pages-dead-manx27s-drink-lofi-483957.mp3", title: "Dead Man's Drink" },
-    { src: "assets/sound/music/turning_pages-degraded-castle-loops-medieval-lofi-390677.mp3", title: "Degraded Castle Loops" },
-    { src: "assets/sound/music/turning_pages-four-shields-inn-lo-fi-483964.mp3", title: "Four Shields Inn" },
-    { src: "assets/sound/music/turning_pages-winding-village-roads-upbeat-medieval-lofi-390678.mp3", title: "Winding Village Roads" },
+    { src: "assets/sound/music/2b16-the-inn-184201.mp3", title: "The Inn", artist: "2b16", artistUrl: "https://pixabay.com/users/2b16/" },
+    { src: "assets/sound/music/melodigne-enigmatic-embrace-185358.mp3", title: "Enigmatic Embrace", artist: "Melodigne", artistUrl: "https://pixabay.com/users/melodigne/" },
+    { src: "assets/sound/music/turning_pages-candle-hearts-483961.mp3", title: "Candle Hearts", artist: "Turning Pages", artistUrl: "https://pixabay.com/users/turning_pages/" },
+    { src: "assets/sound/music/turning_pages-dead-manx27s-drink-lofi-483957.mp3", title: "Dead Man's Drink", artist: "Turning Pages", artistUrl: "https://pixabay.com/users/turning_pages/" },
+    { src: "assets/sound/music/turning_pages-degraded-castle-loops-medieval-lofi-390677.mp3", title: "Degraded Castle Loops", artist: "Turning Pages", artistUrl: "https://pixabay.com/users/turning_pages/" },
+    { src: "assets/sound/music/turning_pages-four-shields-inn-lo-fi-483964.mp3", title: "Four Shields Inn", artist: "Turning Pages", artistUrl: "https://pixabay.com/users/turning_pages/" },
+    { src: "assets/sound/music/turning_pages-winding-village-roads-upbeat-medieval-lofi-390678.mp3", title: "Winding Village Roads", artist: "Turning Pages", artistUrl: "https://pixabay.com/users/turning_pages/" },
   ];
 
   let musicEl = null;

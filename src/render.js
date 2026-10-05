@@ -318,18 +318,3 @@ function setDeckViewTab(tab) {
   deckViewTab = tab;
   renderDeckView();
 }
-
-// "I AM AN OLD MAN" mode: enlarges the rank/suit text on normal playing cards
-// for players who find the small corner indices (or telling clubs from
-// spades) hard to read. Persisted like the mute setting.
-let oldManMode = (() => {
-  try { return localStorage.getItem("jester-old-man-mode") === "1"; } catch { return false; }
-})();
-
-function isOldManMode() { return oldManMode; }
-
-function setOldManMode(v) {
-  oldManMode = v;
-  document.body.classList.toggle("old-man-mode", v);
-  try { localStorage.setItem("jester-old-man-mode", v ? "1" : "0"); } catch {}
-}

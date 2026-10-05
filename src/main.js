@@ -23,11 +23,11 @@ function initApp() {
   document.getElementById("deck-tab").addEventListener("click", () => setDeckViewTab("deck"));
   document.getElementById("hands-tab").addEventListener("click", () => setDeckViewTab("hands"));
   document.getElementById("options-tab").addEventListener("click", () => setDeckViewTab("options"));
+  document.getElementById("replay-tutorial-btn").addEventListener("click", () => {
+    setDeckViewOpen(false);
+    startTutorial();
+  });
 
-  const oldManToggle = document.getElementById("old-man-toggle");
-  oldManToggle.checked = isOldManMode();
-  setOldManMode(oldManToggle.checked);
-  oldManToggle.addEventListener("change", () => setOldManMode(oldManToggle.checked));
   document.getElementById("deck-close-btn").addEventListener("click", () => setDeckViewOpen(false));
   deckModal.addEventListener("click", (e) => { if (e.target === deckModal) setDeckViewOpen(false); });
   const deckPile = document.getElementById("deck-pile");
@@ -88,6 +88,7 @@ function initApp() {
   // current track; the toast (the ephemeral half) only appears to announce a change,
   // and skipping it is the one action it offers without opening Options.
   const nowPlayingTitle = document.getElementById("now-playing-title");
+  const nowPlayingArtist = document.getElementById("now-playing-artist");
   const musicToast = document.getElementById("music-toast");
   const musicToastTitle = document.getElementById("music-toast-title");
   let musicToastHideTimer = null;
@@ -109,6 +110,8 @@ function initApp() {
 
   Sound.onTrackChange((track) => {
     nowPlayingTitle.textContent = track.title;
+    nowPlayingArtist.textContent = track.artist ? `· ${track.artist}` : "";
+    nowPlayingArtist.href = track.artistUrl || "#";
     musicToastTitle.textContent = track.title;
     clearTimeout(musicToastHideTimer);
     musicToast.classList.remove("hidden");
@@ -145,6 +148,7 @@ function initApp() {
     if (!saved) grantStartingJester();
     startRound(saved?.bossModifier);
     render();
+    if (!saved) maybeStartTutorial();
   }
 }
 
@@ -221,6 +225,11 @@ const testHooks = {
   _isScoring: () => scoring !== null,
   destroyCards,
   _setState: (s) => { state = s; },
+  tutorialSeen,
+  markTutorialSeen,
+  startTutorial,
+  endTutorial,
+  TUTORIAL_STEPS,
 };
 
 // Plain Node (no DOM): export the hooks as a CommonJS module.

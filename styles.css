@@ -344,7 +344,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: calc(var(--card-w) * 0.02);
-  font-size: calc(var(--card-w) * 0.18 * var(--card-index-scale, 1));
+  font-size: calc(var(--card-w) * 0.18 * 1.25);
   line-height: 1;
   letter-spacing: -0.04em;
 }
@@ -353,16 +353,12 @@ body {
 .card .pips { position: absolute; inset: 0; }
 .card .pip {
   position: absolute;
-  font-size: calc(var(--card-w) * 0.2 * var(--card-index-scale, 1));
+  font-size: calc(var(--card-w) * 0.2 * 1.25);
   line-height: 1;
   transform: translate(-50%, -50%);
 }
 .card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
-.card .suit-mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--card-w) * 0.46 * var(--card-index-scale, 1)); }
-
-/* "I AM AN OLD MAN": bigger rank/suit text on normal playing cards, also
-   makes clubs easier to tell apart from spades at a glance. */
-body.old-man-mode .card { --card-index-scale: 1.25; }
+.card .suit-mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--card-w) * 0.46 * 1.25); }
 
 .card.red { color: var(--ink-red); }
 .card.black { color: var(--ink-black); }
@@ -494,18 +490,31 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 #deck-view.hidden, #hands-view.hidden, #options-view.hidden { display: none; }
 #options-view { padding: 8px 4px 16px; }
 .option-row { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; cursor: pointer; }
-.option-row input { width: 20px; height: 20px; cursor: pointer; }
 .option-row small { display: block; font-weight: 400; color: var(--muted); }
 .option-row.slider-row { cursor: default; justify-content: space-between; margin-top: 10px; }
 .option-row.slider-row .option-label { text-align: left; }
 .option-row.slider-row input[type="range"] { flex: 1 1 120px; max-width: 180px; min-width: 80px; margin-left: 16px; accent-color: var(--accent); cursor: pointer; }
 
-/* The options panel's persistent half of the music player: full track name plus transport,
-   sitting right under the Music slider it belongs to. The toast below is this row's ephemeral
-   counterpart, announcing the same change in passing instead of waiting to be opened. */
-#now-playing-row { cursor: default; justify-content: space-between; margin-top: 10px; gap: 8px; }
-#now-playing-row .option-label { text-align: left; min-width: 0; overflow: hidden; }
+/* The options panel's persistent half of the music player: a small lit plaque up top, full
+   track name plus transport. The toast elsewhere is this row's ephemeral counterpart,
+   announcing the same change in passing instead of waiting for Options to be opened. */
+#now-playing-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 13px;
+  background: linear-gradient(160deg, #241019, #170810);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.5);
+}
+#now-playing-icon { flex: none; font-size: 18px; color: var(--accent); }
+.now-playing-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; text-align: left; }
+.now-playing-eyebrow { font-size: 10px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; color: var(--taupe, #a8927a); }
+.now-playing-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 #now-playing-title {
+  flex: 0 1 auto;
+  min-width: 0;
   display: block;
   font-family: "IM Fell English", var(--card-font);
   font-weight: 400;
@@ -515,6 +524,29 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+#now-playing-artist {
+  flex: none;
+  max-width: 40%;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--taupe, #a8927a);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#now-playing-artist:hover { color: var(--accent); text-decoration: underline; }
+.now-playing-transport { flex: none; display: flex; gap: 6px; }
+.now-playing-transport .icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 12px;
+  border-color: rgba(201, 162, 74, 0.55);
+  color: #ecd9a0;
+  border-radius: 50%;
+}
+.now-playing-transport .icon-btn:hover { border-color: #ecd9a0; }
 .icon-btn {
   flex: none;
   font-size: 15px;
@@ -1845,4 +1877,91 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
   border-radius: inherit;
   pointer-events: none;
   z-index: 3;
+}
+
+/* --- First-run tutorial --------------------------------------------------- */
+/* A click-catcher under the hole dims/blocks the whole screen; the hole itself paints
+   the dimming via a giant box-shadow and leaves its own rect genuinely clear, with a
+   gilt ring so the highlighted element reads as chosen, not just left alone. */
+#tutorial-block {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: transparent;
+}
+#tutorial-spot {
+  position: fixed;
+  z-index: 2001;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(12, 6, 16, 0.76), 0 0 0 2px var(--gilt-light, var(--accent));
+  pointer-events: none;
+  transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease, opacity 0.2s ease;
+}
+#tutorial-spot.hidden {
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  box-shadow: 0 0 0 9999px rgba(12, 6, 16, 0.76);
+}
+#tutorial-bubble {
+  position: fixed;
+  z-index: 2002;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid rgba(201, 162, 74, 0.45);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-family: var(--fell, var(--card-font));
+  color: var(--text);
+  transition: left 0.35s ease, top 0.35s ease;
+}
+#tutorial-bubble.centered {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+#tutorial-count {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+#tutorial-bubble h3 {
+  margin: 0 0 8px;
+  color: var(--gilt-light, var(--accent));
+  font-size: 19px;
+}
+#tutorial-bubble p#tutorial-text {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+#tutorial-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+#tutorial-actions button {
+  border-radius: 3px;
+  font-family: var(--fell, var(--card-font));
+  padding: 6px 14px;
+}
+#tutorial-skip {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(217, 180, 92, 0.3);
+}
+#tutorial-next {
+  background: var(--accent);
+  color: var(--ink-black, #1f1b24);
+  border: none;
+  font-weight: 700;
+}
+#tutorial-next:focus-visible, #tutorial-skip:focus-visible {
+  outline: 2px solid var(--gilt-light, var(--accent));
+  outline-offset: 2px;
 }

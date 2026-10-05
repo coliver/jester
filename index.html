@@ -121,10 +121,20 @@
           </table>
         </section>
         <section id="options-view" class="hidden">
-          <label class="option-row">
-            <input type="checkbox" id="old-man-toggle">
-            <span>I AM AN OLD MAN <small>(bigger numbers and suits on playing cards)</small></span>
-          </label>
+          <div id="now-playing-row">
+            <span id="now-playing-icon" aria-hidden="true">♪</span>
+            <span class="now-playing-text">
+              <small class="now-playing-eyebrow">Now Playing</small>
+              <span class="now-playing-line">
+                <span id="now-playing-title">&nbsp;</span>
+                <a id="now-playing-artist" href="#" target="_blank" rel="noopener noreferrer"></a>
+              </span>
+            </span>
+            <span class="now-playing-transport">
+              <button id="music-prev-btn" class="icon-btn" aria-label="Previous track" title="Previous track">⏮</button>
+              <button id="music-next-btn" class="icon-btn" aria-label="Next track" title="Next track">⏭</button>
+            </span>
+          </div>
           <div class="option-row slider-row">
             <span class="option-label">Sound Effects<small>Card flips, scoring, coins</small></span>
             <input type="range" id="sfx-volume-slider" min="0" max="100" step="1">
@@ -133,14 +143,13 @@
             <span class="option-label">Music<small>Background court music</small></span>
             <input type="range" id="music-volume-slider" min="0" max="100" step="1">
           </div>
-          <div id="now-playing-row" class="option-row">
-            <span class="option-label">Now Playing<small id="now-playing-title">&nbsp;</small></span>
-            <button id="music-prev-btn" class="icon-btn" aria-label="Previous track" title="Previous track">⏮</button>
-            <button id="music-next-btn" class="icon-btn" aria-label="Next track" title="Next track">⏭</button>
-          </div>
           <div class="option-row slider-row">
             <span class="option-label">UI Sounds<small>Clicks, selects, denials</small></span>
             <input type="range" id="ui-volume-slider" min="0" max="100" step="1">
+          </div>
+          <div class="option-row slider-row">
+            <span class="option-label">Tutorial<small>Replay the first-run walkthrough</small></span>
+            <button id="replay-tutorial-btn" type="button">Replay</button>
           </div>
         </section>
         <div id="deck-actions">
@@ -233,6 +242,7 @@
   <script src="src/cards-view.js"></script>
   <script src="src/render.js"></script>
   <script src="src/overlay.js"></script>
+  <script src="src/tutorial.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>
