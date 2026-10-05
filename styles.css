@@ -303,9 +303,9 @@ body {
 }
 
 @keyframes card-deal {
-  0% { opacity: 0; transform: translateY(-56px) rotate(-10deg) scale(0.7); }
+  0% { opacity: 0; transform: translate(var(--deal-dx, 0px), var(--deal-dy, -56px)) rotate(-10deg) scale(0.7); }
   60% { opacity: 1; }
-  100% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
 }
 
 .card.dealt {

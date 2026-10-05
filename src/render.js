@@ -167,6 +167,22 @@ function render() {
   syncChildren(handRow, wantHand);
   syncChildren(playArea, scoring ? scoring.cards.map(c => handEls.get(c.id)).filter(Boolean) : wantPlay); // played cards stay up while they score
 
+  if (dealt.size) {
+    // Cards are already in their final flex slot by the time the deal animation starts, so point
+    // it back at the deck pile: measure the gap now and let the keyframes travel that distance in.
+    const deckEl = document.getElementById("deck-pile");
+    const deckRect = deckEl?.getBoundingClientRect();
+    if (deckRect) {
+      for (const id of dealt.keys()) {
+        const el = handEls.get(id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--deal-dx", `${(deckRect.left + deckRect.width / 2) - (r.left + r.width / 2)}px`);
+        el.style.setProperty("--deal-dy", `${(deckRect.top + deckRect.height / 2) - (r.top + r.height / 2)}px`);
+      }
+    }
+  }
+
   const selected = getSelectedCards();
   const selectedHand = selected.length > 0 ? evaluateHand(selected) : null;
   const previewName = document.getElementById("preview-name");
