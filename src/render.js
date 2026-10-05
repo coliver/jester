@@ -167,6 +167,19 @@ function render() {
   syncChildren(handRow, wantHand);
   syncChildren(playArea, scoring ? scoring.cards.map(c => handEls.get(c.id)).filter(Boolean) : wantPlay); // played cards stay up while they score
 
+  if (scoring) {
+    // Cards that actually contribute to this hand's score lift and glow as if still
+    // selected; cards along for the ride (unused kickers) drop the glow and sit flat.
+    const willScoreIds = new Set(scoring.result.hand.scoringCards.map(c => c.id));
+    for (const card of scoring.cards) {
+      const el = handEls.get(card.id);
+      if (!el) continue;
+      const willScore = willScoreIds.has(card.id);
+      el.classList.toggle("selected", willScore);
+      el.classList.toggle("raised", willScore);
+    }
+  }
+
   if (dealt.size) {
     // Cards are already in their final flex slot by the time the deal animation starts, so point
     // it back at the deck pile: measure the gap now and let the keyframes travel that distance in.

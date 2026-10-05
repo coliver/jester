@@ -145,15 +145,8 @@ async function runScoring(s) {
 
     const bump = (id) => restartClass(document.getElementById(id), "bump");
     const cardEls = new Map(s.cards.map(c => [c.id, document.querySelector(`.card[data-card-id="${c.id}"]`)]));
-    let raisedEl = null;
     for (const step of result.steps) {
       const el = step.type === "card" ? cardEls.get(step.id) : jesterElements()[step.index];
-      if (step.type === "card") {
-        // The card lifts as it scores and stays up while the jesters react to it, until the next one takes over.
-        raisedEl?.classList.remove("raised");
-        raisedEl = el;
-        el?.classList.add("raised");
-      }
       if (el) restartClass(el, step.type === "card" ? "scoring" : "trigger");
       const facets = [];
       if (step.silenced) facets.push(["Silenced", "mute"]);
@@ -187,7 +180,6 @@ async function runScoring(s) {
       await scoringPause(s, facets.length === 0 ? 0 : step.type === "card" ? SCORE_CARD_MS : SCORE_JESTER_MS);
     }
 
-    raisedEl?.classList.remove("raised");
     // The two numbers collide into the hand's total...
     await scoringPause(s, 280);
     document.getElementById("tally-total").textContent = result.total;
