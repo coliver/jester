@@ -98,9 +98,15 @@
       <button id="discard-btn">Discard</button>
       <button id="deck-btn" class="sort-btn">Deck</button>
       <button id="options-btn" class="sort-btn">Options</button>
-      <button id="shop-btn" class="sort-btn hidden">Shop</button>
-      <button id="win-btn" class="sort-btn hidden">Win</button>
-      <button id="destroy-jester-btn" class="sort-btn hidden">Destroy Jester</button>
+      <span id="debug-toggle-wrap">
+        <button id="debug-toggle-btn" class="sort-btn hidden">Debug</button>
+        <span id="debug-tools" class="hidden">
+          <button id="shop-btn" class="sort-btn">Shop</button>
+          <button id="win-btn" class="sort-btn">Win</button>
+          <button id="lose-btn" class="sort-btn">Lose</button>
+          <button id="destroy-jester-btn" class="sort-btn">Destroy Jester</button>
+        </span>
+      </span>
     </div>
 
     <div id="deck-modal" class="hidden" role="dialog" aria-label="Deck contents">
@@ -150,6 +156,16 @@
           <div class="option-row slider-row">
             <span class="option-label">Tutorial<small>Replay the first-run walkthrough</small></span>
             <button id="replay-tutorial-btn" type="button">Replay</button>
+          </div>
+          <div class="option-row slider-row hidden" id="lp-cutoff-row">
+            <span class="option-label">LP cutoff (debug)<small>Shop lowpass filter frequency</small></span>
+            <input type="range" id="lp-cutoff-knob" min="50" max="4000" step="10">
+            <output id="lp-cutoff-val" for="lp-cutoff-knob"></output>
+          </div>
+          <div class="option-row slider-row hidden" id="hp-cutoff-row">
+            <span class="option-label">HP cutoff (debug)<small>Shop highpass filter frequency</small></span>
+            <input type="range" id="hp-cutoff-knob" min="0" max="2000" step="10">
+            <output id="hp-cutoff-val" for="hp-cutoff-knob"></output>
           </div>
         </section>
         <div id="deck-actions">

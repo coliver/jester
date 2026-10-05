@@ -258,6 +258,27 @@ body {
 
 .sort-btn.hidden { display: none; }
 
+/* The debug button set pops out above the Debug toggle as a floating panel, rather than
+   unfurling inline and shoving the rest of the controls row around. */
+#debug-toggle-wrap { position: relative; display: inline-flex; }
+#debug-tools {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(201,162,74,0.5);
+  z-index: 20;
+}
+#debug-tools.hidden { display: none; }
+#lp-cutoff-row.hidden { display: none; }
+
 .sort-btn.active {
   color: var(--accent);
   border-color: var(--accent);
@@ -760,10 +781,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .hud-label { font-size: 10px; }
   .hud-val { font-size: 16px; }
   #mute-btn { margin: 0; width: 100%; padding: 6px 0; }
-  /* The player's five buttons always fit in one row at every supported width. overflow-x
-     keeps that true even when ?debug unhides extra debug-only buttons that don't: they get a
-     scrollbar confined to this bar instead of pushing the whole page into horizontal scroll. */
-  #controls { gap: 8px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+  /* The player's five buttons (plus the ?debug-only Debug toggle) always fit in one row at
+     every supported width; the debug button set itself pops out of flow above the bar rather
+     than sitting inline, so it can't push this row into overflow. No overflow-x here: that
+     used to confine an old inline debug-button overflow to this bar, but it also clips the
+     popout's absolute positioning above the row, which is worse now that there's nothing left
+     for it to guard against. */
+  #controls { gap: 8px; flex-wrap: nowrap; max-width: 100%; }
   #controls button:not(.sort-btn) { font-size: 17px; padding: 10px 30px; min-width: 130px; }
   #deck-btn { display: none; }
   #hand-area { display: flex; align-items: center; gap: 24px; }

@@ -149,7 +149,7 @@ function fillTrickList(container, withSell) {
       const sellBtn = document.createElement("button");
       sellBtn.className = "sell-btn";
       sellBtn.textContent = `Sell $${trickSellValue(t)}`;
-      sellBtn.addEventListener("click", () => sellTrick(i));
+      sellBtn.addEventListener("click", () => { hideInspect(); sellTrick(i); });
       btns.append(useBtn, sellBtn);
       slot.append(div, btns);
       container.appendChild(slot);

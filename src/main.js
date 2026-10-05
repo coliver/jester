@@ -3,12 +3,38 @@
 function initApp() {
   document.getElementById("play-btn").addEventListener("click", playSelected);
   document.getElementById("discard-btn").addEventListener("click", discardSelected);
-  document.getElementById("shop-btn").classList.toggle("hidden", !DEBUG_ENABLED);
+  document.getElementById("debug-toggle-btn").classList.toggle("hidden", !DEBUG_ENABLED);
+  document.getElementById("debug-toggle-btn").addEventListener("click", () => {
+    document.getElementById("debug-tools").classList.toggle("hidden");
+  });
   document.getElementById("shop-btn").addEventListener("click", () => setDebugShop(true));
-  document.getElementById("win-btn").classList.toggle("hidden", !DEBUG_ENABLED);
   document.getElementById("win-btn").addEventListener("click", debugWinRound);
-  document.getElementById("destroy-jester-btn").classList.toggle("hidden", !DEBUG_ENABLED);
+  document.getElementById("lose-btn").addEventListener("click", debugLoseRound);
   document.getElementById("destroy-jester-btn").addEventListener("click", debugDestroyJester);
+  // Any debug action closes the popout afterward (it fires after the button's own
+  // handler above, since bubbling runs the target's listeners before this ancestor's),
+  // so it doesn't linger over whatever screen that action just switched to.
+  document.getElementById("debug-tools").addEventListener("click", (e) => {
+    if (e.target.closest("button")) document.getElementById("debug-tools").classList.add("hidden");
+  });
+  document.getElementById("lp-cutoff-row").classList.toggle("hidden", !DEBUG_ENABLED);
+  const lpKnob = document.getElementById("lp-cutoff-knob");
+  const lpVal = document.getElementById("lp-cutoff-val");
+  lpKnob.value = Sound.getShopFilterFreq();
+  lpVal.textContent = `${lpKnob.value} Hz`;
+  lpKnob.addEventListener("input", () => {
+    lpVal.textContent = `${lpKnob.value} Hz`;
+    Sound.setShopFilterFreq(Number(lpKnob.value));
+  });
+  document.getElementById("hp-cutoff-row").classList.toggle("hidden", !DEBUG_ENABLED);
+  const hpKnob = document.getElementById("hp-cutoff-knob");
+  const hpVal = document.getElementById("hp-cutoff-val");
+  hpKnob.value = Sound.getShopFilterFreqHP();
+  hpVal.textContent = `${hpKnob.value} Hz`;
+  hpKnob.addEventListener("input", () => {
+    hpVal.textContent = `${hpKnob.value} Hz`;
+    Sound.setShopFilterFreqHP(Number(hpKnob.value));
+  });
   document.getElementById("money-btn").addEventListener("click", () => addDebugMoney());
   window.addEventListener("resize", () => { if (inShop()) syncShopTop(); });
   document.addEventListener("pointerdown", hurryIntro, true);
@@ -75,14 +101,11 @@ function initApp() {
   }
 
   // Browsers block audio playback until a user gesture, so background music starts on
-  // the first pointer/key input rather than at load.
-  const startMusicOnce = () => {
-    Sound.startMusic();
-    document.removeEventListener("pointerdown", startMusicOnce);
-    document.removeEventListener("keydown", startMusicOnce);
-  };
-  document.addEventListener("pointerdown", startMusicOnce);
-  document.addEventListener("keydown", startMusicOnce);
+  // the first pointer/key input rather than at load. Left wired on every interaction
+  // (not removed after the first) since Sound.startMusic() no-ops once running and
+  // otherwise just retries resuming a context that got stuck suspended.
+  document.addEventListener("pointerdown", () => Sound.startMusic());
+  document.addEventListener("keydown", () => Sound.startMusic());
 
   // The options panel's "Now Playing" row (the persistent half) always reflects the
   // current track; the toast (the ephemeral half) only appears to announce a change,
@@ -207,6 +230,7 @@ const testHooks = {
   setDebugShop,
   addDebugMoney,
   debugWinRound,
+  debugLoseRound,
   nextRound,
   restart,
   normalizeSeed,

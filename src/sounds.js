@@ -470,15 +470,179 @@ const Sound = (() => {
 
   // Browsers block audio until a user gesture, so this is called once on the first
   // pointerdown/keydown rather than at load; it's harmless to call more than once.
+  // Normally wide open (inaudibly high for a lowpass); swept down while browsing the
+  // Backstage shop so the music sounds like it's playing through the wall out front.
+  const MUSIC_FREQ_OPEN = 18000;
+  let musicFreqMuffled = 300; // tweakable live via the debug LP cutoff knob
+  const MUSIC_HP_OPEN = 0;
+  let musicFreqMuffledHP = 450; // tweakable live via the debug HP cutoff knob
+  const MUSIC_DUCK_OPEN = 1;
+  const MUSIC_DUCK_MUFFLED = 0.75; // shop ducks the music 25% quieter on top of the filters
+  let musicFilter = null;
+  let musicFilterHP = null;
+  let musicDuckGain = null;
+  let musicFlangeDelay = null;
+  let musicFlangeFeedback = null;
+  let musicFlangeWet = null;
+
+  // Routes the music element through the Web Audio graph (source -> lowpass -> highpass ->
+  // duck gain -> output) instead of straight to the speakers, so its tone and loudness can
+  // both be swept without touching the user's own volume slider (that still lives on
+  // musicEl.volume). The highpass trims the sub-bass rumble the lowpass alone leaves boomy,
+  // so together they band-limit the shop's music into a narrow, "through the wall" band.
+  // A second, parallel path (source -> delay (with feedback) -> wet gain -> output) adds a
+  // flanger: its delay and wet mix normally sit at 0 and only pulse during a transition (see
+  // flangeSwoosh), giving the filter sweep an audible "swish" instead of just a gradual
+  // darkening. The feedback loop (delay output back into its own input) is what gives a plain
+  // doubled-and-delayed signal real resonant bite instead of a barely-there comb.
+  function setupMusicGraph() {
+    ensureCtx();
+    const source = ctx.createMediaElementSource(musicEl);
+    musicFilter = ctx.createBiquadFilter();
+    musicFilter.type = "lowpass";
+    musicFilter.frequency.value = MUSIC_FREQ_OPEN;
+    musicFilter.Q.value = 1.4;
+    musicFilterHP = ctx.createBiquadFilter();
+    musicFilterHP.type = "highpass";
+    musicFilterHP.frequency.value = MUSIC_HP_OPEN;
+    musicFilterHP.Q.value = 0.7;
+    musicDuckGain = ctx.createGain();
+    musicDuckGain.gain.value = MUSIC_DUCK_OPEN;
+    source.connect(musicFilter).connect(musicFilterHP).connect(musicDuckGain).connect(ctx.destination);
+    musicFlangeDelay = ctx.createDelay(0.03);
+    musicFlangeDelay.delayTime.value = 0;
+    musicFlangeFeedback = ctx.createGain();
+    musicFlangeFeedback.gain.value = 0.35;
+    musicFlangeWet = ctx.createGain();
+    musicFlangeWet.gain.value = 0;
+    source.connect(musicFlangeDelay);
+    musicFlangeDelay.connect(musicFlangeFeedback).connect(musicFlangeDelay);
+    musicFlangeDelay.connect(musicFlangeWet).connect(ctx.destination);
+  }
+
+  // A one-shot flange sweep: the delay rides up to ~15ms and back down over a couple of
+  // seconds (slow enough to actually hear as a sweep, not a blip), comb-filtering the wet
+  // signal against the dry one as it moves, for the classic swooshing "swish" of a flanger
+  // passing through, rather than a sustained flanging texture.
+  function flangeSwoosh() {
+    const t = ctx.currentTime;
+    const peak = 0.015;
+    musicFlangeDelay.delayTime.cancelScheduledValues(t);
+    musicFlangeDelay.delayTime.setValueAtTime(musicFlangeDelay.delayTime.value, t);
+    musicFlangeDelay.delayTime.linearRampToValueAtTime(peak, t + 0.9);
+    musicFlangeDelay.delayTime.linearRampToValueAtTime(0, t + 2.2);
+    musicFlangeWet.gain.cancelScheduledValues(t);
+    musicFlangeWet.gain.setValueAtTime(musicFlangeWet.gain.value, t);
+    musicFlangeWet.gain.linearRampToValueAtTime(0.9, t + 0.9);
+    musicFlangeWet.gain.linearRampToValueAtTime(0, t + 2.2);
+  }
+
+  const FILTER_TAU = 0.15;
+  const FILTER_LANDED = FILTER_TAU * 4; // ~98% of the way to target; "landed" for sequencing purposes
+
+  // Sweeps both filter cutoffs first; only once they've landed does the volume duck start
+  // moving, rather than both happening at once, with a flange swoosh riding along on top of
+  // the cutoff sweep in either direction.
+  function setMusicMuffled(on) {
+    if (!musicFilter) return;
+    const t = ctx.currentTime;
+    musicFilter.frequency.cancelScheduledValues(t);
+    musicFilter.frequency.setTargetAtTime(on ? musicFreqMuffled : MUSIC_FREQ_OPEN, t, FILTER_TAU);
+    musicFilterHP.frequency.cancelScheduledValues(t);
+    musicFilterHP.frequency.setTargetAtTime(on ? musicFreqMuffledHP : MUSIC_HP_OPEN, t, FILTER_TAU);
+    const volT = t + FILTER_LANDED;
+    musicDuckGain.gain.cancelScheduledValues(t);
+    musicDuckGain.gain.setValueAtTime(musicDuckGain.gain.value, t); // hold flat until the cutoff lands
+    musicDuckGain.gain.setTargetAtTime(on ? MUSIC_DUCK_MUFFLED : MUSIC_DUCK_OPEN, volT, FILTER_TAU);
+    flangeSwoosh();
+  }
+
+  // Debug knobs: live-retune the shop's muffled cutoffs and immediately preview them on the
+  // actual filters, whatever phase the game is in, so they can be dialed in by ear without
+  // having to be sitting in the shop while you drag them.
+  function getShopFilterFreq() { return musicFreqMuffled; }
+  function setShopFilterFreq(hz) {
+    musicFreqMuffled = hz;
+    if (!musicFilter) return;
+    musicFilter.frequency.cancelScheduledValues(ctx.currentTime);
+    musicFilter.frequency.setTargetAtTime(musicFreqMuffled, ctx.currentTime, 0.03);
+  }
+  function getShopFilterFreqHP() { return musicFreqMuffledHP; }
+  function setShopFilterFreqHP(hz) {
+    musicFreqMuffledHP = hz;
+    if (!musicFilterHP) return;
+    musicFilterHP.frequency.cancelScheduledValues(ctx.currentTime);
+    musicFilterHP.frequency.setTargetAtTime(musicFreqMuffledHP, ctx.currentTime, 0.03);
+  }
+
+  // Re-callable on every click/keydown rather than just once: if the context ever ends up
+  // stuck suspended (the first gesture's resume() can lose a race, or the tab backgrounds
+  // and the browser suspends it), the very next interaction retries and heals it, instead
+  // of only a later music-transport click happening to kick it back into life.
   function startMusic() {
-    if (musicEl) return;
+    if (musicEl) {
+      if (ctx && ctx.state === "suspended") ctx.resume();
+      return;
+    }
     musicEl = new Audio();
     musicEl.preload = "auto";
     musicEl.volume = muted ? 0 : musicVolume;
+    musicEl.preservesPitch = false;
+    musicEl.mozPreservesPitch = false;
+    musicEl.webkitPreservesPitch = false;
     musicEl.addEventListener("ended", nextTrack);
+    setupMusicGraph();
     musicPlaylist = shuffled(MUSIC_TRACKS);
     musicIndex = 0;
-    nextTrack();
+    // Routing the element through the Web Audio graph means its sound only reaches the
+    // speakers once ctx is actually running, not merely once .play() resolves; resume()
+    // is async, so without waiting for it here the very first track can start playing
+    // silently (fixed only once some later action, e.g. skipping a track, happens to land
+    // after the context has caught up).
+    ctx.resume().then(nextTrack, nextTrack);
+  }
+
+  let windDownId = null;
+
+  function cancelMusicWindDown() {
+    if (windDownId !== null) {
+      window.cancelAnimationFrame(windDownId);
+      windDownId = null;
+    }
+  }
+
+  // The court's record player being switched off on a loss: speed and pitch droop
+  // together toward a stall and the volume sinks with them, rather than the track
+  // just cutting out or fading at a constant speed.
+  function musicWindDown(duration = 3.5) {
+    if (!musicEl || musicEl.paused) return;
+    cancelMusicWindDown();
+    const startRate = musicEl.playbackRate;
+    const startVol = musicEl.volume;
+    const start = performance.now();
+    const step = () => {
+      const t = Math.min(1, (performance.now() - start) / (duration * 1000));
+      const eased = t * t; // slow to start, then the turntable drags down fast at the end
+      musicEl.playbackRate = Math.max(0.06, startRate * (1 - eased * 0.94));
+      musicEl.volume = startVol * (1 - eased);
+      if (t < 1) {
+        windDownId = window.requestAnimationFrame(step);
+      } else {
+        windDownId = null;
+        musicEl.pause();
+      }
+    };
+    windDownId = window.requestAnimationFrame(step);
+  }
+
+  // Undoes a wind-down in progress (or one left stalled) so the next round's music
+  // starts back up at normal speed and volume.
+  function resumeMusic() {
+    cancelMusicWindDown();
+    if (!musicEl) return;
+    musicEl.playbackRate = 1;
+    syncMusicVolume();
+    if (musicEl.paused && musicEl.src) musicEl.play().catch(() => {});
   }
 
   function getMusicVolume() { return musicVolume; }
@@ -494,6 +658,7 @@ const Sound = (() => {
     coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, fadeOutCrowdInterval, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
     getSfxVolume, setSfxVolume, getUiVolume, setUiVolume, getMusicVolume, setMusicVolume, startMusic,
-    nextTrack, prevTrack, getCurrentTrack, onTrackChange,
+    nextTrack, prevTrack, getCurrentTrack, onTrackChange, musicWindDown, resumeMusic, setMusicMuffled,
+    getShopFilterFreq, setShopFilterFreq, getShopFilterFreqHP, setShopFilterFreqHP,
   };
 })();

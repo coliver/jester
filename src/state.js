@@ -163,6 +163,8 @@ function startRound(boss) {
   state.phase = "playing";
   state.dealtIds = new Map();
   state.discardsUsed = 0;
+  Sound.resumeMusic();
+  Sound.setMusicMuffled(false);
   persistRun();
 
   const deal = () => {

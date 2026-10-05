@@ -38,6 +38,8 @@ function finishRoundWin() {
 
   cue(() => Sound.roundWin());
   state.phase = "shop";
+  // The muffle itself fires from startIntro() (see overlay.js), timed to land exactly when
+  // the stage iris has gone dark, rather than the instant the round's score clears here.
   state.rerollCost = rerollBaseCost();
   state.freeRerollUsed = false;
   state.shopRolls = 0;
@@ -125,6 +127,7 @@ function setDebugShop(open) {
   if (!DEBUG_ENABLED) return;
   if (state.phase !== "playing") return;
   state.debugShop = open;
+  Sound.setMusicMuffled(open);
   if (open && state.shopOffers.length === 0) {
     rollShopOffers();
     rollTrickOffers();
@@ -141,6 +144,17 @@ function debugWinRound() {
   if (state.phase !== "playing") return;
   state.roundScore = Math.max(state.roundScore, state.target);
   finishRoundWin();
+  render();
+}
+// Instant loss: zeroes out hands left as if the last one had just been played without
+// reaching the target, landing on the real "Off With Your Head" game-over screen.
+function debugLoseRound() {
+  if (!DEBUG_ENABLED) return;
+  if (state.phase !== "playing") return;
+  state.handsLeft = 0;
+  state.phase = "gameover";
+  Sound.gameOver();
+  Sound.musicWindDown();
   render();
 }
 function addDebugMoney(amount = 1000) {

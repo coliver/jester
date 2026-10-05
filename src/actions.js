@@ -123,7 +123,7 @@ function playHand() {
     finishRoundWin();
   } else if (state.handsLeft <= 0) {
     state.phase = "gameover";
-    cue(() => Sound.gameOver());
+    cue(() => { Sound.gameOver(); Sound.musicWindDown(); });
   }
   render();
   if (scoring) scoring.done = runScoring(scoring);

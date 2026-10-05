@@ -214,6 +214,7 @@ function initNewRunButton() {
   armedButton(document.getElementById("end-run-btn"), "End Run", "End this run?", () => {
     if (state.phase !== "playing" || playPending || scoring) return;
     state.phase = "gameover";
+    Sound.musicWindDown();
     setDeckViewOpen(false);
     render();
   });

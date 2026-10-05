@@ -78,7 +78,7 @@ function startIntro(overlay) {
   introLead = prefersReducedMotion() ? 0 : IRIS_LEAD;
   // Over once the ledger has run and the last shelf has dealt in.
   introLater(() => { introActive = false; }, (introLead + 0.8 + LEDGER_FIRST + 4 * LEDGER_STEP + 2) * 1000);
-  if (!introLead) return;
+  if (!introLead) { Sound.setMusicMuffled(true); return; }
   const iris = document.getElementById("iris");
   const hand = document.getElementById("play-area").getBoundingClientRect();
   iris.style.setProperty("--iris-x", hand.width ? `${hand.left + hand.width / 2}px` : "50%");
@@ -89,6 +89,10 @@ function startIntro(overlay) {
   }
   iris.classList.add("on");
   overlay.classList.add("irised");
+  // Starts the muffle ramping the instant the iris starts closing (not when it finishes),
+  // so it's fully settled (it ramps over ~0.15s*5, well under the 1s close) by the time the
+  // spotlight actually shuts, instead of only beginning its ramp right as the screen goes dark.
+  Sound.setMusicMuffled(true);
   // During the hold between close and open (1s-1.35s, see #iris.on), re-aim the iris at the
   // money total so it reopens from there instead of from the table.
   introLater(() => {
