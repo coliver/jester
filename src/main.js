@@ -131,6 +131,24 @@ function initApp() {
   document.getElementById("music-prev-btn").addEventListener("click", () => Sound.prevTrack());
   document.getElementById("music-next-btn").addEventListener("click", () => Sound.nextTrack());
 
+  const musicStopBtn = document.getElementById("music-stop-btn");
+  function syncMusicStopBtn() {
+    const playing = Sound.isMusicPlaying();
+    musicStopBtn.textContent = playing ? "⏹" : "▶";
+    const label = playing ? "Stop music" : "Play music";
+    musicStopBtn.setAttribute("aria-label", label);
+    musicStopBtn.title = label;
+  }
+  musicStopBtn.addEventListener("click", () => {
+    if (Sound.isMusicPlaying()) Sound.pauseMusic();
+    else Sound.resumeMusic();
+    syncMusicStopBtn();
+  });
+  document.getElementById("options-btn").addEventListener("click", syncMusicStopBtn);
+  document.getElementById("options-tab").addEventListener("click", syncMusicStopBtn);
+  Sound.onTrackChange(syncMusicStopBtn);
+  syncMusicStopBtn();
+
   Sound.onTrackChange((track) => {
     nowPlayingTitle.textContent = track.title;
     nowPlayingArtist.textContent = track.artist ? `· ${track.artist}` : "";

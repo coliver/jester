@@ -645,6 +645,17 @@ const Sound = (() => {
     if (musicEl.paused && musicEl.src) musicEl.play().catch(() => {});
   }
 
+  // The options panel's manual stop: cancels any wind-down in progress (so it can't
+  // fight a later resume) and just pauses in place, leaving position/track untouched.
+  function pauseMusic() {
+    cancelMusicWindDown();
+    if (musicEl) musicEl.pause();
+  }
+
+  function isMusicPlaying() {
+    return !!(musicEl && !musicEl.paused);
+  }
+
   function getMusicVolume() { return musicVolume; }
   function setMusicVolume(v) {
     musicVolume = clamp01(v);
@@ -658,7 +669,7 @@ const Sound = (() => {
     coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, fadeOutCrowdInterval, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
     getSfxVolume, setSfxVolume, getUiVolume, setUiVolume, getMusicVolume, setMusicVolume, startMusic,
-    nextTrack, prevTrack, getCurrentTrack, onTrackChange, musicWindDown, resumeMusic, setMusicMuffled,
+    nextTrack, prevTrack, getCurrentTrack, onTrackChange, musicWindDown, resumeMusic, pauseMusic, isMusicPlaying, setMusicMuffled,
     getShopFilterFreq, setShopFilterFreq, getShopFilterFreqHP, setShopFilterFreqHP,
   };
 })();
