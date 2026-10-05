@@ -3,6 +3,7 @@
 
 function nextRound() {
   if (state.pack) return; // pick a card or skip the pack first
+  Sound.fadeOutCrowdInterval();
   state.round += 1;
   if (state.round > ROUNDS_PER_VENUE) {
     state.round = 1;

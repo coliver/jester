@@ -48,24 +48,55 @@ const Sound = (() => {
     place: clip("assets/sound/sfx/placing-playing-card.mp3"),
     shuffleDeck: clip("assets/sound/sfx/shuffling-deck-of-cards.mp3"),
     applause: clip("assets/sound/sfx/clapping.wav"),
+    crowdCheers: clip("assets/sound/sfx/storegraphic-crowd-cheers-314919.mp3"),
+    crowdInterval: clip("assets/sound/sfx/freesound_community-happy-crowd-at-interval-23485.mp3"),
+    disappointedCrowd: clip("assets/sound/sfx/universfield-crowd-disappointment-reaction-352718.mp3"),
     glassBreak: clip("assets/sound/sfx/bottle_breaking.mp3"),
     swoosh: clip("assets/sound/sfx/swoosh.mp3"),
   };
 
-  function playClip(base, { delay = 0, volume = 0.5, rate = 1, bus = "sfx" } = {}) {
+  // Returns the playing <audio> node (so a caller can fade it early), unless `delay`
+  // means it hasn't started yet.
+  function playClip(base, { delay = 0, volume = 0.5, rate = 1, bus = "sfx", fadeOut = 0 } = {}) {
     const scale = busVolume(bus);
-    if (scale <= 0) return;
+    if (scale <= 0) return null;
     const run = () => {
       const node = base.cloneNode();
-      node.volume = clamp01(volume * scale);
+      const target = clamp01(volume * scale);
+      node.volume = target;
       node.playbackRate = rate;
       node.preservesPitch = false;
       node.mozPreservesPitch = false;
       node.webkitPreservesPitch = false;
+      // Some clips end abruptly rather than naturally tailing off; ease the last
+      // `fadeOut` seconds down to silence instead of letting it just cut out.
+      if (fadeOut > 0) {
+        node.addEventListener("timeupdate", () => {
+          if (!isFinite(node.duration)) return;
+          const remaining = node.duration - node.currentTime;
+          node.volume = remaining <= fadeOut ? clamp01(target * (remaining / fadeOut)) : target;
+        });
+      }
       node.play().catch(() => {});
+      return node;
     };
-    if (delay > 0) setTimeout(run, delay * 1000);
-    else run();
+    if (delay > 0) { setTimeout(run, delay * 1000); return null; }
+    return run();
+  }
+
+  // Ramps a still-playing node's volume down to 0 over `duration` seconds, then pauses it,
+  // instead of waiting for its own natural (and possibly abrupt) end.
+  function fadeOutNode(node, duration) {
+    if (!node || node.paused) return;
+    const startVol = node.volume;
+    const start = performance.now();
+    const step = () => {
+      const t = Math.min(1, (performance.now() - start) / (duration * 1000));
+      node.volume = startVol * (1 - t);
+      if (t < 1 && !node.paused) window.requestAnimationFrame(step);
+      else node.pause();
+    };
+    window.requestAnimationFrame(step);
   }
 
   function randomTake() {
@@ -295,8 +326,17 @@ const Sound = (() => {
     playClip(clips.shuffleDeck, { volume: 0.55 });
   }
 
+  let crowdIntervalNode = null;
   function applause() {
-    playClip(clips.applause, { volume: 0.6 });
+    playClip(clips.applause, { volume: 0.75 });
+    crowdIntervalNode = playClip(clips.crowdInterval, { volume: 0.5, fadeOut: 2.5 });
+  }
+
+  // Called when the player leaves Backstage (Next Audience), so the crowd clip doesn't
+  // keep going, or cut off bluntly, under the next round starting up.
+  function fadeOutCrowdInterval() {
+    fadeOutNode(crowdIntervalNode, 0.6);
+    crowdIntervalNode = null;
   }
 
   function roundWin() {
@@ -309,12 +349,14 @@ const Sound = (() => {
     [440, 392, 349.23, 293.66].forEach((f, i) =>
       tone({ delay: i * 0.12, freq: f, duration: 0.3, type: "sawtooth", gain: 0.1 })
     );
+    playClip(clips.disappointedCrowd, { volume: 0.55 });
   }
 
   function gameWin() {
     [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) =>
       tone({ delay: i * 0.1, freq: f, duration: 0.35, type: "triangle", gain: 0.14 })
     );
+    playClip(clips.crowdCheers, { volume: 0.55 });
   }
 
   function click() {
@@ -445,7 +487,7 @@ const Sound = (() => {
   return {
     cardFlip, dealHand, cardSelect, cardDeselect, discard, playHandResolve,
     scoreChip, scoreMult, scoreXMult, scoreMute, scoreTotal, scoreRoll,
-    coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, roundWin, gameOver, gameWin, click,
+    coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, fadeOutCrowdInterval, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
     getSfxVolume, setSfxVolume, getUiVolume, setUiVolume, getMusicVolume, setMusicVolume, startMusic,
     nextTrack, prevTrack, getCurrentTrack, onTrackChange,
