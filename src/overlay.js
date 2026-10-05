@@ -7,7 +7,7 @@ let shopIntroFor = null;
 let shopStartMoney = null; // the purse before this shop's payout, for its ledger; null when unknown (a reloaded shop)
 let moneyTick = 0;
 // Whether the shop's muffled music filter is currently engaged, so a render can sync it to
-// state.phase without re-triggering the flange swoosh on every single render. Normally set by
+// state.phase without redundantly re-engaging it on every single render. Normally set by
 // startIntro(); a reload resuming straight into an already-open shop skips that intro (see
 // shopIntroFor above), but the music graph always starts unmuffled, so renderOverlay() also
 // engages it directly in that case. Reset to false wherever Sound.setMusicMuffled(false) runs.

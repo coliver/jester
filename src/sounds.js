@@ -481,20 +481,12 @@ const Sound = (() => {
   let musicFilter = null;
   let musicFilterHP = null;
   let musicDuckGain = null;
-  let musicFlangeDelay = null;
-  let musicFlangeFeedback = null;
-  let musicFlangeWet = null;
 
   // Routes the music element through the Web Audio graph (source -> lowpass -> highpass ->
   // duck gain -> output) instead of straight to the speakers, so its tone and loudness can
   // both be swept without touching the user's own volume slider (that still lives on
   // musicEl.volume). The highpass trims the sub-bass rumble the lowpass alone leaves boomy,
   // so together they band-limit the shop's music into a narrow, "through the wall" band.
-  // A second, parallel path (source -> delay (with feedback) -> wet gain -> output) adds a
-  // flanger: its delay and wet mix normally sit at 0 and only pulse during a transition (see
-  // flangeSwoosh), giving the filter sweep an audible "swish" instead of just a gradual
-  // darkening. The feedback loop (delay output back into its own input) is what gives a plain
-  // doubled-and-delayed signal real resonant bite instead of a barely-there comb.
   function setupMusicGraph() {
     ensureCtx();
     const source = ctx.createMediaElementSource(musicEl);
@@ -509,40 +501,13 @@ const Sound = (() => {
     musicDuckGain = ctx.createGain();
     musicDuckGain.gain.value = MUSIC_DUCK_OPEN;
     source.connect(musicFilter).connect(musicFilterHP).connect(musicDuckGain).connect(ctx.destination);
-    musicFlangeDelay = ctx.createDelay(0.03);
-    musicFlangeDelay.delayTime.value = 0;
-    musicFlangeFeedback = ctx.createGain();
-    musicFlangeFeedback.gain.value = 0.35;
-    musicFlangeWet = ctx.createGain();
-    musicFlangeWet.gain.value = 0;
-    source.connect(musicFlangeDelay);
-    musicFlangeDelay.connect(musicFlangeFeedback).connect(musicFlangeDelay);
-    musicFlangeDelay.connect(musicFlangeWet).connect(ctx.destination);
-  }
-
-  // A one-shot flange sweep: the delay rides up to ~15ms and back down over a couple of
-  // seconds (slow enough to actually hear as a sweep, not a blip), comb-filtering the wet
-  // signal against the dry one as it moves, for the classic swooshing "swish" of a flanger
-  // passing through, rather than a sustained flanging texture.
-  function flangeSwoosh() {
-    const t = ctx.currentTime;
-    const peak = 0.015;
-    musicFlangeDelay.delayTime.cancelScheduledValues(t);
-    musicFlangeDelay.delayTime.setValueAtTime(musicFlangeDelay.delayTime.value, t);
-    musicFlangeDelay.delayTime.linearRampToValueAtTime(peak, t + 0.9);
-    musicFlangeDelay.delayTime.linearRampToValueAtTime(0, t + 2.2);
-    musicFlangeWet.gain.cancelScheduledValues(t);
-    musicFlangeWet.gain.setValueAtTime(musicFlangeWet.gain.value, t);
-    musicFlangeWet.gain.linearRampToValueAtTime(0.9, t + 0.9);
-    musicFlangeWet.gain.linearRampToValueAtTime(0, t + 2.2);
   }
 
   const FILTER_TAU = 0.15;
   const FILTER_LANDED = FILTER_TAU * 4; // ~98% of the way to target; "landed" for sequencing purposes
 
   // Sweeps both filter cutoffs first; only once they've landed does the volume duck start
-  // moving, rather than both happening at once, with a flange swoosh riding along on top of
-  // the cutoff sweep in either direction.
+  // moving, rather than both happening at once.
   function setMusicMuffled(on) {
     if (!musicFilter) return;
     const t = ctx.currentTime;
@@ -554,7 +519,6 @@ const Sound = (() => {
     musicDuckGain.gain.cancelScheduledValues(t);
     musicDuckGain.gain.setValueAtTime(musicDuckGain.gain.value, t); // hold flat until the cutoff lands
     musicDuckGain.gain.setTargetAtTime(on ? MUSIC_DUCK_MUFFLED : MUSIC_DUCK_OPEN, volT, FILTER_TAU);
-    flangeSwoosh();
   }
 
   // Debug knobs: live-retune the shop's muffled cutoffs and immediately preview them on the
@@ -635,20 +599,56 @@ const Sound = (() => {
     windDownId = window.requestAnimationFrame(step);
   }
 
-  // Undoes a wind-down in progress (or one left stalled) so the next round's music
-  // starts back up at normal speed and volume.
-  function resumeMusic() {
-    cancelMusicWindDown();
-    if (!musicEl) return;
-    musicEl.playbackRate = 1;
-    syncMusicVolume();
-    if (musicEl.paused && musicEl.src) musicEl.play().catch(() => {});
+  let spinUpId = null;
+
+  function cancelMusicSpinUp() {
+    if (spinUpId !== null) {
+      window.cancelAnimationFrame(spinUpId);
+      spinUpId = null;
+    }
   }
 
-  // The options panel's manual stop: cancels any wind-down in progress (so it can't
-  // fight a later resume) and just pauses in place, leaving position/track untouched.
+  // The reverse of musicWindDown: the record player switching back on. Speed and volume
+  // climb from wherever they were left (full stall, a wind-down caught mid-drag, or
+  // already at full if nothing had wound down) back up together, quick at first as the
+  // motor catches then easing into full speed, rather than snapping straight there.
+  function musicSpinUp(duration = 1.8) {
+    if (!musicEl) return;
+    cancelMusicWindDown();
+    cancelMusicSpinUp();
+    const startRate = musicEl.playbackRate || 0.06;
+    const startVol = musicEl.volume;
+    const targetVol = muted ? 0 : musicVolume;
+    const start = performance.now();
+    if (musicEl.paused && musicEl.src) musicEl.play().catch(() => {});
+    const step = () => {
+      const t = Math.min(1, (performance.now() - start) / (duration * 1000));
+      const eased = 1 - (1 - t) * (1 - t); // catches up fast, then settles into full speed
+      musicEl.playbackRate = startRate + (1 - startRate) * eased;
+      musicEl.volume = startVol + (targetVol - startVol) * eased;
+      if (t < 1) {
+        spinUpId = window.requestAnimationFrame(step);
+      } else {
+        spinUpId = null;
+        musicEl.playbackRate = 1;
+        syncMusicVolume();
+      }
+    };
+    spinUpId = window.requestAnimationFrame(step);
+  }
+
+  // Undoes a wind-down in progress (or one left stalled) so the next round's music
+  // spins back up to normal speed and volume instead of cutting straight back in.
+  function resumeMusic() {
+    if (!musicEl) return;
+    musicSpinUp();
+  }
+
+  // The options panel's manual stop: cancels any wind-down or spin-up in progress (so
+  // it can't fight a later resume) and just pauses in place, leaving position/track untouched.
   function pauseMusic() {
     cancelMusicWindDown();
+    cancelMusicSpinUp();
     if (musicEl) musicEl.pause();
   }
 
