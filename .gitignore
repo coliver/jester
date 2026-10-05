@@ -7,3 +7,4 @@ tools/screenshots/
 .DS_Store
 Thumbs.db
 *.swp
+*:Zone.Identifier

@@ -352,7 +352,6 @@ const Sound = (() => {
     { src: "assets/sound/music/turning_pages-dead-manx27s-drink-lofi-483957.mp3", title: "Dead Man's Drink" },
     { src: "assets/sound/music/turning_pages-degraded-castle-loops-medieval-lofi-390677.mp3", title: "Degraded Castle Loops" },
     { src: "assets/sound/music/turning_pages-four-shields-inn-lo-fi-483964.mp3", title: "Four Shields Inn" },
-    { src: "assets/sound/music/turning_pages-the-dancing-dragon-medieval-lofi-track-540970.mp3", title: "The Dancing Dragon" },
     { src: "assets/sound/music/turning_pages-winding-village-roads-upbeat-medieval-lofi-390678.mp3", title: "Winding Village Roads" },
   ];
 
