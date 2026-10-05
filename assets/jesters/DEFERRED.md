@@ -1,9 +1,7 @@
-# Deferred Balatro jesters
+# Deferred jesters
 
-About 50 of the 105 "available from start" Balatro jesters (source, under
-Balatro's own name for them:
-[balatrogame.fandom.com/wiki/Jokers](https://balatrogame.fandom.com/wiki/Jokers),
-pulled 2026-09-29) aren't in `JESTER_POOL` yet — see [prompts.csv](prompts.csv)
+About 50 of the 105 "available from start" jesters this game's roster is
+adapted from aren't in `JESTER_POOL` yet — see [prompts.csv](prompts.csv)
 for the 61 that are (jesters from this list are removed as they land). Each of these needs something the engine doesn't
 track today. Grouped by what's missing, so a future phase can knock out a
 whole group at once rather than one jester at a time.

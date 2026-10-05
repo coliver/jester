@@ -90,8 +90,8 @@ buy/sell/reroll, win and game-over flows, no console errors) plus
   flush). Fix `rankNum`/`isStraight` to also check the wheel case.
 - **Win condition.** The run currently escalates ante forever with no
   finish line — `phase` only ever becomes `"playing"`, `"shop"`, or
-  `"gameover"` (on loss). Decide a final ante (e.g. 8, matching Balatro's
-  convention loosely) and add a `"win"` overlay state when it's cleared.
+  `"gameover"` (on loss). Decide a final ante (e.g. 8, a loose genre
+  convention) and add a `"win"` overlay state when it's cleared.
 - **Audit `scoreSelection`/jester `apply` contracts** for edge cases: hand
   sizes other than 5 (currently high-card/pair/etc. detection assumes
   `cards.length === 5` for flush/straight but the function is called with
@@ -100,9 +100,9 @@ buy/sell/reroll, win and game-over flows, no console errors) plus
 
 ### 2. Missing core actions
 
-- **Sell a jester** from the shop/jester row for partial refund. Balatro-style
-  games lean on this for economy tuning in Phase 2, so land the plumbing
-  now.
+- **Sell a jester** from the shop/jester row for partial refund. Games in
+  this genre lean on this for economy tuning in Phase 2, so land the
+  plumbing now.
 - **Reroll shop** (even a simple fixed- or scaling-cost reroll) — currently
   the 3 offers are fixed per shop visit with no player agency.
 - **Hand reference** — a small always-available legend (tooltip or panel)

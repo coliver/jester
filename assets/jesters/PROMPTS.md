@@ -37,8 +37,8 @@ sheet into ComfyUI with `python3 tools/imagegen/queue_cards.py jesters`.
 
 ## Rarity color key (already wired into styles.css)
 
-Common = `#4db8ff`, Uncommon = `#35d68a`, Rare = `#ff5d6c` — matches
-Balatro's own rarity colors loosely, adapted to this game's palette.
+Common = `#4db8ff`, Uncommon = `#35d68a`, Rare = `#ff5d6c` — loosely
+matches the genre's usual rarity colors, adapted to this game's palette.
 Art doesn't need to encode rarity itself (the UI badge already shows it),
 but leaning into slightly richer detail/lighting for Rare pieces is a
 nice touch if you want one.

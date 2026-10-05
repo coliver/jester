@@ -433,7 +433,7 @@ test("full round trip: play to the target, shop, then start the next round", () 
   assert.equal(after.hand.length, 8 + handSizeBonus);
 });
 
-// --- ported Balatro jesters, round 2: new engine plumbing -----------------
+// --- ported jesters, round 2: new engine plumbing -------------------------
 
 function jesterById(id) {
   const j = JESTER_POOL.find(j => j.id === id);

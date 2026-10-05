@@ -176,7 +176,7 @@ test("conditional jesters only fire when their condition holds", () => {
   assert.equal(straightResult.chips, 30 + 100 + 10 + 10 + 10 + 10 + 11);
 });
 
-// --- ported Balatro jesters: the ones that key off context beyond the -----
+// --- ported jesters: the ones that key off context beyond the -----------
 // --- selected cards themselves (held hand, randomness, other stats) -----
 
 function withMockedRandom(value, fn) {
@@ -240,7 +240,7 @@ test("walkie_talkie rewards each played 10 or 4 with +10 chips and +4 mult", () 
   assert.equal(result.mult, 2 + 2 * 4);
 });
 
-// --- ported Balatro jesters: new ctx fields (heldHand, money, rarity) ------
+// --- ported jesters: new ctx fields (heldHand, money, rarity) -------------
 
 test("held-in-hand jesters see cards not in the played selection", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("A", "♦")];
@@ -307,7 +307,7 @@ test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
   assert.equal(twoUncommons.multMul, 1.5 * 1.5);
 });
 
-// --- ported Balatro jesters, round 2: needed a small amount of new engine --
+// --- ported jesters, round 2: needed a small amount of new engine --------
 // --- plumbing (see src/scoring.js) beyond the plain per-hand apply(ctx) hook ------
 
 test("Hack doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {

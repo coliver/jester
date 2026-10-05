@@ -1,6 +1,6 @@
 // --- Scoring sequence ------------------------------------------------------
 // A played hand resolves in the state at once (so the rules stay easy to test), then plays
-// out on screen the way Balatro does it: the hand name and its base chips x mult, each card
+// out on screen genre-style: the hand name and its base chips x mult, each card
 // scoring left to right, each jester in turn, then the two numbers collide into a total that
 // rolls into the round score. While it runs, `scoring` holds what the screen still has to
 // show (the old score, the played cards, the cards drawn after them), and input is locked.
