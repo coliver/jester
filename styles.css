@@ -1348,16 +1348,13 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 .shop-item .buy-btn.full { cursor: pointer; }
 .shop-item.unaffordable > .jester, .shop-item.unaffordable > .trick { filter: saturate(0.5) brightness(0.7); }
 
-.trick.prop .trick-glyph, .trick.pack .trick-glyph {
+.trick.pack .trick-glyph {
   flex: 1 1 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: calc(var(--card-w) * 0.3);
 }
-/* Until art loads (see assets/props/PROMPTS.md), the initial stands in, set large like an
-   illuminated capital; the generic .trick .card-art rules above size the art the same way once it's there. */
-.trick.prop .prop-initial { font: italic 400 calc(var(--card-w) * 0.5)/1 var(--fell); }
 
 /* Packs wear the deck's own back (wine with a gilt lattice), with a cartouche naming the pack.
    The sheets peeking out behind are the colour of the cards inside: indigo masks, teal decrees. */
@@ -1405,9 +1402,6 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 @media (hover: hover) {
   .owned-slot .sell-btn:hover { background: rgba(207, 92, 102, 0.12); border-color: var(--cardinal); filter: none; }
 }
-#owned-props { margin: 0; padding: 0 16px 16px; font: italic 14px/1.4 var(--fell); color: var(--taupe); }
-#owned-props:empty { display: none; }
-
 /* The one moment that plays by itself: the ledger lines land while the money counts up, and the
    shelves deal in after them. Rerolled offers and bought jesters get the same drop. */
 @keyframes chip-in {
@@ -1658,8 +1652,8 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 .jester .jester-desc, .trick .trick-desc { display: none; }
 #inspect .jester .jester-desc, #inspect .trick .trick-desc { display: block; }
 
-/* Base trick layout: a text-and-art column. Only props still use it as-is; masks and
-   decrees override it to full-bleed art below. */
+/* Base trick layout: a text-and-art column. Only packs still use it as-is; masks, decrees
+   and props override it to full-bleed art below. */
 #trick-row .trick-slot { height: var(--card-h); }
 /* Tracks its slot's (possibly shrunk) width, same reasoning as the jester rule above; the shop
    and pack picker have no slot, so they stay fixed to --card-w. */
@@ -1678,24 +1672,24 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 }
 #trick-row .trick > span, #trick-row .trick > button, #overlay .trick > span { flex: none; }
 #overlay .trick > .trick-glyph { flex: none; }
-#overlay .trick.prop > .trick-glyph, #overlay .trick.pack > .trick-glyph { flex: 1 1 0; }
+#overlay .trick.pack > .trick-glyph { flex: 1 1 0; }
 
-/* Mask and decree cards: full-bleed portrait art, like the jesters. No glyph, name or hand
-   type on the face; those live in the tap-to-read tooltip only. The Use button (play row
+/* Mask, decree and prop cards: full-bleed portrait art, like the jesters. No glyph, name or
+   hand type on the face; those live in the tap-to-read tooltip only. The Use button (play row
    only; the shop and pack picker put Buy/Take beside the card instead) sits as a tag over
    the bottom of the art rather than a flex child, since the card is no longer a
    text-and-art column. */
-.trick:not(.prop, .pack) { padding: 0; }
-.trick:not(.prop, .pack) .trick-glyph,
-.trick:not(.prop, .pack) .trick-name,
-.trick:not(.prop, .pack) .trick-hand { display: none; }
-#trick-row .trick:not(.prop, .pack),
-#overlay .trick:not(.prop, .pack) {
+.trick:not(.pack) { padding: 0; }
+.trick:not(.pack) .trick-glyph,
+.trick:not(.pack) .trick-name,
+.trick:not(.pack) .trick-hand { display: none; }
+#trick-row .trick:not(.pack),
+#overlay .trick:not(.pack) {
   display: block;
   padding: 0;
 }
-#trick-row .trick:not(.prop, .pack) .card-art,
-#overlay .trick:not(.prop, .pack) .card-art {
+#trick-row .trick:not(.pack) .card-art,
+#overlay .trick:not(.pack) .card-art {
   /* Stays a normal in-flow child (not position: absolute) so the frame/vignette pseudo-elements
      below, which are absolutely positioned, paint on top of it rather than behind it. */
   display: block;
@@ -1707,11 +1701,11 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
   border-radius: inherit;
   object-fit: cover;
 }
-#inspect .trick:not(.prop, .pack) .trick-name,
-#inspect .trick:not(.prop, .pack) .trick-hand {
+#inspect .trick:not(.pack) .trick-name,
+#inspect .trick:not(.pack) .trick-hand {
   display: block;
 }
-#trick-row .trick:not(.prop, .pack) .use-btn {
+#trick-row .trick:not(.pack) .use-btn {
   position: absolute;
   left: 3px;
   right: 3px;

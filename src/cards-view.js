@@ -106,6 +106,10 @@ function trickCardHTML(t) {
   return `<span class="trick-glyph trick-initial">${initial}</span>${cardArtHTML(t.decree ? "decrees" : "masks", t.id)}<span class="trick-name">${t.name}</span><span class="trick-hand">${t.decree ? "Decree" : t.hand}</span><span class="trick-desc">${t.desc}</span>`;
 }
 
+function propCardHTML(prop) {
+  return `<span class="trick-glyph prop-initial">${prop.name[0]}</span>${cardArtHTML("props", prop.id)}<span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`;
+}
+
 function useButtonDisabled(t) {
   return Boolean(t.decree && !canUseDecree(t));
 }

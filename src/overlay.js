@@ -422,13 +422,14 @@ function renderOverlay() {
       const div = document.createElement("div");
       div.className = "shop-item prop" + (canBuy ? "" : " unaffordable");
       dealIn(div, "v:" + prop.id);
-      div.append(cardFace("trick prop", `<span class="trick-glyph prop-initial">${prop.name[0]}</span>${cardArtHTML("props", prop.id)}<span class="trick-name">${prop.name}</span><span class="trick-hand">Prop</span><span class="trick-desc">${prop.desc}</span>`));
+      div.append(cardFace("trick prop", propCardHTML(prop)));
       div.insertAdjacentHTML("beforeend", buyHTML(PROP_PRICE, canBuy));
       div.querySelector("button").addEventListener("click", buyProp);
       propEl.appendChild(div);
     }
     const ownedProps = document.getElementById("owned-props");
-    ownedProps.textContent = state.props.length ? `Props: ${state.props.map(v => v.name).join(", ")}` : "";
+    ownedProps.innerHTML = "";
+    for (const v of state.props) ownedProps.append(cardFace("trick prop", propCardHTML(v)));
 
     const shopTricks = document.getElementById("shop-tricks");
     const shopPacks = document.getElementById("shop-packs");
