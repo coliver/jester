@@ -273,10 +273,7 @@ body {
 .deck-card {
   position: absolute;
   inset: 0;
-  background:
-    repeating-linear-gradient(45deg, rgba(212, 170, 70, 0.4) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(-45deg, rgba(212, 170, 70, 0.4) 0 1px, transparent 1px 5px),
-    linear-gradient(135deg, #5a1a24, #2e0c14);
+  background: url("assets/card-back.png") center / cover;
   border: 1px solid #c9a24a;
   border-radius: 3px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 0 0 3px #2e0c14, inset 0 0 0 4px rgba(201, 162, 74, 0.7);
