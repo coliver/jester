@@ -274,7 +274,9 @@ async function main() {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(url);
     await page.waitForFunction(() => window.__jesterTest);
-    await page.waitForTimeout(600); // let the deal animation settle
+    // Full hand is 8 cards, each staggered 70ms behind the last (render.js) with its own
+    // 320ms deal animation, so the last card isn't done until ~810ms in.
+    await page.waitForTimeout(900); // let the deal animation settle
     const runs = [["play", null], ["play-crowded", DEBUG ? CROWD : NODEBUG_CROWD], ["shop", DEBUG ? SHOP : NODEBUG_SHOP]];
     const lines = [];
     for (const [name, setup] of runs) {
