@@ -133,6 +133,11 @@
             <span class="option-label">Music<small>Background court music</small></span>
             <input type="range" id="music-volume-slider" min="0" max="100" step="1">
           </div>
+          <div id="now-playing-row" class="option-row">
+            <span class="option-label">Now Playing<small id="now-playing-title">&nbsp;</small></span>
+            <button id="music-prev-btn" class="icon-btn" aria-label="Previous track" title="Previous track">⏮</button>
+            <button id="music-next-btn" class="icon-btn" aria-label="Next track" title="Next track">⏭</button>
+          </div>
           <div class="option-row slider-row">
             <span class="option-label">UI Sounds<small>Clicks, selects, denials</small></span>
             <input type="range" id="ui-volume-slider" min="0" max="100" step="1">
@@ -143,6 +148,15 @@
           <button id="deck-close-btn">Close</button>
         </div>
       </div>
+    </div>
+
+    <div id="music-toast" class="hidden" role="status">
+      <span id="music-toast-icon" aria-hidden="true">🎵</span>
+      <span class="music-toast-text">
+        <span class="music-toast-eyebrow">Now Playing</span>
+        <span id="music-toast-title"></span>
+      </span>
+      <button id="music-toast-skip" class="icon-btn" aria-label="Skip to next track" title="Skip to next track">⏭</button>
     </div>
 
     <div id="inspect" class="hidden" role="tooltip"></div>

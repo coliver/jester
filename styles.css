@@ -450,6 +450,95 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .option-row.slider-row { cursor: default; justify-content: space-between; margin-top: 10px; }
 .option-row.slider-row .option-label { text-align: left; }
 .option-row.slider-row input[type="range"] { flex: 1 1 120px; max-width: 180px; min-width: 80px; margin-left: 16px; accent-color: var(--accent); cursor: pointer; }
+
+/* The options panel's persistent half of the music player: full track name plus transport,
+   sitting right under the Music slider it belongs to. The toast below is this row's ephemeral
+   counterpart, announcing the same change in passing instead of waiting to be opened. */
+#now-playing-row { cursor: default; justify-content: space-between; margin-top: 10px; gap: 8px; }
+#now-playing-row .option-label { text-align: left; min-width: 0; overflow: hidden; }
+#now-playing-title {
+  display: block;
+  font-family: "IM Fell English", var(--card-font);
+  font-weight: 400;
+  font-size: 15px;
+  color: #ecd9a0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.icon-btn {
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  padding: 6px 9px;
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  border-radius: 8px;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--text); }
+
+/* A quiet, self-dismissing notice for a track change: floats above the controls bar rather
+   than claiming any layout space, and never blocks input (pointer-events re-enabled only on
+   its own skip button). Dimmed by the deck modal's overlay like anything else under it, since
+   its z-index sits below it. */
+#music-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 86px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: linear-gradient(160deg, #241019, #170810);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(201,162,74,0.65);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+#music-toast.show { opacity: 1; transform: translateY(0); }
+#music-toast.hidden { display: none; }
+#music-toast-icon { flex: none; font-size: 18px; }
+.music-toast-text { min-width: 0; flex: 1 1 auto; }
+.music-toast-eyebrow { display: block; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--taupe, #a8927a); }
+#music-toast-title {
+  display: block;
+  font-family: "IM Fell English", var(--card-font);
+  font-size: 15px;
+  color: #ecd9a0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#music-toast-skip {
+  flex: none;
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid rgba(201,162,74,0.55);
+  color: #ecd9a0;
+  border-radius: 50%;
+}
+#music-toast-skip:hover { border-color: #ecd9a0; }
+/* The skip action only earns its keep once something is actually hovering to see it; on a
+   touch device there's no hover to wait for, so it stays visible instead of unreachable. */
+@media (hover: hover) {
+  #music-toast-skip { opacity: 0; transition: opacity 0.18s ease; }
+  #music-toast:hover #music-toast-skip { opacity: 1; }
+}
+@media (max-width: 560px) {
+  #music-toast { right: 10px; left: 10px; max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #music-toast { transition: none; }
+}
 #hands-table { width: 100%; margin-bottom: 16px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 #hands-table th { color: var(--accent-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 #hands-table th, #hands-table td { padding: 4px 10px; text-align: right; }

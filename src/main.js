@@ -84,6 +84,38 @@ function initApp() {
   document.addEventListener("pointerdown", startMusicOnce);
   document.addEventListener("keydown", startMusicOnce);
 
+  // The options panel's "Now Playing" row (the persistent half) always reflects the
+  // current track; the toast (the ephemeral half) only appears to announce a change,
+  // and skipping it is the one action it offers without opening Options.
+  const nowPlayingTitle = document.getElementById("now-playing-title");
+  const musicToast = document.getElementById("music-toast");
+  const musicToastTitle = document.getElementById("music-toast-title");
+  let musicToastHideTimer = null;
+
+  function hideMusicToast() {
+    musicToast.classList.remove("show");
+    clearTimeout(musicToastHideTimer);
+    musicToastHideTimer = setTimeout(() => musicToast.classList.add("hidden"), 350);
+  }
+  function scheduleMusicToastHide() {
+    clearTimeout(musicToastHideTimer);
+    musicToastHideTimer = setTimeout(hideMusicToast, 4500);
+  }
+  musicToast.addEventListener("mouseenter", () => clearTimeout(musicToastHideTimer));
+  musicToast.addEventListener("mouseleave", scheduleMusicToastHide);
+  document.getElementById("music-toast-skip").addEventListener("click", () => Sound.nextTrack());
+  document.getElementById("music-prev-btn").addEventListener("click", () => Sound.prevTrack());
+  document.getElementById("music-next-btn").addEventListener("click", () => Sound.nextTrack());
+
+  Sound.onTrackChange((track) => {
+    nowPlayingTitle.textContent = track.title;
+    musicToastTitle.textContent = track.title;
+    clearTimeout(musicToastHideTimer);
+    musicToast.classList.remove("hidden");
+    window.requestAnimationFrame(() => musicToast.classList.add("show"));
+    scheduleMusicToastHide();
+  });
+
   document.getElementById("pack-skip-btn").addEventListener("click", skipPack);
   initNewRunButton();
 

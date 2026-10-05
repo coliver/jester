@@ -342,21 +342,26 @@ const Sound = (() => {
   }
 
   // --- Background music: a shuffled playlist of the court's ambient tracks, one Audio
-  // element that advances to the next track when the current one ends. ---
+  // element that advances to the next track when the current one ends. A played-order
+  // history (rather than just the shuffle pointer) is what lets prevTrack step backward
+  // without re-shuffling or repeating a track out of order. ---
   const MUSIC_TRACKS = [
-    "assets/sound/music/2b16-the-inn-184201.mp3",
-    "assets/sound/music/melodigne-enigmatic-embrace-185358.mp3",
-    "assets/sound/music/turning_pages-candle-hearts-483961.mp3",
-    "assets/sound/music/turning_pages-dead-manx27s-drink-lofi-483957.mp3",
-    "assets/sound/music/turning_pages-degraded-castle-loops-medieval-lofi-390677.mp3",
-    "assets/sound/music/turning_pages-four-shields-inn-lo-fi-483964.mp3",
-    "assets/sound/music/turning_pages-the-dancing-dragon-medieval-lofi-track-540970.mp3",
-    "assets/sound/music/turning_pages-winding-village-roads-upbeat-medieval-lofi-390678.mp3",
+    { src: "assets/sound/music/2b16-the-inn-184201.mp3", title: "The Inn" },
+    { src: "assets/sound/music/melodigne-enigmatic-embrace-185358.mp3", title: "Enigmatic Embrace" },
+    { src: "assets/sound/music/turning_pages-candle-hearts-483961.mp3", title: "Candle Hearts" },
+    { src: "assets/sound/music/turning_pages-dead-manx27s-drink-lofi-483957.mp3", title: "Dead Man's Drink" },
+    { src: "assets/sound/music/turning_pages-degraded-castle-loops-medieval-lofi-390677.mp3", title: "Degraded Castle Loops" },
+    { src: "assets/sound/music/turning_pages-four-shields-inn-lo-fi-483964.mp3", title: "Four Shields Inn" },
+    { src: "assets/sound/music/turning_pages-the-dancing-dragon-medieval-lofi-track-540970.mp3", title: "The Dancing Dragon" },
+    { src: "assets/sound/music/turning_pages-winding-village-roads-upbeat-medieval-lofi-390678.mp3", title: "Winding Village Roads" },
   ];
 
   let musicEl = null;
   let musicPlaylist = [];
   let musicIndex = 0;
+  let musicHistory = [];
+  let musicHistoryPos = -1;
+  const trackListeners = [];
 
   function shuffled(arr) {
     const a = arr.slice();
@@ -367,13 +372,51 @@ const Sound = (() => {
     return a;
   }
 
-  function playNextTrack() {
+  function nextFromShuffle() {
     if (musicIndex >= musicPlaylist.length) {
       musicPlaylist = shuffled(MUSIC_TRACKS);
       musicIndex = 0;
     }
-    musicEl.src = musicPlaylist[musicIndex++];
+    return musicPlaylist[musicIndex++];
+  }
+
+  function playTrack(track) {
+    musicEl.src = track.src;
     musicEl.play().catch(() => {});
+    trackListeners.forEach((fn) => fn(track));
+  }
+
+  // Both the natural end-of-track and a user-pressed "skip" land here: if prevTrack had
+  // stepped back into history, this first replays forward through it before drawing a
+  // fresh track from the shuffle, so skipping never drops a track the history already has.
+  function nextTrack() {
+    let track;
+    if (musicHistoryPos < musicHistory.length - 1) {
+      track = musicHistory[++musicHistoryPos];
+    } else {
+      track = nextFromShuffle();
+      musicHistory.push(track);
+      musicHistoryPos = musicHistory.length - 1;
+    }
+    playTrack(track);
+  }
+
+  // Mirrors most players' "previous": only steps back if there's history to return to,
+  // otherwise just restarts the current track.
+  function prevTrack() {
+    if (musicHistoryPos > 0) {
+      playTrack(musicHistory[--musicHistoryPos]);
+    } else if (musicEl) {
+      musicEl.currentTime = 0;
+    }
+  }
+
+  function getCurrentTrack() {
+    return musicHistoryPos >= 0 ? musicHistory[musicHistoryPos] : null;
+  }
+
+  function onTrackChange(fn) {
+    trackListeners.push(fn);
   }
 
   function syncMusicVolume() {
@@ -387,10 +430,10 @@ const Sound = (() => {
     musicEl = new Audio();
     musicEl.preload = "auto";
     musicEl.volume = muted ? 0 : musicVolume;
-    musicEl.addEventListener("ended", playNextTrack);
+    musicEl.addEventListener("ended", nextTrack);
     musicPlaylist = shuffled(MUSIC_TRACKS);
     musicIndex = 0;
-    playNextTrack();
+    nextTrack();
   }
 
   function getMusicVolume() { return musicVolume; }
@@ -406,5 +449,6 @@ const Sound = (() => {
     coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
     getSfxVolume, setSfxVolume, getUiVolume, setUiVolume, getMusicVolume, setMusicVolume, startMusic,
+    nextTrack, prevTrack, getCurrentTrack, onTrackChange,
   };
 })();
