@@ -86,7 +86,11 @@ function toggleInspect(anchor, html, sell) {
   const rect = anchor.getBoundingClientRect();
   const left = Math.max(6, Math.min(rect.left + rect.width / 2 - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 6));
   tip.style.left = `${left}px`;
-  tip.style.top = `${rect.bottom + 6}px`;
+  // Below the card by default, but flip above it when that would run past the bottom
+  // of the viewport (e.g. a card in the last shop shelf) instead of off-screen.
+  const below = rect.bottom + 6;
+  const fitsBelow = below + tip.offsetHeight + 6 <= window.innerHeight;
+  tip.style.top = `${fitsBelow ? below : Math.max(6, rect.top - tip.offsetHeight - 6)}px`;
 }
 
 // Decree and mask art is optional (see assets/decrees/PROMPTS.md and
