@@ -79,7 +79,7 @@ const BOSS_POOL = [...BOSS_MODIFIERS, KING_BOSS];
 
 // Court dressing: each venue number maps to a named room and each round to an audience.
 const VENUES = [
-  "The Scullery", "The Stables", "The Great Kitchen", "The Banquet Hall",
+  "The Stables", "The Scullery", "The Great Kitchen", "The Banquet Hall",
   "The Gilded Salon", "The Queen's Solar", "The War Council", "The Throne Room",
 ];
 const AUDIENCES = ["Small Audience", "Grand Audience", "Royal Command"];

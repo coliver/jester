@@ -43,7 +43,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 afterEach(() => new Promise((resolve) => setTimeout(resolve, 2)));
 
 const DEAL_ANIMATION_MS = 450;
-const PLAY_WAIT_MS = 430; // Play Hand shows the cards in the play area for 380ms first // startRound()'s real deal delay is 420ms
+const PLAY_WAIT_MS = 500; // Play Hand shows the cards in the play area for 380ms first // startRound()'s real deal delay is 420ms
 
 // document/window are on the global now, so this require() runs the game's
 // real browser entry point (initApp(): wires the buttons below once for the
@@ -81,9 +81,9 @@ function dealtState(overrides = {}) {
 // --- initial render (from the real require()-time init) -------------------
 
 test("initial render: HUD, dealt hand, hand reference, and disabled buttons", () => {
-  assert.equal(text("venue-val"), "The Scullery");
+  assert.equal(text("venue-val"), "The Stables");
   assert.equal(text("round-val"), "Act 1 - Small Audience");
-  assert.equal(document.title, "Jester - The Scullery, Act 1");
+  assert.equal(document.title, "Jester - The Stables, Act 1");
   assert.equal(text("hands-val"), "4");
   assert.equal(text("discards-val"), "3");
   assert.equal(text("money-val"), "4");
@@ -242,7 +242,7 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
   document.getElementById("overlay-btn").click();
   assert.ok(document.getElementById("overlay").classList.contains("hidden"));
   assert.equal(text("round-val"), "Act 2 - Grand Audience");
-  assert.equal(document.title, "Jester - The Scullery, Act 2");
+  assert.equal(document.title, "Jester - The Stables, Act 2");
   await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
 });
 
@@ -800,7 +800,7 @@ test("trick row is always shown, with an outlined slot per free trick slot", () 
 test("the HUD names the venue and audience, and the preview names the poker hand", () => {
   dealtState();
   gameModule.render();
-  assert.equal(text("venue-val"), "The Scullery");
+  assert.equal(text("venue-val"), "The Stables");
   assert.equal(text("round-val"), "Act 1 - Small Audience");
   document.querySelector("#hand-row .card").click();
   assert.match(text("preview-name"), /^High Card/);
