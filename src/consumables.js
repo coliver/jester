@@ -91,14 +91,19 @@ function useDecree(index) {
   state.tricks.splice(index, 1);
   clearSelection();
   if (decree.destroy) {
+    const stayingIds = state.hand.filter(c => !ids.includes(c.id)).map(c => c.id);
+    const from = cardRects(stayingIds);
     destroyCards(ids);
     const drawn = draw(state.handSize - state.hand.length);
     state.hand.push(...drawn);
     state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
     if (drawn.length) Sound.dealHand(drawn.length);
-  } else {
-    for (const id of ids) editCard(id, decree.apply);
+    Sound.coinBuy();
+    render();
+    flipCards(from);
+    return;
   }
+  for (const id of ids) editCard(id, decree.apply);
   Sound.coinBuy();
   render();
 }

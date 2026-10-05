@@ -11,6 +11,7 @@ function initApp() {
   document.getElementById("win-btn").addEventListener("click", debugWinRound);
   document.getElementById("lose-btn").addEventListener("click", debugLoseRound);
   document.getElementById("destroy-jester-btn").addEventListener("click", debugDestroyJester);
+  document.getElementById("redeal-btn").addEventListener("click", debugRedeal);
   // Any debug action closes the popout afterward (it fires after the button's own
   // handler above, since bubbling runs the target's listeners before this ancestor's),
   // so it doesn't linger over whatever screen that action just switched to.
@@ -249,6 +250,7 @@ const testHooks = {
   addDebugMoney,
   debugWinRound,
   debugLoseRound,
+  debugRedeal,
   nextRound,
   restart,
   normalizeSeed,

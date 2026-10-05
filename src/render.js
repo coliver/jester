@@ -152,7 +152,7 @@ function render() {
     el.style.setProperty("--fan", !staged && handCards.length > 1 ? (i / (handCards.length - 1)) * 2 - 1 : 0);
     if (dealt.has(card.id)) {
       el.classList.add("dealt");
-      el.style.animationDelay = `${dealt.get(card.id) * 70}ms`;
+      el.style.animationDelay = `${dealt.get(card.id) * 160}ms`;
     }
     (staged ? wantPlay : wantHand).push(el);
   }
@@ -173,12 +173,17 @@ function render() {
     const deckEl = document.getElementById("deck-pile");
     const deckRect = deckEl?.getBoundingClientRect();
     if (deckRect) {
+      // The stack's top card (the 3rd .deck-card layer, offset +4/-4 by CSS) is where a card
+      // actually leaves from, not the pile's own unshifted box: aim there so cards look peeled
+      // off the top rather than pulled from the pile's center.
+      const topX = deckRect.left + 4 + deckRect.width / 2;
+      const topY = deckRect.top - 4 + deckRect.height / 2;
       for (const id of dealt.keys()) {
         const el = handEls.get(id);
         if (!el) continue;
         const r = el.getBoundingClientRect();
-        el.style.setProperty("--deal-dx", `${(deckRect.left + deckRect.width / 2) - (r.left + r.width / 2)}px`);
-        el.style.setProperty("--deal-dy", `${(deckRect.top + deckRect.height / 2) - (r.top + r.height / 2)}px`);
+        el.style.setProperty("--deal-dx", `${topX - (r.left + r.width / 2)}px`);
+        el.style.setProperty("--deal-dy", `${topY - (r.top + r.height / 2)}px`);
       }
     }
   }

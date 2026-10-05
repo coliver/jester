@@ -20,8 +20,9 @@ function prefersReducedMotion() {
 // FLIP for cards moving between the hand and the play area: measure before the
 // re-render, then slide each card from where it was to where it landed.
 function cardRects(ids) {
-  const wanted = new Set(ids.map(String));
   const rects = new Map();
+  if (typeof document === "undefined") return rects; // no DOM (e.g. tests driving the state machine directly)
+  const wanted = new Set(ids.map(String));
   for (const el of document.querySelectorAll(".card[data-card-id]")) {
     if (wanted.has(el.dataset.cardId)) rects.set(el.dataset.cardId, el.getBoundingClientRect());
   }
@@ -29,6 +30,7 @@ function cardRects(ids) {
 }
 
 function flipCards(from) {
+  if (typeof document === "undefined") return; // no DOM (e.g. tests driving the state machine directly)
   if (prefersReducedMotion() || typeof document.documentElement.animate !== "function") return;
   for (const el of document.querySelectorAll(".card[data-card-id]")) {
     const was = from.get(el.dataset.cardId);
@@ -36,7 +38,7 @@ function flipCards(from) {
     const now = el.getBoundingClientRect();
     el.animate(
       [{ translate: `${was.left - now.left}px ${was.top - now.top}px` }, { translate: "0 0" }],
-      { duration: 240, easing: "cubic-bezier(0.22, 0.9, 0.3, 1)" },
+      { duration: 500, easing: "cubic-bezier(0.22, 0.9, 0.3, 1)" },
     );
   }
 }

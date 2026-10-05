@@ -141,6 +141,11 @@ function discardSelected() {
   if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_jester")) {
     state.money += 5;
   }
+  // A redraw rarely lands the new card(s) in the exact slot(s) vacated: the surviving cards'
+  // sorted positions can shift by one, and with no FLIP they'd snap there instantly while the
+  // new card alone animates in. Measure them now so flipCards can glide them too.
+  const stayingIds = state.hand.filter(c => !state.selected.has(c.id)).map(c => c.id);
+  const from = cardRects(stayingIds);
   state.discarded.push(...selected);
   state.hand = state.hand.filter(c => !state.selected.has(c.id));
   clearSelection();
@@ -150,4 +155,5 @@ function discardSelected() {
   state.dealtIds = new Map(drawn.map((c, i) => [c.id, i]));
   if (drawn.length) Sound.dealHand(drawn.length);
   render();
+  flipCards(from);
 }

@@ -277,7 +277,7 @@ body {
   z-index: 20;
 }
 #debug-tools.hidden { display: none; }
-#lp-cutoff-row.hidden { display: none; }
+#lp-cutoff-row.hidden, #hp-cutoff-row.hidden { display: none; }
 
 .sort-btn.active {
   color: var(--accent);
@@ -330,7 +330,7 @@ body {
 }
 
 .card.dealt {
-  animation: card-deal 0.32s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards;
+  animation: card-deal 0.8s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards;
 }
 
 .card {
@@ -1067,7 +1067,7 @@ body::before {
   animation-delay: var(--bob-delay, 0s);
 }
 #hand-row .card.dealt {
-  animation: card-deal 0.32s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards,
+  animation: card-deal 0.8s cubic-bezier(0.22, 0.9, 0.3, 1.2) backwards,
              hand-bob 5s ease-in-out infinite;
 }
 #hand-row:has(.dragging) .card { animation: none; }

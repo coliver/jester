@@ -165,6 +165,19 @@ function addDebugMoney(amount = 1000) {
   render();
 }
 
+// Re-deals the whole hand on demand (cards go back under the deck, not to the discard
+// pile, so repeated clicks never run the deck dry), to preview the deal-in animation
+// and its timing without discarding real charges.
+function debugRedeal() {
+  if (!DEBUG_ENABLED) return;
+  if (state.phase !== "playing" || playPending || scoring) return;
+  state.deck.unshift(...state.hand);
+  state.hand = draw(state.handSize);
+  state.dealtIds = new Map(state.hand.map((c, i) => [c.id, i]));
+  Sound.dealHand(state.hand.length);
+  render();
+}
+
 // Destroys the first owned jester through the normal round-end show (crack sound, "Destroyed!"
 // pop, fades it out), to preview that without waiting on the real roundEnd odds.
 function debugDestroyJester() {
