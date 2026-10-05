@@ -92,7 +92,9 @@ const Sound = (() => {
     const start = performance.now();
     const step = () => {
       const t = Math.min(1, (performance.now() - start) / (duration * 1000));
-      node.volume = startVol * (1 - t);
+      // House lights going down: hangs near full for a moment, then sinks to black,
+      // rather than a flat linear bleed-out.
+      node.volume = startVol * (1 - t) * (1 - t);
       if (t < 1 && !node.paused) window.requestAnimationFrame(step);
       else node.pause();
     };
@@ -335,7 +337,7 @@ const Sound = (() => {
   // Called when the player leaves Backstage (Next Audience), so the crowd clip doesn't
   // keep going, or cut off bluntly, under the next round starting up.
   function fadeOutCrowdInterval() {
-    fadeOutNode(crowdIntervalNode, 0.6);
+    fadeOutNode(crowdIntervalNode, 2.2);
     crowdIntervalNode = null;
   }
 
