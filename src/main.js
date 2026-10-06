@@ -216,6 +216,7 @@ const testHooks = {
   TRICK_POOL,
   DECREE_POOL,
   JESTER_POOL,
+  resolveCopyTarget,
   BOSS_MODIFIERS,
   KING_BOSS,
   BOSS_POOL,
@@ -265,6 +266,7 @@ const testHooks = {
   // test-only state access
   _getState: () => state,
   _setScoringAnimation: (on) => { scoringOverride = on; },
+  _forgetCopyStates: () => { lastCopyStates = null; }, // as on a fresh page load or resume
   _scoringDone: () => scoring?.done || Promise.resolve(),
   _isScoring: () => scoring !== null,
   destroyCards,

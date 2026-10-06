@@ -32,7 +32,7 @@ function evaluateHand(cards) {
   for (const c of cards) rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
   const counts = Object.values(rankCounts).sort((a, b) => b - a);
 
-  const fourFingers = state?.jesters?.some(j => j.id === "four_fingers");
+  const fourFingers = state?.jesters?.some(j => j.id === "corner_cutter");
   const runSize = fourFingers ? 4 : 5;
 
   let isFlush = false;
@@ -109,7 +109,7 @@ function getScoringCards(typeName, cards, runSize) {
 
 function cardChipValue(card) {
   if (state?.bossModifier?.suitDebuff && cardIsSuit(card, state.bossModifier.suitDebuff)) return 0;
-  if (state?.bossModifier?.faceDebuff && isFaceCard(card, { pareidolia: state.jesters.some(j => j.id === "pareidolia") })) return 0;
+  if (state?.bossModifier?.faceDebuff && isFaceCard(card, { pareidolia: state.jesters.some(j => j.id === "delusions_of_grandeur") })) return 0;
   if (card.rank === "A") return 11;
   if (RANK_VALUE[card.rank]) return 10;
   return parseInt(card.rank, 10);
@@ -143,7 +143,7 @@ function scoreSelection(selected) {
     deckSize: state.deck.length,
     jesters: state.jesters,
     jesterSlots: jesterSlots(),
-    pareidolia: state.jesters.some(j => j.id === "pareidolia"),
+    pareidolia: state.jesters.some(j => j.id === "delusions_of_grandeur"),
     jestersSold: state.jestersSold
   };
 
@@ -201,6 +201,9 @@ function scoreSelection(selected) {
       steps.push({ ...step, silenced: true });
       continue;
     }
+
+    // A copier with nothing valid to copy says so instead of staying quiet.
+    if (j.copyFrom && resolveCopyTarget(j, state.jesters).reason !== "ok") steps.push({ ...step, copyFailed: true });
 
     const effect = j.apply ? j.apply(ctx, j) : {};
 

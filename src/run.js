@@ -15,7 +15,7 @@ function nextRound() {
 
 // Debug only (?debug): begin each run with the three scaling jesters (Constellation, Egg,
 // Trebuchet), plus one random trick card and one random decree.
-const STARTING_JESTER_IDS = ["constellation", "egg", "rocket"];
+const STARTING_JESTER_IDS = ["belle_of_the_ball", "nest_egg", "trebuchet"];
 function grantStartingJester() {
   if (!DEBUG_ENABLED) return;
   for (const id of STARTING_JESTER_IDS) state.jesters.push({ ...JESTER_POOL.find(j => j.id === id), sellBonus: 0 });

@@ -152,6 +152,7 @@ async function runScoring(s) {
       const facets = [];
       if (step.silenced) facets.push(["Silenced", "mute"]);
       if (step.debuffed) facets.push(["Debuffed", "mute"]);
+      if (step.copyFailed) facets.push(["Can't copy", "mute"]);
       if (step.chips) facets.push([`+${step.chips}`, "chips"]);
       if (step.multAdd) facets.push([`+${step.multAdd} Mult`, "mult"]);
       if (step.multMul !== 1) facets.push([`×${Number(step.multMul.toFixed(2))}`, "xmult"]);

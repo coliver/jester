@@ -38,7 +38,7 @@ static (it's also set up for GitHub Pages).
   commedia stock character, e.g. Innamorati for Pair) raises it, adding chips
   and mult to that hand's base. The shop sells two masks plus a Mask Pack (pick 1 of 3, used
   immediately); you can hold 2 and use or sell them. The Hand Rankings panel
-  shows current levels. Constellation and Space Jester build on them.
+  shows current levels. Belle of the Ball and Court Astrologer build on them.
 - Decree cards (court edicts): ten deck-editing cards that share the mask slots. Used mid-act
   on 1-3 selected cards, they permanently change the run's deck: enhancements
   (Bonus +30 chips, Mult +4 mult, Wild counts as every suit, Glass X2 mult with
@@ -70,7 +70,7 @@ static (it's also set up for GitHub Pages).
   in the play area reorder the same way, and a card dropped there lands where you
   release it; the played cards score in the order they sit.
 - Jesters reorder the same way (drag them), and order
-  matters: they score left to right, so a Blueprint copies whatever is on its
+  matters: they score left to right, so an Understudy copies whatever is on its
   right. You can own 5 jesters (more with the Stilts prop).
 - Tap or click a jester, mask, or decree to inspect it. Sound effects (recorded
   card clips plus synthesized stings) with a mute button that remembers its

@@ -129,6 +129,19 @@ function jesterDescHTML(j) {
   return j.status ? `${j.desc}<br><b>${j.status(j)}</b>` : j.desc;
 }
 
+// What a copier (Mimic, Understudy) is pointing at right now, as a pill under its text.
+function copyPillHTML(j) {
+  if (!j.copyFrom) return "";
+  const { source, reason } = resolveCopyTarget(j, state.jesters);
+  const [kind, text] = {
+    ok: ["ok", `Copying ${source?.name}`],
+    incompatible: ["bad", `Can't copy ${source?.name}`],
+    silenced: ["bad", `Can't copy ${source?.name} (silenced)`],
+    none: ["bad", "Nothing to copy"],
+  }[reason];
+  return `<span class="copy-pill ${kind}">${text}</span>`;
+}
+
 function jesterFaceHTML(j) {
   return `${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}</span>`;
 }

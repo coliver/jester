@@ -85,7 +85,7 @@ function playHand() {
   state.stats.handsPlayed += 1;
   const levelUps = []; // jester index and the hand's new level, for the on-screen callout
   state.jesters.forEach((j, index) => {
-    if (j.onPlay && j.onPlay().levelUp) {
+    if (j.onPlay && j.onPlay(j).levelUp) {
       levelUpHand(played);
       levelUps.push({ index, name: played, level: handLevel(played) });
     }
@@ -137,8 +137,8 @@ function discardSelected() {
   state.stats.discards += 1;
   markDiscardRoll();
   Sound.discard(selected.length);
-  const faceCount = selected.filter(c => isFaceCard(c, { pareidolia: state.jesters.some(j => j.id === "pareidolia") })).length;
-  if (faceCount >= 3 && state.jesters.some(j => j.id === "faceless_jester")) {
+  const faceCount = selected.filter(c => isFaceCard(c, { pareidolia: state.jesters.some(j => j.id === "delusions_of_grandeur") })).length;
+  if (faceCount >= 3 && state.jesters.some(j => j.id === "palace_purge")) {
     state.money += 5;
   }
   // A redraw rarely lands the new card(s) in the exact slot(s) vacated: the surviving cards'

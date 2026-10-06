@@ -36,6 +36,30 @@ function rollDiscardsHud(el, newValue) {
   }, 950);
 }
 
+const COPY_WARN_MS = 1400; // how long the warning glow holds before it fades; keep in step with copy-warn in styles.css
+
+// A copier that has just stopped pointing at something valid (bought, moved, or its target
+// changed) flashes a warning on its card, then lets it fade. The first row built after a page
+// load or resume only records what each copier points at.
+function flashBadCopies(shown) {
+  const seeded = lastCopyStates !== null;
+  const states = new Map();
+  const els = jesterElements();
+  shown.forEach((j, i) => {
+    if (!j.copyFrom) return;
+    const { source, reason } = resolveCopyTarget(j, shown);
+    const key = `${source?.id ?? ""}:${reason}`;
+    states.set(j.id, key);
+    if (!seeded || reason === "ok" || lastCopyStates.get(j.id) === key || !els[i]) return;
+    restartClass(els[i], "copy-warn");
+    const el = els[i];
+    setTimeout(() => el.classList.remove("copy-warn"), COPY_WARN_MS);
+    scorePop(els[i], reason === "none" ? "Nothing to copy" : "Can't copy", "mute", 0);
+    Sound.scoreMute();
+  });
+  lastCopyStates = states;
+}
+
 function render() {
   if (typeof document === "undefined") return;
   persistRun();
@@ -93,11 +117,12 @@ function render() {
       const div = document.createElement("div");
       div.className = "jester";
       div.innerHTML = `${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}</span>`;
-      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}</span></div>`,
+      makeInspectable(div, () => `<div class="jester">${jesterHeaderHTML(j)}<span class="jester-desc">${jesterDescHTML(j)}${copyPillHTML(j)}</span></div>`,
         () => ({ label: `Sell $${sellValue(j)}`, fn: () => sellJester(j.id) }));
       makeJesterDraggable(div, j.id);
       slot.appendChild(div);
     }
+    flashBadCopies(shown);
   }
 
   // Rebuilding the row on every render would reload each card's art (the glyph flashes back and

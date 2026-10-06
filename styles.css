@@ -195,6 +195,13 @@ body {
 }
 #jester-row .jester { width: 100%; box-sizing: border-box; }
 
+:root {
+  --copy-ok-bg: rgba(53, 214, 138, 0.16);
+  --copy-ok-ink: #7fe0b0;
+  --copy-bad-bg: rgba(255, 93, 108, 0.16);
+  --copy-bad-ink: #ff8f9a;
+}
+
 .jester {
   width: 90px;
   padding: 6px;
@@ -1800,6 +1807,18 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
 .card.scoring { animation: card-score 0.5s ease-in-out; z-index: 2; }
 .card.wipe { animation: card-wipe 0.4s ease-in forwards; pointer-events: none; }
 .jester.trigger { animation: jester-trigger 0.45s ease-out; z-index: 2; }
+.jester.copy-warn { animation: copy-warn 1.4s ease-out; z-index: 2; }
+
+.copy-pill {
+  display: block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.copy-pill.ok { background: var(--copy-ok-bg); color: var(--copy-ok-ink); border: 1px solid var(--copy-ok-ink); }
+.copy-pill.bad { background: var(--copy-bad-bg); color: var(--copy-bad-ink); border: 1px solid var(--copy-bad-ink); }
 
 .score-pop {
   position: fixed;
@@ -1852,6 +1871,23 @@ body:has(#overlay:not(.hidden, .end)):not(:has(#pack-modal:not(.hidden))) #top-r
   40% { transform: scale(1.14) rotate(6deg); }
   60% { transform: scale(1.08) rotate(-3deg); }
   100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes copy-warn {
+  0% { box-shadow: 0 0 0 0 rgba(255, 93, 108, 0); }
+  10% { transform: translateX(-4px); box-shadow: 0 0 16px 4px rgba(255, 93, 108, 0.8); }
+  20% { transform: translateX(4px); }
+  30% { transform: translateX(-3px); }
+  40% { transform: translateX(2px); }
+  50% { transform: translateX(0); box-shadow: 0 0 16px 4px rgba(255, 93, 108, 0.8); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 93, 108, 0); }
+}
+@keyframes copy-warn-still {
+  0% { box-shadow: 0 0 0 0 rgba(255, 93, 108, 0); }
+  10%, 50% { box-shadow: 0 0 16px 4px rgba(255, 93, 108, 0.8); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 93, 108, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jester.copy-warn { animation-name: copy-warn-still; }
 }
 @keyframes score-pop {
   0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }

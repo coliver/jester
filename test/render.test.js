@@ -409,6 +409,67 @@ test("slot counters, deck count, and tap-to-inspect popups", () => {
   document.getElementById("deck-close-btn").click();
 });
 
+// Records the text of every floating pop that appears while fn runs.
+function collectPops(fn) {
+  const pops = [];
+  const observer = new window.MutationObserver((records) => {
+    for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains("score-pop")) pops.push(n.textContent);
+  });
+  observer.observe(document.body, { childList: true });
+  fn();
+  observer.takeRecords().forEach((r) => r.addedNodes.forEach((n) => n.classList?.contains("score-pop") && pops.push(n.textContent)));
+  observer.disconnect();
+  return pops;
+}
+
+test("a copier's tap-to-inspect popup says what it is copying, or why it can't", () => {
+  const inspect = document.getElementById("inspect");
+  // Taps the copier at `at` in a freshly dealt row and returns the pill under its text.
+  const pillFor = (names, at, overrides) => {
+    dealtState({ jesters: names.map((n) => ({ ...jesterByName(n) })), ...overrides });
+    document.querySelectorAll("#jester-row .jester")[at].click();
+    const text = inspect.querySelector(".copy-pill")?.textContent;
+    document.body.click();
+    return text;
+  };
+  assert.equal(pillFor(["Understudy", "Baron"], 0), "Copying Baron");
+  assert.equal(pillFor(["Understudy", "Baron", "Mimic"], 2), "Copying Baron"); // follows the chain to the real source
+  assert.equal(pillFor(["Understudy", "Baron"], 1), undefined); // only copiers carry a pill
+  assert.equal(pillFor(["Baron", "Understudy", "Patience"], 1), "Can't copy Patience");
+  assert.equal(pillFor(["Baron", "Patience", "Understudy"], 2), "Nothing to copy");
+  assert.equal(pillFor(["Baron", "Mimic"], 1, { bossModifier: { silenceLeftmost: true } }), "Can't copy Baron (silenced)");
+});
+
+test("moving a copier into a slot where it can't copy flashes a warning once; moving it back does not", () => {
+  gameModule._forgetCopyStates();
+  const s = dealtState({ jesters: [{ ...jesterByName("Understudy") }, { ...jesterByName("Baron") }] });
+  const warned = () => document.querySelectorAll("#jester-row .jester.copy-warn").length;
+  assert.equal(warned(), 0);
+
+  const pops = collectPops(() => gameModule.moveJester("understudy", 1)); // now rightmost: nothing to its right
+  assert.deepEqual(pops, ["Nothing to copy"]);
+  assert.equal(warned(), 1);
+  assert.deepEqual(s.jesters.map((j) => j.id), ["baron", "understudy"]);
+
+  assert.deepEqual(collectPops(() => gameModule.moveJester("understudy", 0)), []);
+  assert.equal(warned(), 0);
+});
+
+test("a copier that is already invalid when a run is loaded does not flash", () => {
+  gameModule._forgetCopyStates();
+  const pops = collectPops(() => dealtState({ jesters: [{ ...jesterByName("Baron") }, { ...jesterByName("Understudy") }] }));
+  assert.deepEqual(pops, []);
+  assert.equal(document.querySelectorAll("#jester-row .jester.copy-warn").length, 0);
+});
+
+test("buying a copier straight into a bad slot flashes, and selling it does not", () => {
+  gameModule._forgetCopyStates();
+  const s = dealtState({ jesters: [{ ...jesterByName("Baron") }] });
+  assert.deepEqual(collectPops(() => { s.jesters.push({ ...jesterByName("Mimic") }); gameModule.render(); }), []); // Mimic reaches Baron: fine
+  assert.deepEqual(collectPops(() => { s.jesters.push({ ...jesterByName("Understudy") }); gameModule.render(); }), ["Nothing to copy"]);
+  assert.deepEqual(collectPops(() => gameModule.sellJester("understudy")), []);
+});
+
 test("play rows: the tap-to-inspect popup has a Sell button for jesters, masks and decrees", () => {
   const { TRICK_POOL, DECREE_POOL } = gameModule;
   const jester = jesterByName("Baron");
@@ -598,7 +659,7 @@ test("deck view shows enhancements and marks discarded and played cards", () => 
 });
 
 test("shop: reroll button shows a free reroll, and a boss banner shows in play", () => {
-  dealtState({ phase: "shop", jesters: [jesterByName("Chaos the Clown")], lastEarnings: { reward: 5, interest: 1, bonus: 2 } });
+  dealtState({ phase: "shop", jesters: [jesterByName("Weathervane")], lastEarnings: { reward: 5, interest: 1, bonus: 2 } });
   gameModule.render();
   assert.match(text("reroll-btn"), /free/);
   assert.match(text("overlay-sub"), /Interest/);
@@ -1194,7 +1255,7 @@ test("a scored hand plays out on screen before the score and shop appear, with n
 test("the sequence shows X effects, money and a debuffed card, and a missed target plays on to the next hand", async () => {
   await withScoringAnimation(async () => {
     const purse = { ...jesterByName("Jester"), id: "test_purse", name: "Purse", apply: () => ({ money: 2 }) };
-    const jesters = [{ ...jesterByName("Cavendish") }, purse];
+    const jesters = [{ ...jesterByName("Hardened Taster") }, purse];
     dealtState({ target: Number.MAX_SAFE_INTEGER, jesters, bossModifier: { suitDebuff: "♠" } });
     const state = gameModule._getState();
     state.hand[0] = { ...state.hand[0], rank: "K", suit: "♠" }; // debuffed: scores no chips
@@ -1219,6 +1280,26 @@ test("the sequence shows X effects, money and a debuffed card, and a missed targ
     assert.equal(state.phase, "playing");
     assert.equal(text("score-val"), `${state.roundScore} / ${state.target}`);
     assert.equal(document.querySelectorAll("#hand-row .card").length, 8);
+  });
+});
+
+test("the sequence pops \"Can't copy\" on a copier with nothing valid to copy", async () => {
+  await withScoringAnimation(async () => {
+    dealtState({ target: Number.MAX_SAFE_INTEGER, jesters: [{ ...jesterByName("Understudy") }, { ...jesterByName("Patience") }] });
+    const pops = [];
+    const observer = new window.MutationObserver((records) => {
+      for (const r of records) for (const n of r.addedNodes) if (n.classList?.contains("score-pop")) pops.push(n.textContent);
+    });
+    document.querySelector("#hand-row .card").click();
+    gameModule.render();
+    pops.length = 0;
+    observer.observe(document.body, { childList: true });
+    document.getElementById("play-btn").click();
+    await sleep(PLAY_WAIT_MS);
+    hurry();
+    await gameModule._scoringDone();
+    observer.disconnect();
+    assert.deepEqual(pops.filter((t) => t.startsWith("Can't")), ["Can't copy"]);
   });
 });
 

@@ -493,7 +493,7 @@ function renderOverlay() {
     // so the shop only has to leave room for it.
     syncShopTop();
 
-    const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
+    const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "weathervane");
     rerollBtn.classList.remove("hidden");
     rerollBtn.textContent = freeReroll ? "Reroll free" : `Reroll for $${state.rerollCost}`;
     rerollBtn.disabled = state.money - (freeReroll ? 0 : state.rerollCost) < debtFloor();

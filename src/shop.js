@@ -203,7 +203,7 @@ function sellJester(id) {
 
 function rerollShop() {
   if (!inShop() || state.pack) return;
-  const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "chaos_the_clown");
+  const freeReroll = !state.freeRerollUsed && state.jesters.some(j => j.id === "weathervane");
   const cost = freeReroll ? 0 : state.rerollCost;
   if (state.money - cost < debtFloor()) return;
   state.money -= cost;
