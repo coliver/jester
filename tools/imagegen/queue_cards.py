@@ -41,6 +41,7 @@ parser.add_argument("--repeat", type=int, default=1, help="queue each card N tim
 parser.add_argument("--seed", type=int, default=None, help="use this seed for every card (default: random per card)")
 parser.add_argument("--aspect", default=None, help="resolution node aspect ratio (default: 9:16 for faces/jesters/decrees/masks, the workflow's 1:1 otherwise)")
 parser.add_argument("--prefix", default="joker_cards", help="ComfyUI output subfolder")
+parser.add_argument("--workflow", default=None, help="API-format workflow JSON to use instead of workflow_api.json (e.g. the ZImageTurbo.json in the ComfyUI install folder)")
 args = parser.parse_args()
 
 PROMPT_NODE = "6"
@@ -60,7 +61,7 @@ TALL_ASPECT = "9:16 (Slim Vertical)"
 style_file = HERE / f"style_{args.kind}.txt"
 STYLE = (style_file if style_file.exists() else HERE / "style.txt").read_text(encoding="utf-8").strip()
 
-with open(WORKFLOW_FILE, "r", encoding="utf-8") as f:
+with open(args.workflow or WORKFLOW_FILE, "r", encoding="utf-8") as f:
     template = json.load(f)
 
 with open(ASSETS / args.kind / "prompts.csv", "r", encoding="utf-8-sig", newline="") as f:
