@@ -13,7 +13,7 @@ function nextRound() {
   render();
 }
 
-// Debug only (?debug): begin each run with the three scaling jesters (Constellation, Egg,
+// Debug only (?debug): begin each run with the three scaling jesters (Belle of the Ball, Nest Egg,
 // Trebuchet), plus one random trick card and one random decree.
 const STARTING_JESTER_IDS = ["belle_of_the_ball", "nest_egg", "trebuchet"];
 function grantStartingJester() {
@@ -37,7 +37,7 @@ function restart(seed) {
 // its deck order, hand, score and hands/discards left. Not saved: the selection, cards
 // staged in the play area, and any scoring animation in progress. Jesters, masks,
 // decrees, props and offers are saved by id and rebuilt from their pools; the only
-// per-instance jester state is sellBonus plus the scaling counters tricksUsed and rocketPayout.
+// per-instance jester state is sellBonus plus the scaling counters tricksUsed and trebuchetPayout.
 
 const SAVE_KEY = DEBUG_ENABLED ? "jester-run-debug" : "jester-run";
 const SAVE_VERSION = 1;
@@ -55,7 +55,7 @@ function runStorage() {
 function serializeRun(s) {
   const data = { v: SAVE_VERSION, phase: s.phase };
   for (const key of Object.keys(SAVED_SCALARS)) data[key] = s[key];
-  data.jesters = s.jesters.map(j => ({ id: j.id, sellBonus: j.sellBonus || 0, tricksUsed: j.tricksUsed || 0, rocketPayout: j.rocketPayout || 0 }));
+  data.jesters = s.jesters.map(j => ({ id: j.id, sellBonus: j.sellBonus || 0, tricksUsed: j.tricksUsed || 0, trebuchetPayout: j.trebuchetPayout || 0 }));
   data.tricks = s.tricks.map(t => t.id);
   data.props = s.props.map(v => v.id);
   data.shopProp = s.shopProp?.id ?? null;
@@ -93,8 +93,6 @@ function restoreRun(data) {
     });
   };
   try {
-    // Saves from before ante was renamed venue.
-    if (data && data.venue === undefined && typeof data.ante === "number") data.venue = data.ante;
     if (!data || data.v !== SAVE_VERSION || (data.phase !== "shop" && data.phase !== "playing")) return null;
     const s = newState();
     for (const [key, type] of Object.entries(SAVED_SCALARS)) {
@@ -102,7 +100,7 @@ function restoreRun(data) {
       s[key] = data[key];
     }
     s.phase = data.phase;
-    s.jesters = data.jesters.map(j => ({ ...list([j.id], JESTER_POOL)[0], sellBonus: Number(j.sellBonus) || 0, tricksUsed: Number(j.tricksUsed) || 0, rocketPayout: Number(j.rocketPayout) || 0 }));
+    s.jesters = data.jesters.map(j => ({ ...list([j.id], JESTER_POOL)[0], sellBonus: Number(j.sellBonus) || 0, tricksUsed: Number(j.tricksUsed) || 0, trebuchetPayout: Number(j.trebuchetPayout) || 0 }));
     s.tricks = list(data.tricks, [...TRICK_POOL, ...DECREE_POOL]).map(t => ({ ...t }));
     s.props = list(data.props, PROP_POOL);
     s.shopProp = data.shopProp ? list([data.shopProp], PROP_POOL)[0] : null;
@@ -220,13 +218,22 @@ function initNewRunButton() {
   });
 }
 
+// True when the last loadRun() found a save it couldn't use (corrupt, or from a build
+// whose jesters or save format no longer exist), as opposed to there being no save.
+let lastLoadFailed = false;
+
 function loadRun() {
+  lastLoadFailed = false;
   const storage = runStorage();
   if (!storage) return null;
   try {
     const raw = storage.getItem(SAVE_KEY);
-    return raw ? restoreRun(JSON.parse(raw)) : null;
+    if (!raw) return null;
+    const run = restoreRun(JSON.parse(raw));
+    lastLoadFailed = run === null;
+    return run;
   } catch {
+    lastLoadFailed = true;
     return null;
   }
 }

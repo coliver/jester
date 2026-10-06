@@ -278,10 +278,10 @@ const JESTER_POOL = [
     id: "trebuchet", name: "Trebuchet", price: 6, rarity: "Uncommon",
     desc: "End of act: +$1. The payout gains $2 each time you clear a boss act.",
     grew: "+$2",
-    status: (self) => `Currently +$${self.rocketPayout || 1}`,
+    status: (self) => `Currently +$${self.trebuchetPayout || 1}`,
     roundEnd: (ctx, self) => {
-      const money = self.rocketPayout || 1;
-      if (ctx.isBoss) self.rocketPayout = money + 2;
+      const money = self.trebuchetPayout || 1;
+      if (ctx.isBoss) self.trebuchetPayout = money + 2;
       return { money };
     },
   },

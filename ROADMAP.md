@@ -16,7 +16,7 @@ otherwise explicitly.
 
 **Phase 0 — Current state (done)**
 Deck, hand, poker evaluation, 4 hands / 3 discards, 8 jesters, 3-item shop,
-ante/round escalation. Playable start-to-finish, no persistence, no tests,
+venue/round escalation. Playable start-to-finish, no persistence, no tests,
 a few known rules gaps (see Phase 1). The roster is now 61 jesters.
 
 **Phase 1 — Harden the core loop**
@@ -27,16 +27,16 @@ rankings). No new content, no visuals work.
 
 **Phase 2 — Strategic depth (in progress)**
 Grow the decision space within the existing systems: more jesters with
-real synergies/anti-synergies ✓ (Brainstorm and Blueprint copy another owned jester;
-Swashbuckler, Campfire and Ringmaster scale off the rest of the roster —
+real synergies/anti-synergies ✓ (Mimic and Understudy copy another owned jester;
+King's Ransom, Pyre and Master of Revels scale off the rest of the roster —
 sell value held, jesters sold, rarity variety — see below), an economy layer (interest on saved money
 ✓, reroll cost ✓, jester resale value ✓), boss-round-style modifiers that
 force different play ✓ (ten courtier modifiers — higher target, 1-hand-only,
 no-discard, smaller hand, two suit debuffs, $1 per hand, no repeated hand type,
 chipless face cards, and a silenced leftmost jester — one picked at random for
-round 3 of every ante, with ante 8's boss always the King). The round-end hook group (Egg, Gros Michel, Cloud 9, Rocket, Gift Card — the
+round 3 of every venue, with venue 8's boss always the King). The round-end hook group (Nest Egg, Royal Taster, Ninepins, Trebuchet, Patron — the
 last two grow per-jester sell value/payout) has landed too. Jester order now matters and is
-player-controlled (drag to reorder; Blueprint copies its right-hand
+player-controlled (drag to reorder; Understudy copies its right-hand
 neighbor), and hand cards can be dragged into a custom order. Remaining: more of this synergy/anti-synergy work
 if it keeps paying off — the five landed so far are a first pass, not a
 ceiling. This is where the game gets *replayable* rather than just
@@ -44,8 +44,8 @@ ceiling. This is where the game gets *replayable* rather than just
 
 **Phase 3 — Content breadth**
 Add the systems the README explicitly deferred: simplified
-decree/planet-style consumable cards (landed: mask cards and Mask Packs as the planet side; ten deck-editing decrees and Decree Packs; mask cards are reskinned as commedia masks), props (landed: six, one offered per ante), alternate decks (not started), a
-stake/difficulty modifier (not started). Each is additive and toggleable in scope — pick
+decree/mask-style consumable cards (landed: mask cards and Mask Packs as the hand-levelling side; ten deck-editing decrees and Decree Packs; mask cards are reskinned as commedia masks), props (landed: six, one offered per venue), alternate decks (not started), a
+difficulty modifier (not started). Each is additive and toggleable in scope — pick
 the smallest version of each that fits the no-build-step constraint.
 
 **Phase 4 — Feel & presentation**
@@ -75,7 +75,7 @@ visuals for a scoring model that's still changing).
 that Phase 2 work doesn't silently regress the scoring math.
 
 **Status (2026-09-29):** complete. Ace-low straight fix, win condition
-(ante 8) with win/game-over summaries, sell jester, reroll shop,
+(venue 8) with win/game-over summaries, sell jester, reroll shop,
 hand-reference panel, the 1-4 card hand-size contract audit, and the
 `test/scoring.test.js` regression suite (21 assertions covering hand
 detection, jester stacking, and target scaling) are all in. All verified
@@ -88,10 +88,9 @@ buy/sell/reroll, win and game-over flows, no console errors) plus
 - **Ace-low straight.** `evaluateHand` in [src/scoring.js](src/scoring.js) treats Ace as
   rank 14 only, so A-2-3-4-5 doesn't score as a straight (or straight
   flush). Fix `rankNum`/`isStraight` to also check the wheel case.
-- **Win condition.** The run currently escalates ante forever with no
+- **Win condition.** The run currently escalates venue forever with no
   finish line — `phase` only ever becomes `"playing"`, `"shop"`, or
-  `"gameover"` (on loss). Decide a final ante (e.g. 8, a loose genre
-  convention) and add a `"win"` overlay state when it's cleared.
+  `"gameover"` (on loss). Decide a final venue (e.g. 8) and add a `"win"` overlay state when it's cleared.
 - **Audit `scoreSelection`/jester `apply` contracts** for edge cases: hand
   sizes other than 5 (currently high-card/pair/etc. detection assumes
   `cards.length === 5` for flush/straight but the function is called with
@@ -120,14 +119,14 @@ itself:
   dev-only tooling, doesn't touch `index.html`.
 - Cover: each hand type detection (including the Ace-low straight fix),
   a couple of jester `apply` effects in combination, `targetForRound` scaling
-  at a few ante/round values.
+  at a few venue/round values.
 - Wire a one-line `npm test`-equivalent or documented `node test/…` command
   in the README's dev section (no `package.json` dependency needed unless
   it's just for the script name).
 
 ### 4. Polish carried by this phase
 
-- Game-over/win overlays should show a short run summary (ante/round
+- Game-over/win overlays should show a short run summary (venue/round
   reached, jesters held) rather than just the current one-line message.
 - Verify keyboard accessibility (already partially done) extends to the
   shop buttons and overlay buttons — confirm focus order/visibility on
@@ -135,7 +134,7 @@ itself:
 
 ### Explicitly not in Phase 1
 
-New jesters, decree/planet cards, props, alternate decks, card art,
+New jesters, decree/mask cards, props, alternate decks, card art,
 animation, sound, localStorage persistence — all later phases.
 
 ### Suggested order

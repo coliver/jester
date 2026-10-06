@@ -90,8 +90,8 @@ static (it's also set up for GitHub Pages).
 
 ## What's intentionally left out
 
-Mid-act saves, a much larger jester roster, spectral-style cards, decks,
-and stakes. This is the "real basic" version — small and
+Mid-act saves, a much larger jester roster, more consumable card types, alternate
+decks, and difficulty tiers. This is the "real basic" version — small and
 deliberately scoped, not a sprawling feature set. (Card art is a partial
 exception: a lightweight, optional `<img>` hook and generated art for the
 jesters landed early since it's additive and non-breaking — see

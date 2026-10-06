@@ -149,8 +149,8 @@ test("scoreSelection stacks additive and multiplicative jesters", () => {
     discardsLeft: 1,
   }));
   const result = scoreSelection(selected);
-  // Base: 10 chips + 4 pair chips = 14, +30 (banner, 1 discard left) = 44 chips.
-  // Mult: 2 base +4 (base_jester) = 6. Photograph needs a scoring face card, and
+  // Base: 10 chips + 4 pair chips = 14, +30 (Standard-Bearer, 1 discard left) = 44 chips.
+  // Mult: 2 base +4 (base_jester) = 6. Royal Portrait needs a scoring face card, and
   // the J and K are only kickers here, so it stays at x1.
   assert.equal(result.chips, 44);
   assert.equal(result.mult, 6);
@@ -294,11 +294,11 @@ test("scoreSelection doesn't apply money itself — only playHand does", () => {
   }
 });
 
-test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
+test("Heraldic Crest scales X1.5 Mult per Uncommon jester owned", () => {
   const selected = [card("6", "♠"), card("9", "♥"), card("Q", "♦"), card("K", "♣"), card("A", "♠")];
   _setState(baseState({ jesters: [jesterById("heraldic_crest"), jesterById("royal_geometer")], hand: selected }));
   const oneUncommon = scoreSelection(selected);
-  assert.equal(oneUncommon.multMul, 1.5); // only Fibonacci (Uncommon) counts, not Baseball Card itself (Rare)
+  assert.equal(oneUncommon.multMul, 1.5); // only Royal Geometer (Uncommon) counts, not Heraldic Crest itself (Rare)
 
   _setState(baseState({
     jesters: [jesterById("heraldic_crest"), jesterById("royal_geometer"), jesterById("privy_purse")],
@@ -311,7 +311,7 @@ test("Baseball Card scales X1.5 Mult per Uncommon jester owned", () => {
 // --- ported jesters, round 2: needed a small amount of new engine --------
 // --- plumbing (see src/scoring.js) beyond the plain per-hand apply(ctx) hook ------
 
-test("Hack doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {
+test("Peasant Revolt doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {
   const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("9", "♣"), card("K", "♣")];
   _setState(baseState({ jesters: [jesterById("peasant_revolt")], hand: selected }));
   const result = scoreSelection(selected);
@@ -319,29 +319,29 @@ test("Hack doubles the chip value of played 2s, 3s, 4s, and 5s only", () => {
   assert.equal(result.chips, 42 + 4);
 });
 
-test("Cavendish gives a flat X3 Mult", () => {
+test("Hardened Taster gives a flat X3 Mult", () => {
   const selected = [card("2", "♠")];
   _setState(baseState({ jesters: [jesterById("hardened_taster")], hand: selected }));
   assert.equal(scoreSelection(selected).multMul, 3);
 });
 
-test("Pareidolia makes every card count as a face card for other jesters", () => {
+test("Delusions of Grandeur makes every card count as a face card for other jesters", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦")]; // no real face cards
   _setState(baseState({ jesters: [jesterById("delusions_of_grandeur"), jesterById("grotesque")], hand: selected }));
   const result = scoreSelection(selected);
-  // Scary Face: +30 Chips per scoring face card; Pareidolia makes every card a face card,
+  // Grotesque: +30 Chips per scoring face card; Delusions of Grandeur makes every card a face card,
   // but only the 9 scores in a High Card.
   assert.equal(result.chips, 5 + 9 + 30);
 });
 
-test("without Pareidolia, Scary Face only counts real face cards", () => {
+test("without Delusions of Grandeur, Grotesque only counts real face cards", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦")];
   _setState(baseState({ jesters: [jesterById("grotesque")], hand: selected }));
   const result = scoreSelection(selected);
   assert.equal(result.chips, 5 + 9); // High Card: only the 9 scores
 });
 
-test("evaluateHand: a 4-card flush only counts with Four Fingers owned", () => {
+test("evaluateHand: a 4-card flush only counts with Corner-Cutter owned", () => {
   const fourSameSuit = [card("2", "♠"), card("5", "♠"), card("9", "♠"), card("K", "♠")];
   _setState(baseState({ jesters: [], hand: fourSameSuit }));
   assert.equal(evaluateHand(fourSameSuit).isFlush, false);
@@ -350,7 +350,7 @@ test("evaluateHand: a 4-card flush only counts with Four Fingers owned", () => {
   assert.equal(evaluateHand(fourSameSuit).isFlush, true);
 });
 
-test("evaluateHand: a 4-card straight only counts with Four Fingers owned", () => {
+test("evaluateHand: a 4-card straight only counts with Corner-Cutter owned", () => {
   const fourInARow = [card("5", "♠"), card("6", "♥"), card("7", "♦"), card("8", "♣")];
   _setState(baseState({ jesters: [], hand: fourInARow }));
   assert.equal(evaluateHand(fourInARow).isStraight, false);
@@ -359,19 +359,19 @@ test("evaluateHand: a 4-card straight only counts with Four Fingers owned", () =
   assert.equal(evaluateHand(fourInARow).isStraight, true);
 });
 
-test("Four Fingers still allows the Ace-low wheel at 4 cards (A-2-3-4)", () => {
+test("Corner-Cutter still allows the Ace-low wheel at 4 cards (A-2-3-4)", () => {
   const wheelFour = [card("A", "♠"), card("2", "♥"), card("3", "♦"), card("4", "♣")];
   _setState(baseState({ jesters: [jesterById("corner_cutter")], hand: wheelFour }));
   assert.equal(evaluateHand(wheelFour).isStraight, true);
 });
 
-test("Four Fingers: a flush plus a straight in different suits is not a Straight Flush", () => {
+test("Corner-Cutter: a flush plus a straight in different suits is not a Straight Flush", () => {
   const mixed = [card("2", "♥"), card("3", "♥"), card("4", "♥"), card("K", "♥"), card("5", "♠")];
   _setState(baseState({ jesters: [jesterById("corner_cutter")], hand: mixed }));
   assert.equal(evaluateHand(mixed).name, "Flush");
 });
 
-test("Four Fingers: a 5-card straight scores all five cards", () => {
+test("Corner-Cutter: a 5-card straight scores all five cards", () => {
   const five = [card("5", "♠"), card("6", "♥"), card("7", "♦"), card("8", "♣"), card("9", "♠")];
   _setState(baseState({ jesters: [jesterById("corner_cutter")], hand: five }));
   assert.equal(evaluateHand(five).scoringCards.length, 5);
@@ -393,57 +393,57 @@ test("interestOn: debt earns no interest", () => {
 
 // --- jester-to-jester synergy/anti-synergy ---------------------------------
 
-test("Brainstorm copies the leftmost Jester's scoring ability", () => {
+test("Mimic copies the leftmost Jester's scoring ability", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")]; // High Card
   const jesters = [jesterById("base_jester"), jesterById("mimic")]; // base_jester (+4 Mult) is leftmost
   _setState(baseState({ jesters, hand: selected }));
   const result = scoreSelection(selected);
-  // High Card base mult 1, +4 (base_jester) +4 (Brainstorm's copy) = 9.
+  // High Card base mult 1, +4 (base_jester) +4 (Mimic's copy) = 9.
   assert.equal(result.mult, 9);
 });
 
-test("Brainstorm does nothing when it is itself the leftmost Jester", () => {
+test("Mimic does nothing when it is itself the leftmost Jester", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   const jesters = [jesterById("mimic"), jesterById("base_jester")];
   _setState(baseState({ jesters, hand: selected }));
   const result = scoreSelection(selected);
-  // Brainstorm copies slot 0 (itself) -> no-op; base_jester still gives +4.
+  // Mimic copies slot 0 (itself) -> no-op; base_jester still gives +4.
   assert.equal(result.mult, 5);
 });
 
-test("Swashbuckler gives Mult equal to the sell value of every other owned Jester", () => {
+test("King's Ransom gives Mult equal to the sell value of every other owned Jester", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
-  const banner = jesterById("standard_bearer"); // price 5 -> sell value 2
+  const standardBearer = jesterById("standard_bearer"); // price 5 -> sell value 2
   const baseJester = jesterById("base_jester"); // price 2 -> sell value 1
-  const jesters = [baseJester, banner, jesterById("kings_ransom")];
+  const jesters = [baseJester, standardBearer, jesterById("kings_ransom")];
   _setState(baseState({ jesters, hand: selected, discardsLeft: 0 }));
   const result = scoreSelection(selected);
-  // High Card base mult 1, +4 (base_jester), +3 (Swashbuckler: 1 + 2 sell value of the other two).
+  // High Card base mult 1, +4 (base_jester), +3 (King's Ransom: 1 + 2 sell value of the other two).
   assert.equal(result.mult, 8);
 });
 
-test("Campfire scales X0.25 Mult per Jester sold this run", () => {
+test("Pyre scales X0.25 Mult per Jester sold this run", () => {
   const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")]; // Pair
   _setState(baseState({ jesters: [jesterById("pyre")], hand: selected, jestersSold: 3 }));
   const result = scoreSelection(selected);
   assert.equal(result.multMul, 1.75); // 1 + 0.25 * 3
 });
 
-test("Campfire has no bonus before any Jester has been sold", () => {
+test("Pyre has no bonus before any Jester has been sold", () => {
   const selected = [card("2", "♠"), card("2", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   _setState(baseState({ jesters: [jesterById("pyre")], hand: selected, jestersSold: 0 }));
   const result = scoreSelection(selected);
   assert.equal(result.multMul, 1);
 });
 
-test("Blueprint copies the scoring ability of the Jester to its right", () => {
+test("Understudy copies the scoring ability of the Jester to its right", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   _setState(baseState({ jesters: [jesterById("understudy"), jesterById("base_jester")], hand: selected }));
-  // High Card base mult 1, +4 (Blueprint's copy) +4 (base_jester) = 9.
+  // High Card base mult 1, +4 (Understudy's copy) +4 (base_jester) = 9.
   assert.equal(scoreSelection(selected).mult, 9);
 });
 
-test("Blueprint does nothing in the rightmost slot or when the two copiers point at each other", () => {
+test("Understudy does nothing in the rightmost slot or when the two copiers point at each other", () => {
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   _setState(baseState({ jesters: [jesterById("base_jester"), jesterById("understudy")], hand: selected }));
   assert.equal(scoreSelection(selected).mult, 5);
@@ -469,7 +469,7 @@ test("Mimic copies a leftmost whole-hand jester", () => {
 });
 
 test("copiers chain: Understudy through Understudy to Baron", () => {
-  const second = { ...jesterById("understudy"), id: "blueprint_2" };
+  const second = { ...jesterById("understudy"), id: "understudy_2" };
   const held = [card("K", "♠"), card("K", "♥")];
   const jesters = [jesterById("understudy"), second, jesterById("baron")];
   _setState(baseState({ jesters, hand: [...PAIR_WITH_KICKER, ...held] }));
@@ -561,7 +561,7 @@ test("targetForRound is always rounded to the nearest 10", () => {
   }
 });
 
-test("jester order changes scoring: Blueprint copies whichever Jester is on its right", () => {
+test("jester order changes scoring: Understudy copies whichever Jester is on its right", () => {
   const { moveJester } = require("../tools/load-game.js");
   const selected = [card("2", "♠"), card("5", "♥"), card("9", "♦"), card("J", "♣"), card("K", "♠")];
   const s = baseState({ jesters: [jesterById("base_jester"), jesterById("understudy")], hand: selected });
@@ -581,7 +581,7 @@ test("scoreSelection lists each played card, then each jester that fires, left t
     hand: selected,
   }));
   const r = scoreSelection(selected);
-  // The 9 is a kicker, so it isn't listed. Zany Jester needs three of a kind, so it stays out too.
+  // The 9 is a kicker, so it isn't listed. Juggler needs three of a kind, so it stays out too.
   assert.deepEqual(r.steps.map(s => `${s.type}:${s.id}`), [
     "card:A♠", "card:A♥", "jester:duettist", "jester:sharper",
   ]);
@@ -632,9 +632,9 @@ test("kickers add no chips and don't trigger per-card jesters", () => {
   }));
   const r = scoreSelection(selected);
   // Pair of 5s: only the two 5s score. The A and K are kickers, even though the
-  // A♦ and K♦ would otherwise feed Greedy, Scary Face and Scholar.
+  // A♦ and K♦ would otherwise feed Miser, Grotesque and Kingmaker.
   assert.equal(r.chips, 10 + 5 + 5);
-  assert.equal(r.mult, 2 + 3); // Greedy: just the one scoring diamond, the 5
+  assert.equal(r.mult, 2 + 3); // Miser: just the one scoring diamond, the 5
 });
 
 test("a per-card jester fires once for each scoring card, right after that card", () => {
@@ -648,8 +648,8 @@ test("a per-card jester fires once for each scoring card, right after that card"
 });
 
 test("every per-card jester ignores kickers", () => {
-  // Pair of 8s plus kickers chosen to match each jester's condition. Fibonacci
-  // (A, 2, 3, 5, 8), Even Steven (2, 4, 6, 8, 10), Odd Todd, Smiley Face, and the
+  // Pair of 8s plus kickers chosen to match each jester's condition. Royal Geometer
+  // (A, 2, 3, 5, 8), Lady Even (2, 4, 6, 8, 10), Lady Odd, Flatterer, and the
   // suit jesters all see the kickers; none of them may fire for them.
   const played = [card("8", "♠"), card("8", "♣"), card("A", "♥"), card("3", "♦"), card("K", "♥")];
   const expectKickersIgnored = (id, fires) => {
@@ -659,7 +659,7 @@ test("every per-card jester ignores kickers", () => {
     assert.equal(jesterSteps.length > 0, fires, id);
     return { multAdd: jesterSteps.reduce((sum, s) => sum + s.multAdd, 0) };
   };
-  // 8♠ 8♣ score: Fibonacci +8 each, Even Steven +4 each; nothing for A, 3 or K.
+  // 8♠ 8♣ score: Royal Geometer +8 each, Lady Even +4 each; nothing for A, 3 or K.
   assert.equal(expectKickersIgnored("royal_geometer", true).multAdd, 16);
   assert.equal(expectKickersIgnored("lady_even", true).multAdd, 8);
   // No odd rank, face card, heart, or diamond scores.

@@ -40,7 +40,7 @@ parser.add_argument("--only", default=None, help="comma-separated card ids to qu
 parser.add_argument("--repeat", type=int, default=1, help="queue each card N times with different seeds")
 parser.add_argument("--seed", type=int, default=None, help="use this seed for every card (default: random per card)")
 parser.add_argument("--aspect", default=None, help="resolution node aspect ratio (default: 9:16 for faces/jesters/decrees/masks, the workflow's 1:1 otherwise)")
-parser.add_argument("--prefix", default="joker_cards", help="ComfyUI output subfolder")
+parser.add_argument("--prefix", default="jester_cards", help="ComfyUI output subfolder")
 parser.add_argument("--workflow", default=None, help="API-format workflow JSON to use instead of workflow_api.json (e.g. the ZImageTurbo.json in the ComfyUI install folder)")
 args = parser.parse_args()
 

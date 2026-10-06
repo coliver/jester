@@ -1,5 +1,22 @@
 // --- Init ---------------------------------------------------------------
 
+const NOTICE_MS = 6000;
+let noticeTimer = null;
+
+// A short message at the top of the screen that fades itself out.
+function showNotice(text) {
+  const el = document.getElementById("notice-toast");
+  el.textContent = text;
+  clearTimeout(noticeTimer);
+  el.classList.remove("hidden");
+  void el.offsetWidth; // flush layout so the fade-in transitions from its hidden state
+  el.classList.add("show");
+  noticeTimer = setTimeout(() => {
+    el.classList.remove("show");
+    noticeTimer = setTimeout(() => el.classList.add("hidden"), 350);
+  }, NOTICE_MS);
+}
+
 function initApp() {
   document.getElementById("play-btn").addEventListener("click", playSelected);
   document.getElementById("discard-btn").addEventListener("click", discardSelected);
@@ -166,6 +183,7 @@ function initApp() {
 
   // A shared ?seed= link starts a new run on that seed, unless that run is already the saved one.
   let saved = loadRun();
+  if (lastLoadFailed) showNotice("Your last run couldn't be restored, so a new one has begun.");
   const linked = seedFromUrl();
   if (linked) {
     if (saved?.seed !== linked) {
@@ -262,6 +280,8 @@ const testHooks = {
   restoreRun,
   loadRun,
   SAVE_KEY,
+  showNotice,
+  _lastLoadFailed: () => lastLoadFailed,
   NEW_RUN_CONFIRM_MS,
   // test-only state access
   _getState: () => state,

@@ -648,6 +648,30 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   #music-toast { transition: none; }
 }
+#notice-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 15;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 13px;
+  background: linear-gradient(160deg, #241019, #170810);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(201,162,74,0.65);
+  color: #ecd9a0;
+  font-family: "IM Fell English", var(--card-font);
+  font-size: 15px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -10px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+#notice-toast.show { opacity: 1; transform: translate(-50%, 0); }
+#notice-toast.hidden { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  #notice-toast { transition: none; }
+}
 #hands-table { width: 100%; margin-bottom: 16px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 #hands-table th { color: var(--accent-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 #hands-table th, #hands-table td { padding: 4px 10px; text-align: right; }

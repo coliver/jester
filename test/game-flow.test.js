@@ -427,7 +427,7 @@ test("full round trip: play to the target, shop, then start the next round", () 
   const after = _getState();
   assert.equal(after.phase, "playing");
   assert.equal(after.round, 2);
-  // The random shop offer may be a hand-size jester (Juggler), so the next
+  // The random shop offer may be a hand-size jester (Many Hands), so the next
   // deal is 8 plus whatever the bought jester (if any) adds.
   const handSizeBonus = after.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0);
   assert.equal(after.hand.length, 8 + handSizeBonus);
@@ -441,7 +441,7 @@ function jesterById(id) {
   return j;
 }
 
-test("Delayed Gratification pays $2 per unused discard if none were used", () => {
+test("Patience pays $2 per unused discard if none were used", () => {
   const state = freshRoundState();
   state.target = 1;
   state.jesters = [jesterById("patience")];
@@ -452,7 +452,7 @@ test("Delayed Gratification pays $2 per unused discard if none were used", () =>
   assert.equal(_getState().lastEarnings.bonus, 2 * 3); // START_DISCARDS(3), none used
 });
 
-test("Delayed Gratification pays nothing once a discard has been used", () => {
+test("Patience pays nothing once a discard has been used", () => {
   const state = freshRoundState();
   state.jesters = [jesterById("patience")];
   toggleCard(state.hand[0].id);
@@ -466,7 +466,7 @@ test("Delayed Gratification pays nothing once a discard has been used", () => {
   assert.equal(_getState().lastEarnings.bonus, 0);
 });
 
-test("To the Moon doubles the interest earned at round end", () => {
+test("Usurer doubles the interest earned at round end", () => {
   const state = freshRoundState();
   state.target = 1;
   state.money = 23; // floor(23/5) = 4 base interest
@@ -480,7 +480,7 @@ test("To the Moon doubles the interest earned at round end", () => {
   assert.equal(after.lastEarnings.bonus, 4);
 });
 
-test("Golden Jester pays a flat $4 at round end", () => {
+test("Gilded Fool pays a flat $4 at round end", () => {
   const state = freshRoundState();
   state.target = 1;
   state.jesters = [jesterById("gilded_fool")];
@@ -491,7 +491,7 @@ test("Golden Jester pays a flat $4 at round end", () => {
   assert.equal(_getState().lastEarnings.bonus, 4);
 });
 
-test("Cavendish gives X3 Mult and can be destroyed by its round-end roll", () => {
+test("Hardened Taster gives X3 Mult and can be destroyed by its round-end roll", () => {
   const state = freshRoundState();
   state.target = 1;
   state.jesters = [jesterById("hardened_taster")];
@@ -502,7 +502,7 @@ test("Cavendish gives X3 Mult and can be destroyed by its round-end roll", () =>
   assert.equal(_getState().jesters.length, 0);
 });
 
-test("Cavendish usually survives round end", () => {
+test("Hardened Taster usually survives round end", () => {
   const state = freshRoundState();
   state.target = 1;
   state.jesters = [jesterById("hardened_taster")];
@@ -513,7 +513,7 @@ test("Cavendish usually survives round end", () => {
   assert.equal(_getState().jesters.length, 1);
 });
 
-test("Juggler adds 1 to hand size", () => {
+test("Many Hands adds 1 to hand size", () => {
   _setState(newState());
   _getState().jesters = [jesterById("many_hands")];
   startRound();
@@ -521,14 +521,14 @@ test("Juggler adds 1 to hand size", () => {
   assert.equal(_getState().hand.length, 9);
 });
 
-test("Drunkard adds 1 discard per round", () => {
+test("Tippler adds 1 discard per round", () => {
   _setState(newState());
   _getState().jesters = [jesterById("tippler")];
   startRound();
   assert.equal(_getState().discardsLeft, 4); // START_DISCARDS(3) + 1
 });
 
-test("Credit Card allows buying into debt, down to -$20", () => {
+test("Promissory Note allows buying into debt, down to -$20", () => {
   const state = freshRoundState();
   state.phase = "shop";
   state.jesters = [jesterById("promissory_note")];
@@ -541,7 +541,7 @@ test("Credit Card allows buying into debt, down to -$20", () => {
   assert.equal(_getState().money, -jester.price);
 });
 
-test("Credit Card still blocks a purchase that would exceed -$20 debt", () => {
+test("Promissory Note still blocks a purchase that would exceed -$20 debt", () => {
   const state = freshRoundState();
   state.phase = "shop";
   state.jesters = [jesterById("promissory_note")];
@@ -555,7 +555,7 @@ test("Credit Card still blocks a purchase that would exceed -$20 debt", () => {
   assert.equal(_getState().money, -19);
 });
 
-test("Chaos the Clown makes only the first reroll of a shop visit free", () => {
+test("Weathervane makes only the first reroll of a shop visit free", () => {
   const state = freshRoundState();
   state.phase = "shop";
   state.jesters = [jesterById("weathervane")];
@@ -573,7 +573,7 @@ test("Chaos the Clown makes only the first reroll of a shop visit free", () => {
   assert.equal(_getState().rerollCost, 3);
 });
 
-test("Faceless Jester pays $5 when 3+ face cards are discarded together", () => {
+test("Palace Purge pays $5 when 3+ face cards are discarded together", () => {
   const state = freshRoundState();
   state.jesters = [jesterById("palace_purge")];
   state.money = 0;
@@ -590,7 +590,7 @@ test("Faceless Jester pays $5 when 3+ face cards are discarded together", () => 
   assert.equal(_getState().money, 5);
 });
 
-test("Faceless Jester pays nothing for fewer than 3 discarded face cards", () => {
+test("Palace Purge pays nothing for fewer than 3 discarded face cards", () => {
   const state = freshRoundState();
   state.jesters = [jesterById("palace_purge")];
   state.money = 0;
@@ -686,7 +686,7 @@ test("The Club zeroes the chip value of played clubs", () => {
   assert.equal(clubResult.chips, spadeResult.chips - 10);
 });
 
-// --- round-end jesters: Egg, Gros Michel, Cloud 9, Rocket, Gift Card -------
+// --- round-end jesters: Nest Egg, Royal Taster, Ninepins, Trebuchet, Patron -------
 // Owned jesters that change over the run are per-instance copies (as buyJester
 // makes them) so tests don't mutate the shared JESTER_POOL entries.
 
@@ -711,14 +711,14 @@ test("buyJester gives the owned jester its own copy, so sell value can change", 
   assert.equal(owned.sellBonus, 0);
 });
 
-test("Egg gains $3 of sell value each round cleared", () => {
-  const egg = { ...jesterById("nest_egg"), sellBonus: 0 };
-  clearRoundWith([egg]);
-  assert.equal(egg.sellBonus, 3);
+test("Nest Egg gains $3 of sell value each round cleared", () => {
+  const nestEgg = { ...jesterById("nest_egg"), sellBonus: 0 };
+  clearRoundWith([nestEgg]);
+  assert.equal(nestEgg.sellBonus, 3);
   assert.equal(jesterById("nest_egg").sellBonus, undefined);
 });
 
-test("Gift Card adds $1 of sell value to every owned jester, itself included", () => {
+test("Patron adds $1 of sell value to every owned jester, itself included", () => {
   const gift = { ...jesterById("patron"), sellBonus: 0 };
   const other = { ...jesterById("base_jester"), sellBonus: 0 };
   clearRoundWith([gift, other]);
@@ -727,26 +727,26 @@ test("Gift Card adds $1 of sell value to every owned jester, itself included", (
 });
 
 test("sold jesters refund their base value plus accumulated sell bonus", () => {
-  const egg = { ...jesterById("nest_egg"), sellBonus: 6 };
-  const state = clearRoundWith([egg]);
+  const nestEgg = { ...jesterById("nest_egg"), sellBonus: 6 };
+  const state = clearRoundWith([nestEgg]);
   const before = state.money;
   sellJester("nest_egg");
   assert.equal(_getState().money, before + 2 + 9); // floor(4/2) + (6 + 3 from this round)
 });
 
-test("Cloud 9 pays $1 per 9 in the deck", () => {
+test("Ninepins pays $1 per 9 in the deck", () => {
   assert.equal(clearRoundWith([{ ...jesterById("ninepins") }]).lastEarnings.bonus, 4);
 });
 
-test("Rocket pays $1 at round end and $2 more per boss round cleared", () => {
-  const rocket = { ...jesterById("trebuchet") };
-  assert.equal(clearRoundWith([rocket]).lastEarnings.bonus, 1);
-  assert.equal(clearRoundWith([rocket], { round: 3 }).lastEarnings.bonus, 1); // boss: pays 1, then rises
-  assert.equal(rocket.rocketPayout, 3);
-  assert.equal(clearRoundWith([rocket]).lastEarnings.bonus, 3);
+test("Trebuchet pays $1 at round end and $2 more per boss round cleared", () => {
+  const trebuchet = { ...jesterById("trebuchet") };
+  assert.equal(clearRoundWith([trebuchet]).lastEarnings.bonus, 1);
+  assert.equal(clearRoundWith([trebuchet], { round: 3 }).lastEarnings.bonus, 1); // boss: pays 1, then rises
+  assert.equal(trebuchet.trebuchetPayout, 3);
+  assert.equal(clearRoundWith([trebuchet]).lastEarnings.bonus, 3);
 });
 
-test("Gros Michel gives +15 Mult and can be destroyed by its 1-in-6 round-end roll", () => {
+test("Royal Taster gives +15 Mult and can be destroyed by its 1-in-6 round-end roll", () => {
   const card = freshRoundState().hand[0];
   const base = scoreSelection([card]).mult;
   _getState().jesters = [jesterById("royal_taster")];
@@ -807,7 +807,7 @@ test("trick pack: costs money, picking one levels its hand", () => {
   assert.equal(_getState().packAvailable, false);
 });
 
-test("Constellation gains X0.1 Mult per trick used", () => {
+test("Belle of the Ball gains X0.1 Mult per trick used", () => {
   const { TRICK_POOL, useTrick } = require("../tools/load-game.js");
   const state = freshRoundState();
   state.jesters = [{ ...jesterById("belle_of_the_ball") }];
@@ -1202,7 +1202,7 @@ test("pickFromPack ignores a missing pack and an id that isn't in it", () => {
   assert.equal(state.handLevels[TRICK_POOL[0].hand], undefined);
 });
 
-test("the free reroll from Chaos the Clown costs nothing once per shop visit", () => {
+test("the free reroll from Weathervane costs nothing once per shop visit", () => {
   const state = shopState({ jesters: [{ ...jesterById("weathervane") }], money: 0 });
   rerollShop();
   assert.equal(state.money, 0);
@@ -1283,8 +1283,8 @@ test("The Bishop zeroes the chip value of played face cards", () => {
 test("The Spymaster silences the leftmost jester", () => {
   const state = freshRoundState();
   const { scoreSelection } = require("../tools/load-game.js");
-  const jolly = JESTER_POOL.find(j => j.id === "miser" || j.id === "base_jester");
-  state.jesters = [{ ...jolly, sellBonus: 0 }];
+  const miser = JESTER_POOL.find(j => j.id === "miser" || j.id === "base_jester");
+  state.jesters = [{ ...miser, sellBonus: 0 }];
   const card = [{ suit: "♦", rank: "5", id: "d" }];
   const before = scoreSelection(card).total;
   state.bossModifier = BOSS_MODIFIERS.find(m => m.id === "spymaster");

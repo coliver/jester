@@ -59,7 +59,7 @@ function trickSlots() { return TRICK_SLOTS + propSum("trickSlotsDelta"); }
 function rerollBaseCost() { return Math.max(1, REROLL_BASE_COST + propSum("rerollDelta")); }
 
 // Resale price of an owned jester: half its cost (min $1) plus whatever
-// round-end jesters (Egg, Gift Card) have added to it since it was bought.
+// round-end jesters (Nest Egg, Patron) have added to it since it was bought.
 function sellValue(jester) {
   return Math.max(1, Math.floor(jester.price / 2)) + (jester.sellBonus || 0);
 }

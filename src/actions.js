@@ -137,7 +137,7 @@ function discardSelected() {
   state.stats.discards += 1;
   markDiscardRoll();
   Sound.discard(selected.length);
-  const faceCount = selected.filter(c => isFaceCard(c, { pareidolia: state.jesters.some(j => j.id === "delusions_of_grandeur") })).length;
+  const faceCount = selected.filter(c => isFaceCard(c, { allFaces: state.jesters.some(j => j.id === "delusions_of_grandeur") })).length;
   if (faceCount >= 3 && state.jesters.some(j => j.id === "palace_purge")) {
     state.money += 5;
   }

@@ -7,12 +7,12 @@ function rankNum(rank) {
 // Called with 1-5 selected cards. Flush/straight normally require exactly 5
 // (checked below); count-based hands (pair..four of a kind) fall out of
 // rankCounts naturally at any size, which is correct (e.g. 4 selected cards
-// of the same rank is a real four of a kind). Owning Four Fingers drops the
+// of the same rank is a real four of a kind). Owning Corner-Cutter drops the
 // flush/straight requirement to 4 cards — any 4 (of the up to 5 selected)
 // that qualify are enough, so a 5-card selection checks every 4-card window.
 // The highest run of at least runSize consecutive ranks among `cards`, as rank
 // numbers (Ace may count low as 1), or null. A longer run is returned whole,
-// so a 5-card straight under Four Fingers still scores all five cards.
+// so a 5-card straight under Corner-Cutter still scores all five cards.
 function straightRun(cards, runSize) {
   const nums = [...new Set(cards.map(c => rankNum(c.rank)))].sort((a, b) => a - b);
   const withWheel = nums.includes(14) ? [1, ...nums] : nums;
@@ -32,8 +32,8 @@ function evaluateHand(cards) {
   for (const c of cards) rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
   const counts = Object.values(rankCounts).sort((a, b) => b - a);
 
-  const fourFingers = state?.jesters?.some(j => j.id === "corner_cutter");
-  const runSize = fourFingers ? 4 : 5;
+  const shortRuns = state?.jesters?.some(j => j.id === "corner_cutter");
+  const runSize = shortRuns ? 4 : 5;
 
   let isFlush = false;
   if (cards.length >= runSize) {
@@ -109,16 +109,16 @@ function getScoringCards(typeName, cards, runSize) {
 
 function cardChipValue(card) {
   if (state?.bossModifier?.suitDebuff && cardIsSuit(card, state.bossModifier.suitDebuff)) return 0;
-  if (state?.bossModifier?.faceDebuff && isFaceCard(card, { pareidolia: state.jesters.some(j => j.id === "delusions_of_grandeur") })) return 0;
+  if (state?.bossModifier?.faceDebuff && isFaceCard(card, { allFaces: state.jesters.some(j => j.id === "delusions_of_grandeur") })) return 0;
   if (card.rank === "A") return 11;
   if (RANK_VALUE[card.rank]) return 10;
   return parseInt(card.rank, 10);
 }
 
-// Pareidolia makes every card count as a face card for jesters that key off
-// FACE_RANKS; ctx.pareidolia is computed once per scoreSelection call.
+// Delusions of Grandeur makes every card count as a face card for jesters that key off
+// FACE_RANKS; ctx.allFaces is computed once per scoreSelection call.
 function isFaceCard(card, ctx) {
-  return FACE_RANKS.has(card.rank) || Boolean(ctx?.pareidolia);
+  return FACE_RANKS.has(card.rank) || Boolean(ctx?.allFaces);
 }
 
 // Besides the totals, the result lists every scoring trigger in the order it happens
@@ -143,7 +143,7 @@ function scoreSelection(selected) {
     deckSize: state.deck.length,
     jesters: state.jesters,
     jesterSlots: jesterSlots(),
-    pareidolia: state.jesters.some(j => j.id === "delusions_of_grandeur"),
+    allFaces: state.jesters.some(j => j.id === "delusions_of_grandeur"),
     jestersSold: state.jestersSold
   };
 
@@ -173,7 +173,7 @@ function scoreSelection(selected) {
     steps.push(step);
 
     // Jesters that react to a scoring card fire right after it, one card at a time
-    // (a royal flush's three face cards each trigger Smiley Face, not once for +15).
+    // (a royal flush's three face cards each trigger Flatterer, not once for +15).
     if (!step.debuffed) {
       for (const [i, j] of state.jesters.entries()) {
         if (!j.onScored || (i === 0 && state.bossModifier?.silenceLeftmost)) continue;

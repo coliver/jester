@@ -1337,6 +1337,14 @@ test("played cards keep their order in the play area while they score", async ()
 
 // --- run persistence (localStorage in the jsdom window) -----------------------
 
+test("showNotice: shows the message", () => {
+  const el = document.getElementById("notice-toast");
+  gameModule.showNotice("Hello, court.");
+  assert.equal(el.textContent, "Hello, court.");
+  assert.ok(!el.classList.contains("hidden"));
+  assert.ok(el.classList.contains("show"));
+});
+
 const savedRun = () => JSON.parse(window.localStorage.getItem(gameModule.SAVE_KEY));
 
 test("persistence: the shop is saved on render, buying updates the save, and a loss clears it", async () => {
@@ -1383,6 +1391,14 @@ test("persistence: a round start is saved, and a corrupt or unusable save is ign
   assert.equal(gameModule.loadRun(), null);
   window.localStorage.setItem(gameModule.SAVE_KEY, JSON.stringify({ v: 1, phase: "shop" }));
   assert.equal(gameModule.loadRun(), null);
+
+  assert.equal(gameModule._lastLoadFailed(), true); // a save that exists but can't be used is flagged
+  window.localStorage.clear();
+  assert.equal(gameModule.loadRun(), null);
+  assert.equal(gameModule._lastLoadFailed(), false); // no save at all is just a new player
+  window.localStorage.setItem(gameModule.SAVE_KEY, JSON.stringify({ v: 1, phase: "shop", jesters: ["retired_jester"] }));
+  assert.equal(gameModule.loadRun(), null);
+  assert.equal(gameModule._lastLoadFailed(), true);
 
   const realStorage = Object.getOwnPropertyDescriptor(window, "localStorage");
   Object.defineProperty(window, "localStorage", { configurable: true, get() { throw new Error("blocked"); } });
