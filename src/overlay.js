@@ -4,6 +4,7 @@
 // animates cards that are actually new; and which payout the count-up last ran for.
 const shopSeen = new Set();
 let shopIntroFor = null;
+let shopSig = null; // what the open shop last drew from, so a repeat render mid-intro can tell nothing changed
 let shopStartMoney = null; // the purse before this shop's payout, for its ledger; null when unknown (a reloaded shop)
 let moneyTick = 0;
 // Whether the shop's muffled music filter is currently engaged, so a render can sync it to
@@ -351,6 +352,15 @@ function copySeedLink(seed, btn) {
   }
 }
 
+function shopSignature() {
+  const ids = (list) => (list || []).map(x => x.id).join(",");
+  return [
+    state.money, state.rerollCost, ids(state.shopOffers), ids(state.shopTricks), ids(state.shopDecrees),
+    state.shopProp?.id, state.packAvailable, state.decreePackAvailable, ids(state.pack),
+    ids(state.jesters), ids(state.tricks), ids(state.props),
+  ].join("|");
+}
+
 function renderOverlay() {
   const overlay = document.getElementById("overlay");
   const rerollBtn = document.getElementById("reroll-btn");
@@ -372,6 +382,12 @@ function renderOverlay() {
       shopIntroFor = earnings;
       shopSeen.clear();
     }
+    // The opening show (iris, ledger, dim shelves) is built by the render that starts it. Another
+    // render while it plays (e.g. the played cards finishing their sweep off the table) with the shop
+    // unchanged would rebuild everything as a plain reopened shop, cutting the show short.
+    const sig = shopSignature();
+    if (!intro && !debug && introActive && sig === shopSig) return;
+    shopSig = sig;
     if (intro) {
       startIntro(overlay); // engages the muffle itself, timed to the iris closing
       Sound.applause(); // the house applauds the won round as the audience leaves

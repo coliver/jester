@@ -246,6 +246,19 @@ test("winning a round opens the shop overlay with working buy/sell/reroll button
   await sleep(DEAL_ANIMATION_MS); // let that round's deal land before the next test injects its own state
 });
 
+test("winning a round: a repeat render during the opening show does not cut the ledger short", async () => {
+  dealtState({ target: 1 });
+  document.querySelector("#hand-row .card").click();
+  document.getElementById("play-btn").click();
+  await sleep(PLAY_WAIT_MS);
+  assert.equal(gameModule._getState().phase, "shop");
+  gameModule.render(); // what the played cards finishing their sweep off the table does
+  assert.ok(document.getElementById("overlay-sub").classList.contains("tally"));
+  assert.ok(document.getElementById("shop-main").classList.contains("dim"));
+  document.getElementById("overlay-btn").click();
+  await sleep(DEAL_ANIMATION_MS);
+});
+
 test("shop: an unaffordable offer is marked unaffordable and its button disabled", () => {
   const offer = gameModule.JESTER_POOL[0];
   dealtState({ phase: "shop", shopOffers: [offer], money: offer.price - 1, jesters: [] });
