@@ -159,7 +159,7 @@ function initApp() {
   }
   musicStopBtn.addEventListener("click", () => {
     if (Sound.isMusicPlaying()) Sound.pauseMusic();
-    else Sound.resumeMusic();
+    else Sound.playMusic();
     syncMusicStopBtn();
   });
   document.getElementById("options-btn").addEventListener("click", syncMusicStopBtn);

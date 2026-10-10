@@ -639,14 +639,24 @@ const Sound = (() => {
 
   // Undoes a wind-down in progress (or one left stalled) so the next round's music
   // spins back up to normal speed and volume instead of cutting straight back in.
+  // A music the player stopped by hand stays stopped: the automatic call at each round
+  // start must not override that, so only playMusic() (the Play button) clears the flag.
+  let musicStoppedByUser = false;
+
   function resumeMusic() {
-    if (!musicEl) return;
+    if (!musicEl || musicStoppedByUser) return;
     musicSpinUp();
+  }
+
+  function playMusic() {
+    musicStoppedByUser = false;
+    resumeMusic();
   }
 
   // The options panel's manual stop: cancels any wind-down or spin-up in progress (so
   // it can't fight a later resume) and just pauses in place, leaving position/track untouched.
   function pauseMusic() {
+    musicStoppedByUser = true;
     cancelMusicWindDown();
     cancelMusicSpinUp();
     if (musicEl) musicEl.pause();
@@ -669,7 +679,7 @@ const Sound = (() => {
     coinBuy, coinSell, coinTally, ledgerLine, ledgerFly, ledgerDone, deny, jesterDestroy, shopDeal, shuffle, applause, fadeOutCrowdInterval, roundWin, gameOver, gameWin, click,
     isMuted, setMuted, toggleMuted,
     getSfxVolume, setSfxVolume, getUiVolume, setUiVolume, getMusicVolume, setMusicVolume, startMusic,
-    nextTrack, prevTrack, getCurrentTrack, onTrackChange, musicWindDown, resumeMusic, pauseMusic, isMusicPlaying, setMusicMuffled,
+    nextTrack, prevTrack, getCurrentTrack, onTrackChange, musicWindDown, resumeMusic, playMusic, pauseMusic, isMusicPlaying, setMusicMuffled,
     getShopFilterFreq, setShopFilterFreq, getShopFilterFreqHP, setShopFilterFreqHP,
   };
 })();
