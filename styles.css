@@ -927,19 +927,7 @@ body {
 /* Portrait phones: browsers can't reliably lock orientation, so ask the
    player to rotate instead of showing a cramped portrait layout. */
 #rotate-prompt { display: none; }
-#size-readout { font-size: 12px; opacity: 0.6; }
-#size-badge {
-  position: fixed;
-  left: 4px;
-  bottom: 4px;
-  z-index: 2101;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.7);
-  pointer-events: none;
-}
+#rotate-hint { font-size: 14px; opacity: 0.6; }
 @media (orientation: portrait) and (max-width: 600px) {
   #rotate-prompt {
     position: fixed;
