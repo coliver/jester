@@ -93,6 +93,9 @@ function render() {
     }
   } else {
     bossBanner.classList.add("hidden");
+    const bossArt = document.getElementById("boss-art");
+    bossArt.hidden = true;
+    bossArt.removeAttribute("src"); // so the next boss (even the same one) loads and reveals it afresh
   }
 
   // --card-w shrinks every card together once a bought slot upgrade (Stilts, Mask Rack) makes
