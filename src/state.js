@@ -156,8 +156,9 @@ function startRound(boss) {
   const jesterHandSizeDelta = state.jesters.reduce((sum, j) => sum + (j.handSizeDelta || 0), 0) + propSum("handSizeDelta");
   const jesterDiscardsDelta = state.jesters.reduce((sum, j) => sum + (j.discardsDelta || 0), 0) + propSum("discardsDelta");
   state.handSize = HAND_SIZE + (state.bossModifier?.handSizeDelta || 0) + jesterHandSizeDelta;
-  state.handsLeft = (state.bossModifier?.handsOverride ?? START_HANDS) + propSum("handsDelta");
-  state.discardsLeft = (state.bossModifier?.discardsOverride ?? START_DISCARDS) + jesterDiscardsDelta;
+  // A boss's override is the final count: props and jesters add to the normal allowance, not to "only 1 hand" / "no discards".
+  state.handsLeft = state.bossModifier?.handsOverride ?? START_HANDS + propSum("handsDelta");
+  state.discardsLeft = state.bossModifier?.discardsOverride ?? START_DISCARDS + jesterDiscardsDelta;
   state.target = targetForRound(state.venue, state.round);
   if (state.bossModifier?.targetMult) {
     state.target = Math.round(state.target * state.bossModifier.targetMult / 10) * 10;

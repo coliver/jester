@@ -645,6 +645,18 @@ test("The Water removes discards for the boss round", () => {
   assert.equal(_getState().handsLeft, 4); // untouched
 });
 
+test("Boss hand and discard limits hold even with Extra Hand / Extra Discard", () => {
+  _setState(newState());
+  _getState().round = 3;
+  _getState().props = ["extra_hand", "extra_discard"].map(propById);
+  withBossModifier("needle", startRound);
+  assert.equal(_getState().handsLeft, 1);
+  assert.equal(_getState().discardsLeft, 4); // the Executioner leaves discards alone
+  withBossModifier("water", startRound);
+  assert.equal(_getState().discardsLeft, 0);
+  assert.equal(_getState().handsLeft, 5);
+});
+
 test("The Manacle deals one fewer card for the boss round", () => {
   _setState(newState());
   _getState().round = 3;
